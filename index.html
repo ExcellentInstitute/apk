@@ -7,27 +7,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
-        
-        /* Glass Panel for Login */
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
-        
-        /* Form & Nav Styles */
         .form-input { @apply w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all bg-slate-50 hover:bg-white; }
         .form-label { @apply block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider; }
-        
-        /* Added explicit cursor: pointer here to fix the mouse hover issue */
         .nav-btn { @apply w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all cursor-pointer; cursor: pointer; }
         .nav-btn.active { @apply bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500; }
-        
-        /* View Animations */
         .view-section { display: none; animation: fadeIn 0.4s ease-in-out; }
         .view-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -37,7 +28,6 @@
 
     <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"></div>
-        
         <div class="glass-panel relative z-10 w-full max-w-md p-8 rounded-3xl shadow-2xl mx-4">
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/30">
@@ -46,7 +36,6 @@
                 <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Excellent Institute</h1>
                 <p class="text-sm text-slate-500 mt-1 font-medium">ERP Admin Portal</p>
             </div>
-
             <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
                 <div>
                     <label class="form-label">Login ID</label>
@@ -62,9 +51,7 @@
                         <input type="password" id="password" class="form-input pl-11" placeholder="Enter password" required>
                     </div>
                 </div>
-                
                 <p id="login-error" class="text-rose-500 text-sm font-medium hidden text-center bg-rose-50 py-2 rounded-lg border border-rose-100">Invalid ID or Password!</p>
-                
                 <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/30 flex justify-center items-center cursor-pointer">
                     Secure Login <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>
                 </button>
@@ -180,7 +167,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="transaction-ledger" class="text-sm divide-y divide-slate-50">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -200,12 +187,10 @@
                                     <label class="form-label">Full Name</label>
                                     <input type="text" id="reg-name" class="form-input" placeholder="e.g. Rahul Sharma" required>
                                 </div>
-                                
                                 <div>
                                     <label class="form-label">Course Name</label>
                                     <input type="text" id="reg-course" class="form-input" placeholder="e.g. PGDCA" required>
                                 </div>
-                                
                                 <div>
                                     <label class="form-label">Mobile Number</label>
                                     <input type="tel" id="reg-phone" class="form-input" placeholder="+91">
@@ -238,14 +223,12 @@
 
                 <div id="view-tuition" class="view-section h-full">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        
                         <div class="lg:col-span-1 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col h-[600px]">
                             <div class="p-6 border-b border-slate-100 bg-slate-50 rounded-t-3xl">
                                 <h3 class="font-bold text-slate-800">Registered Students</h3>
                                 <p class="text-xs text-slate-500">Select a student to add monthly fees</p>
                             </div>
-                            <div class="p-4 overflow-y-auto flex-1 space-y-2" id="student-list">
-                                </div>
+                            <div class="p-4 overflow-y-auto flex-1 space-y-2" id="student-list"></div>
                         </div>
 
                         <div class="lg:col-span-2">
@@ -327,12 +310,10 @@
                                 </div>
                             </form>
                         </div>
-
                         <div class="lg:col-span-2">
                             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 h-[600px] flex flex-col">
                                 <h3 class="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">Expenditure History</h3>
-                                <div class="overflow-y-auto flex-1 pr-2 space-y-3" id="expense-list">
-                                    </div>
+                                <div class="overflow-y-auto flex-1 pr-2 space-y-3" id="expense-list"></div>
                             </div>
                         </div>
                     </div>
@@ -355,12 +336,10 @@
                 document.getElementById('app-screen').classList.remove('hidden');
                 document.getElementById('app-screen').classList.add('flex');
                 
-                // Clear inputs for security
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
                 errorMsg.classList.add('hidden');
                 
-                // Initialize clean dashboard upon login
                 updateDashboard();
                 renderStudentList();
                 renderLedger();
@@ -368,10 +347,8 @@
             } else {
                 errorMsg.classList.remove('hidden');
                 errorMsg.animate([
-                    { transform: 'translateX(0px)' },
-                    { transform: 'translateX(-5px)' },
-                    { transform: 'translateX(5px)' },
-                    { transform: 'translateX(0px)' }
+                    { transform: 'translateX(0px)' }, { transform: 'translateX(-5px)' },
+                    { transform: 'translateX(5px)' }, { transform: 'translateX(0px)' }
                 ], { duration: 300 });
             }
         }
@@ -380,22 +357,57 @@
             document.getElementById('app-screen').classList.add('hidden');
             document.getElementById('app-screen').classList.remove('flex');
             document.getElementById('login-screen').classList.remove('hidden');
-            switchTab('dashboard'); // Reset tab view
+            switchTab('dashboard'); 
         }
 
-        // --- 2. Completely Empty State Data ---
-        let appData = {
-            students: [],
-            transactions: [],
-            stats: { income: 0, expense: 0, balance: 0 }
-        };
+        // --- 2. Empty State Data ---
+        let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
 
-        // --- 3. Core Functions ---
-        function addStudent(name, course, totalFee, paidNow, dateStr = new Date().toISOString().split('T')[0]) {
+        // --- 3. EXCEL BILL GENERATOR ---
+        function generateExcelBill(transactionDetails, billTitle) {
+            // Get exact Date & Time
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-IN');
+            const timeStr = now.toLocaleTimeString('en-IN');
+            
+            // Build the data structure for Excel
+            let wsData = [
+                ["EXCELLENT INSTITUTE"],
+                ["TEACHERS COLONY, SURADA, DIST - GANJAM, ODISHA - 761108"],
+                [""],
+                [`BILL / RECEIPT: ${billTitle}`],
+                ["Date:", dateStr, "Time:", timeStr],
+                ["--------------------------------------------------"],
+                ["DETAILS", "VALUE"]
+            ];
+
+            // Push specific transaction details
+            for (const [key, value] of Object.entries(transactionDetails)) {
+                wsData.push([key, value]);
+            }
+            
+            wsData.push(["--------------------------------------------------"]);
+            wsData.push(["System Generated Receipt. Verified by Admin."]);
+
+            // Create a workbook and sheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // Auto-adjust column widths
+            ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 15 }];
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Receipt");
+            
+            // Trigger browser download
+            const filename = `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+
+        // --- 4. Core Functions ---
+        function addStudent(name, course, totalFee, paidNow, phone) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-            appData.students.push({
-                id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow)
-            });
+            appData.students.push({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow) });
+            const dateStr = new Date().toISOString().split('T')[0];
             recordTransaction("income", `Admission Fee - ${name}`, parseFloat(paidNow), dateStr);
             renderStudentList();
             return id;
@@ -404,14 +416,9 @@
         function recordTransaction(type, title, amount, dateStr, desc = "") {
             appData.transactions.unshift({ 
                 id: 'TXN' + Math.floor(Math.random() * 9000 + 1000),
-                type: type, 
-                title: title,
-                amount: parseFloat(amount),
-                date: dateStr,
-                description: desc
+                type: type, title: title, amount: parseFloat(amount), date: dateStr, description: desc
             });
             
-            // Recalculate Totals
             if (type === 'income') appData.stats.income += parseFloat(amount);
             if (type === 'expense') appData.stats.expense += parseFloat(amount);
             appData.stats.balance = appData.stats.income - appData.stats.expense;
@@ -421,17 +428,29 @@
             if(type === 'expense') renderExpenseList();
         }
 
-        // --- 4. Form Submissions ---
+        // --- 5. Form Submissions ---
         function submitRegistration(e) {
             e.preventDefault();
             const name = document.getElementById('reg-name').value;
             const course = document.getElementById('reg-course').value;
+            const phone = document.getElementById('reg-phone').value;
             const totalFee = document.getElementById('reg-totalfee').value;
             const paid = document.getElementById('reg-paid').value;
 
-            addStudent(name, course, totalFee, paid);
+            const stId = addStudent(name, course, totalFee, paid, phone);
             
-            alert(`Success! ${name} registered. ₹${paid} added to income.`);
+            // Trigger Excel Download
+            generateExcelBill({
+                "Student ID": stId,
+                "Student Name": name,
+                "Phone Number": phone,
+                "Course Name": course,
+                "Total Course Fee": `₹ ${totalFee}`,
+                "Amount Paid Now": `₹ ${paid}`,
+                "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
+            }, "NEW_ADMISSION");
+
+            alert(`Success! ${name} registered. Excel Bill Downloaded.`);
             e.target.reset();
             switchTab('dashboard'); 
         }
@@ -447,7 +466,17 @@
                 student.paidFee += amount;
                 recordTransaction("income", `Tuition (${month}) - ${student.name}`, amount, new Date().toISOString().split('T')[0]);
                 
-                alert(`₹${amount} tuition recorded for ${student.name}!`);
+                // Trigger Excel Download
+                generateExcelBill({
+                    "Student ID": student.id,
+                    "Student Name": student.name,
+                    "Course Name": student.course,
+                    "Payment For Month": month,
+                    "Amount Paid": `₹ ${amount}`,
+                    "Remaining Total Due": `₹ ${student.totalFee - student.paidFee}`
+                }, "TUITION_FEE");
+
+                alert(`₹${amount} tuition recorded for ${student.name}! Excel Bill Downloaded.`);
                 e.target.reset();
                 renderStudentList(); 
                 selectStudent(stId); 
@@ -465,11 +494,20 @@
             }
 
             recordTransaction("expense", category, amount, new Date().toISOString().split('T')[0], desc);
-            alert(`Expense of ₹${amount} deducted from balance.`);
+            
+            // Trigger Excel Download
+            generateExcelBill({
+                "Expense Category": category,
+                "Description": desc || "N/A",
+                "Amount Deducted": `₹ ${amount}`,
+                "Status": "Paid out of Balance"
+            }, "EXPENDITURE_VOUCHER");
+
+            alert(`Expense of ₹${amount} deducted. Excel Voucher Downloaded.`);
             e.target.reset();
         }
 
-        // --- 5. UI Rendering & Updates ---
+        // --- 6. UI Rendering & Updates ---
         function updateDashboard() {
             const format = (num) => `₹${num.toLocaleString('en-IN')}`;
             document.getElementById('dash-income').innerText = format(appData.stats.income);
@@ -550,9 +588,7 @@
                 const isInc = tx.type === 'income';
                 const color = isInc ? 'text-emerald-600' : 'text-rose-600';
                 const sign = isInc ? '+' : '-';
-                const badge = isInc 
-                    ? `<span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold">IN</span>` 
-                    : `<span class="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-md text-[10px] font-bold">OUT</span>`;
+                const badge = isInc ? `<span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold">IN</span>` : `<span class="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-md text-[10px] font-bold">OUT</span>`;
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
@@ -593,7 +629,7 @@
             });
         }
 
-        // --- 6. Navigation Logic ---
+        // --- 7. Navigation Logic ---
         function switchTab(tabId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
@@ -601,12 +637,7 @@
             document.getElementById(`view-${tabId}`).classList.add('active');
             document.getElementById(`nav-${tabId}`).classList.add('active');
 
-            const titles = {
-                'dashboard': 'Financial Dashboard',
-                'registration': 'New Admission',
-                'tuition': 'Tuition Fee Collection',
-                'expenditure': 'Institute Expenditures'
-            };
+            const titles = { 'dashboard': 'Financial Dashboard', 'registration': 'New Admission', 'tuition': 'Tuition Fee Collection', 'expenditure': 'Institute Expenditures' };
             document.getElementById('page-title').innerText = titles[tabId];
         }
 
