@@ -52,8 +52,8 @@
                     </div>
                 </div>
                 <p id="login-error" class="text-rose-500 text-sm font-medium hidden text-center bg-rose-50 py-2 rounded-lg border border-rose-100">Invalid ID or Password!</p>
-                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/30 flex justify-center items-center cursor-pointer">
-                    Secure Login <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>
+                <button type="submit" id="login-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/30 flex justify-center items-center cursor-pointer">
+                    <span id="login-btn-text">Secure Login <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i></span>
                 </button>
             </form>
         </div>
@@ -88,6 +88,16 @@
             </nav>
             
             <div class="p-6 border-t border-slate-800">
+                <div class="mb-4 space-y-2 border-b border-slate-700 pb-4">
+                    <button onclick="exportDatabaseBackup()" class="w-full flex items-center px-4 py-2 text-emerald-400 bg-emerald-950/30 hover:bg-emerald-900/50 rounded-lg transition-all text-sm font-medium border border-emerald-900/50 cursor-pointer">
+                        <i class="fa-solid fa-download w-6 text-center"></i> Manual Backup
+                    </button>
+                    <label class="w-full flex items-center px-4 py-2 text-blue-400 bg-blue-950/30 hover:bg-blue-900/50 rounded-lg transition-all text-sm font-medium border border-blue-900/50 cursor-pointer">
+                        <i class="fa-solid fa-upload w-6 text-center"></i> Restore Data
+                        <input type="file" accept=".json" class="hidden" onchange="importDatabaseBackup(event)">
+                    </label>
+                </div>
+
                 <button onclick="logout()" class="w-full flex items-center px-4 py-3 mb-4 text-rose-400 hover:bg-rose-950/50 hover:text-rose-300 rounded-xl transition-all cursor-pointer border border-rose-900/30">
                     <i class="fa-solid fa-power-off w-8 text-lg"></i> <span class="font-medium">Log Out</span>
                 </button>
@@ -95,7 +105,7 @@
                     <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" class="w-10 h-10 rounded-full">
                     <div>
                         <p class="text-sm font-bold">Admin Portal</p>
-                        <p class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[8px]"></i> System Online</p>
+                        <p class="text-xs text-emerald-400"><i class="fa-solid fa-circle text-[8px]"></i> Cloud Sync Active</p>
                     </div>
                 </div>
             </div>
@@ -324,26 +334,124 @@
     </div>
 
     <script>
-        // --- 1. Login Authentication ---
-        function handleLogin(e) {
+        // --- 1. GOOGLE DRIVE CLOUD DATABASE SETUP ---
+        // !!!!!!!! IMPORTANT !!!!!!!! 
+        // PASTE YOUR GOOGLE SCRIPT WEB APP URL BETWEEN THE QUOTES BELOW:
+        const GOOGLE_APP_URL = "PASTE_YOUR_COPIED_LINK_HERE";
+        
+        const defaultDatabase = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
+        let appData = JSON.parse(JSON.stringify(defaultDatabase));
+
+        // Load data from Google Drive
+        async function initDatabase() {
+            try {
+                if (GOOGLE_APP_URL === "PASTE_YOUR_COPIED_LINK_HERE") {
+                    console.log("No Google URL provided yet. Using local memory.");
+                    loadLocalBackup();
+                } else {
+                    const response = await fetch(GOOGLE_APP_URL);
+                    const data = await response.json();
+                    
+                    if (data && data.stats) {
+                        appData = data;
+                        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+                    } else {
+                        loadLocalBackup();
+                    }
+                }
+            } catch (error) {
+                console.log("Could not connect to Google Drive. Loading local backup.", error);
+                loadLocalBackup();
+            }
+            
+            updateDashboard();
+            renderStudentList();
+            renderLedger();
+            renderExpenseList();
+        }
+
+        function loadLocalBackup() {
+            const savedData = localStorage.getItem('excellentERP_Database');
+            if (savedData) appData = JSON.parse(savedData);
+        }
+
+        // Save data to Google Drive automatically
+        function saveDatabase() {
+            localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+            
+            if (GOOGLE_APP_URL !== "PASTE_YOUR_COPIED_LINK_HERE") {
+                fetch(GOOGLE_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(appData),
+                    headers: { "Content-Type": "text/plain;charset=utf-8" }
+                }).catch(error => console.log("Google sync failed. Will retry later.", error));
+            }
+        }
+
+        // --- 2. BACKUP AND RESTORE FUNCTIONS ---
+        function exportDatabaseBackup() {
+            const dataStr = JSON.stringify(appData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            link.download = `Excellent_Institute_Backup_${date}.json`;
+            link.href = url;
+            link.click();
+        }
+
+        function importDatabaseBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.students && importedData.transactions && importedData.stats) {
+                        appData = importedData;
+                        saveDatabase();
+                        alert("Database Restored Successfully!");
+                        updateDashboard();
+                        renderStudentList();
+                        renderLedger();
+                        renderExpenseList();
+                    } else {
+                        alert("Error: Invalid backup file format.");
+                    }
+                } catch (error) {
+                    alert("Error reading backup file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 3. LOGIN AUTHENTICATION ---
+        async function handleLogin(e) {
             e.preventDefault();
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
             const errorMsg = document.getElementById('login-error');
+            const btnText = document.getElementById('login-btn-text');
 
             if (user === 'excellent' && pass === 'excellent@9658') {
+                errorMsg.classList.add('hidden');
+                
+                // Show Loading Animation
+                btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Connecting to Cloud...';
+                
+                // Fetch latest data from Google
+                await initDatabase();
+                
+                // Reveal App
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-screen').classList.remove('hidden');
                 document.getElementById('app-screen').classList.add('flex');
                 
+                // Reset Login form for security
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
-                errorMsg.classList.add('hidden');
+                btnText.innerHTML = 'Secure Login <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>';
                 
-                updateDashboard();
-                renderStudentList();
-                renderLedger();
-                renderExpenseList();
             } else {
                 errorMsg.classList.remove('hidden');
                 errorMsg.animate([
@@ -360,17 +468,12 @@
             switchTab('dashboard'); 
         }
 
-        // --- 2. Empty State Data ---
-        let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
-
-        // --- 3. EXCEL BILL GENERATOR ---
+        // --- 4. EXCEL BILL GENERATOR ---
         function generateExcelBill(transactionDetails, billTitle) {
-            // Get exact Date & Time
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-IN');
             const timeStr = now.toLocaleTimeString('en-IN');
             
-            // Build the data structure for Excel
             let wsData = [
                 ["EXCELLENT INSTITUTE"],
                 ["TEACHERS COLONY, SURADA, DIST - GANJAM, ODISHA - 761108"],
@@ -381,7 +484,6 @@
                 ["DETAILS", "VALUE"]
             ];
 
-            // Push specific transaction details
             for (const [key, value] of Object.entries(transactionDetails)) {
                 wsData.push([key, value]);
             }
@@ -389,27 +491,23 @@
             wsData.push(["--------------------------------------------------"]);
             wsData.push(["System Generated Receipt. Verified by Admin."]);
 
-            // Create a workbook and sheet
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-            
-            // Auto-adjust column widths
             ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 15 }];
-            
             XLSX.utils.book_append_sheet(wb, ws, "Receipt");
             
-            // Trigger browser download
             const filename = `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`;
             XLSX.writeFile(wb, filename);
         }
 
-        // --- 4. Core Functions ---
+        // --- 5. CORE FUNCTIONS ---
         function addStudent(name, course, totalFee, paidNow, phone) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.push({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow) });
             const dateStr = new Date().toISOString().split('T')[0];
             recordTransaction("income", `Admission Fee - ${name}`, parseFloat(paidNow), dateStr);
             renderStudentList();
+            saveDatabase();
             return id;
         }
 
@@ -426,9 +524,10 @@
             updateDashboard();
             renderLedger();
             if(type === 'expense') renderExpenseList();
+            saveDatabase();
         }
 
-        // --- 5. Form Submissions ---
+        // --- 6. FORM SUBMISSIONS ---
         function submitRegistration(e) {
             e.preventDefault();
             const name = document.getElementById('reg-name').value;
@@ -439,15 +538,10 @@
 
             const stId = addStudent(name, course, totalFee, paid, phone);
             
-            // Trigger Excel Download
             generateExcelBill({
-                "Student ID": stId,
-                "Student Name": name,
-                "Phone Number": phone,
-                "Course Name": course,
-                "Total Course Fee": `₹ ${totalFee}`,
-                "Amount Paid Now": `₹ ${paid}`,
-                "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
+                "Student ID": stId, "Student Name": name, "Phone Number": phone,
+                "Course Name": course, "Total Course Fee": `₹ ${totalFee}`,
+                "Amount Paid Now": `₹ ${paid}`, "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
             }, "NEW_ADMISSION");
 
             alert(`Success! ${name} registered. Excel Bill Downloaded.`);
@@ -466,13 +560,9 @@
                 student.paidFee += amount;
                 recordTransaction("income", `Tuition (${month}) - ${student.name}`, amount, new Date().toISOString().split('T')[0]);
                 
-                // Trigger Excel Download
                 generateExcelBill({
-                    "Student ID": student.id,
-                    "Student Name": student.name,
-                    "Course Name": student.course,
-                    "Payment For Month": month,
-                    "Amount Paid": `₹ ${amount}`,
+                    "Student ID": student.id, "Student Name": student.name, "Course Name": student.course,
+                    "Payment For Month": month, "Amount Paid": `₹ ${amount}`,
                     "Remaining Total Due": `₹ ${student.totalFee - student.paidFee}`
                 }, "TUITION_FEE");
 
@@ -495,19 +585,16 @@
 
             recordTransaction("expense", category, amount, new Date().toISOString().split('T')[0], desc);
             
-            // Trigger Excel Download
             generateExcelBill({
-                "Expense Category": category,
-                "Description": desc || "N/A",
-                "Amount Deducted": `₹ ${amount}`,
-                "Status": "Paid out of Balance"
+                "Expense Category": category, "Description": desc || "N/A",
+                "Amount Deducted": `₹ ${amount}`, "Status": "Paid out of Balance"
             }, "EXPENDITURE_VOUCHER");
 
             alert(`Expense of ₹${amount} deducted. Excel Voucher Downloaded.`);
             e.target.reset();
         }
 
-        // --- 6. UI Rendering & Updates ---
+        // --- 7. UI RENDERING & UPDATES ---
         function updateDashboard() {
             const format = (num) => `₹${num.toLocaleString('en-IN')}`;
             document.getElementById('dash-income').innerText = format(appData.stats.income);
@@ -629,7 +716,6 @@
             });
         }
 
-        // --- 7. Navigation Logic ---
         function switchTab(tabId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
