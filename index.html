@@ -69,7 +69,8 @@
     <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-animated">
         <div class="glass-panel relative z-10 w-full max-w-md p-8 md:p-10 rounded-[2.5rem] mx-4 transform transition-all">
             <div class="text-center mb-10">
-                <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=4f46e5&color=fff&size=128&bold=true'" alt="Institute Logo" class="w-24 h-24 mx-auto mb-6 object-contain rounded-[1.5rem] shadow-2xl shadow-indigo-500/20 bg-white p-2 border border-slate-100">
+                
+                <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=4f46e5&color=fff&size=128&bold=true&rounded=true'" alt="Institute Logo" class="w-28 h-28 mx-auto mb-6 object-cover rounded-full shadow-2xl shadow-indigo-500/20 bg-transparent border-4 border-white/20 p-0.5">
                 
                 <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Excellent Institute</h1>
                 <p class="text-sm text-indigo-600 mt-2 font-bold uppercase tracking-widest">Secure Admin Portal</p>
@@ -103,7 +104,7 @@
             <div class="h-24 flex items-center px-6 bg-slate-950/50 relative overflow-hidden border-b border-slate-800">
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
                 
-                <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=4f46e5&color=fff&size=64&bold=true'" alt="Institute Logo" class="w-12 h-12 mr-3 rounded-xl shadow-lg shadow-indigo-500/40 object-contain bg-white p-1 relative z-10 shrink-0">
+                <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=fff&color=1e293b&size=64&bold=true&rounded=true'" alt="Institute Logo" class="w-14 h-14 mr-3 rounded-full shadow-lg shadow-indigo-500/50 object-cover bg-transparent relative z-10 shrink-0 border-2 border-slate-700">
                 
                 <div class="relative z-10">
                     <h1 class="text-lg font-bold text-white tracking-wide">Excellent Inst.</h1>
@@ -554,7 +555,6 @@
     </div>
 
     <script>
-        // --- 1. NEW GOOGLE APP SCRIPT URL ---
         const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
         
         const defaultDatabase = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
@@ -604,7 +604,6 @@
             renderPrintList();
         }
 
-        // --- 2. IMAGE COMPRESSION ---
         function compressImage(file, callback) {
             if(!file) return callback(null);
             const reader = new FileReader();
@@ -626,7 +625,6 @@
             reader.readAsDataURL(file);
         }
 
-        // --- 3. MOBILE SIDEBAR ---
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('-translate-x-full');
             const overlay = document.getElementById('sidebar-overlay');
@@ -639,7 +637,6 @@
             }
         }
 
-        // --- 4. BACKUP/RESTORE ---
         function exportDatabaseBackup() {
             const url = URL.createObjectURL(new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' }));
             const link = document.createElement('a');
@@ -662,7 +659,6 @@
             reader.readAsText(file);
         }
 
-        // --- 5. AUTHENTICATION ---
         async function handleLogin(e) {
             e.preventDefault();
             const user = document.getElementById('username').value;
@@ -675,7 +671,6 @@
                 btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Syncing Cloud Data...';
                 await initDatabase();
                 
-                // Animate Out
                 document.getElementById('login-screen').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('login-screen').classList.add('hidden');
@@ -692,7 +687,6 @@
         }
         function logout() { location.reload(); }
 
-        // --- 6. EXCEL GENERATOR ---
         function generateExcelBill(transactionDetails, billTitle) {
             const now = new Date();
             let wsData = [
@@ -708,7 +702,6 @@
             XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
         }
 
-        // --- 7. CORE FUNCTIONS ---
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ 
@@ -730,7 +723,6 @@
             refreshAllUI(); saveDatabase();
         }
 
-        // --- 8. SUBMISSIONS ---
         function submitRegistration(e) {
             e.preventDefault();
             const date = document.getElementById('reg-date').value;
@@ -755,7 +747,6 @@
             });
         }
 
-        // --- EXAM FEE LOGIC ---
         function submitTuitionFee(e) {
             e.preventDefault();
             const stId = document.getElementById('tuition-student-id').value;
@@ -766,7 +757,6 @@
 
             let student = appData.students.find(s => s.id === stId);
             if(student) {
-                // ONLY deduct from pending due if it is Course Tuition Fee
                 if(feeCategory === "Course Tuition Fee") {
                     student.paidFee += amount; 
                 }
@@ -823,7 +813,6 @@
             e.target.reset(); setDefaultDates();
         }
 
-        // --- 9. UI RENDERING ---
         function updateDashboard() {
             const format = (num) => `₹${num.toLocaleString('en-IN')}`;
             document.getElementById('dash-income').innerText = format(appData.stats.income);
