@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Overview Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-slate-900 text-white flex flex-col transition-all duration-300">
+        <div class="h-20 flex items-center px-8 border-b border-slate-700">
+            <i class="fa-solid fa-gem text-indigo-400 text-2xl mr-3"></i>
+            <h1 class="text-xl font-bold tracking-wider">FinDash</h1>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="#" class="flex items-center px-4 py-3 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-500/30 transition-all">
+                <i class="fa-solid fa-chart-pie w-6"></i> Dashboard
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+                <i class="fa-solid fa-user-plus w-6"></i> Registrations
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+                <i class="fa-solid fa-briefcase w-6"></i> Job Applications
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+                <i class="fa-solid fa-graduation-cap w-6"></i> Tuitions
+            </a>
+            <a href="#" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+                <i class="fa-solid fa-file-invoice-dollar w-6"></i> Expenditures
+            </a>
+        </nav>
+        <div class="p-4">
+            <div class="bg-slate-800 rounded-xl p-4 flex items-center border border-slate-700">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff" alt="Admin" class="w-10 h-10 rounded-full">
+                <div class="ml-3">
+                    <p class="text-sm font-medium">Admin User</p>
+                    <p class="text-xs text-slate-400">Finance Dept</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 z-10">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800">Financial Overview</h2>
+                <p class="text-sm text-slate-500">Track your incoming fees and outgoing expenses</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors relative">
+                    <i class="fa-regular fa-bell"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <button class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg shadow hover:bg-slate-800 transition-all">
+                    <i class="fa-solid fa-download mr-2"></i> Export Report
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 bg-slate-50 pb-20">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                
+                <div class="rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 p-6 text-white shadow-lg shadow-teal-500/30 transform hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-white/20 text-8xl">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-teal-50 font-medium tracking-wide text-sm uppercase">Registration Fees</h3>
+                            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                <i class="fa-solid fa-user-plus text-white"></i>
+                            </div>
+                        </div>
+                        <h2 class="text-4xl font-bold mb-1">$45,230</h2>
+                        <p class="text-teal-100 text-sm"><i class="fa-solid fa-arrow-trend-up mr-1"></i> +12.5% from last month</p>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 p-6 text-white shadow-lg shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-white/20 text-8xl">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-indigo-100 font-medium tracking-wide text-sm uppercase">Job App Fees</h3>
+                            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                <i class="fa-solid fa-file-signature text-white"></i>
+                            </div>
+                        </div>
+                        <h2 class="text-4xl font-bold mb-1">$18,400</h2>
+                        <p class="text-indigo-100 text-sm"><i class="fa-solid fa-arrow-trend-up mr-1"></i> +5.2% from last month</p>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-600 p-6 text-white shadow-lg shadow-blue-500/30 transform hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-white/20 text-8xl">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-blue-100 font-medium tracking-wide text-sm uppercase">Monthly Tuition</h3>
+                            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                <i class="fa-solid fa-book-open text-white"></i>
+                            </div>
+                        </div>
+                        <h2 class="text-4xl font-bold mb-1">$124,500</h2>
+                        <p class="text-blue-100 text-sm"><i class="fa-solid fa-arrow-trend-up mr-1"></i> +2.1% from last month</p>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-rose-400 to-red-600 p-6 text-white shadow-lg shadow-red-500/30 transform hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-white/20 text-8xl">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-red-100 font-medium tracking-wide text-sm uppercase">Expenditures</h3>
+                            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                <i class="fa-solid fa-receipt text-white"></i>
+                            </div>
+                        </div>
+                        <h2 class="text-4xl font-bold mb-1">$32,850</h2>
+                        <p class="text-red-100 text-sm"><i class="fa-solid fa-arrow-trend-down mr-1"></i> -4.3% from last month</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <div class="lg:col-span-1 glass-card rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-6">Cash Flow Summary</h3>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="font-medium text-slate-600">Total Revenue</span>
+                                <span class="font-bold text-emerald-600">$188,130</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-3">
+                                <div class="bg-emerald-500 h-3 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="pl-4 border-l-2 border-slate-100 space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-slate-500">Tuition (66%)</span>
+                                    <span class="font-medium text-slate-700">$124,500</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-1.5">
+                                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: 66%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-slate-500">Registration (24%)</span>
+                                    <span class="font-medium text-slate-700">$45,230</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-1.5">
+                                    <div class="bg-teal-500 h-1.5 rounded-full" style="width: 24%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-slate-500">Job App (10%)</span>
+                                    <span class="font-medium text-slate-700">$18,400</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-1.5">
+                                    <div class="bg-purple-500 h-1.5 rounded-full" style="width: 10%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="font-medium text-slate-600">Total Expenditure</span>
+                                <span class="font-bold text-rose-600">$32,850</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-3">
+                                <div class="bg-rose-500 h-3 rounded-full" style="width: 25%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-emerald-800 font-medium">Net Profit</p>
+                                <p class="text-2xl font-bold text-emerald-600">$155,280</p>
+                            </div>
+                            <div class="w-12 h-12 bg-emerald-200 text-emerald-700 rounded-full flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-piggy-bank"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 glass-card rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-bold text-slate-800">Recent Transactions</h3>
+                        <a href="#" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View All <i class="fa-solid fa-arrow-right ml-1"></i></a>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-slate-400 text-xs uppercase bg-slate-50 border-y border-slate-100">
+                                    <th class="py-3 px-4 font-medium rounded-tl-lg">Transaction Details</th>
+                                    <th class="py-3 px-4 font-medium">Category</th>
+                                    <th class="py-3 px-4 font-medium">Date</th>
+                                    <th class="py-3 px-4 font-medium">Status</th>
+                                    <th class="py-3 px-4 font-medium text-right rounded-tr-lg">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-slate-100">
+                                <tr class="hover:bg-slate-50 transition-colors group">
+                                    <td class="py-4 px-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3">
+                                            <i class="fa-solid fa-book-open"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-slate-700">Sarah Jenkins</p>
+                                            <p class="text-xs text-slate-500">Invoice #INV-2041</p>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-4 text-slate-600">Monthly Tuition</td>
+                                    <td class="py-4 px-4 text-slate-500">Mar 21, 2026</td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">Completed</span>
+                                    </td>
+                                    <td class="py-4 px-4 font-bold text-slate-700 text-right">+$1,500.00</td>
+                                </tr>
+                                
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="py-4 px-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mr-3">
+                                            <i class="fa-solid fa-user-plus"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-slate-700">Marcus Wright</p>
+                                            <p class="text-xs text-slate-500">Invoice #INV-2042</p>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-4 text-slate-600">Registration Fee</td>
+                                    <td class="py-4 px-4 text-slate-500">Mar 20, 2026</td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">Completed</span>
+                                    </td>
+                                    <td class="py-4 px-4 font-bold text-slate-700 text-right">+$250.00</td>
+                                </tr>
+
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="py-4 px-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mr-3">
+                                            <i class="fa-solid fa-bolt"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-slate-700">Office Utilities</p>
+                                            <p class="text-xs text-slate-500">Ref #EXP-890</p>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-4 text-slate-600">Expenditure</td>
+                                    <td class="py-4 px-4 text-slate-500">Mar 19, 2026</td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">Processing</span>
+                                    </td>
+                                    <td class="py-4 px-4 font-bold text-rose-600 text-right">-$420.50</td>
+                                </tr>
+
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="py-4 px-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-3">
+                                            <i class="fa-solid fa-briefcase"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-slate-700">Elena Gomez</p>
+                                            <p class="text-xs text-slate-500">Invoice #INV-2043</p>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-4 text-slate-600">Job App Fee</td>
+                                    <td class="py-4 px-4 text-slate-500">Mar 18, 2026</td>
+                                    <td class="py-4 px-4">
+                                        <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">Completed</span>
+                                    </td>
+                                    <td class="py-4 px-4 font-bold text-slate-700 text-right">+$150.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
