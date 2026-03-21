@@ -14,7 +14,7 @@
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
         .form-input { @apply w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all bg-slate-50 hover:bg-white; }
         .form-label { @apply block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider; }
-        .nav-btn { @apply w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all cursor-pointer; cursor: pointer; }
+        .nav-btn { @apply w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all cursor-pointer; }
         .nav-btn.active { @apply bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500; }
         .view-section { display: none; animation: fadeIn 0.4s ease-in-out; }
         .view-section.active { display: block; }
@@ -22,6 +22,19 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* Print Styles */
+        @media print {
+            aside, #sidebar-overlay, header, .nav-btn, button, #login-screen { display: none !important; }
+            main { background: white !important; overflow: visible !important; height: auto !important; padding: 0 !important; }
+            .view-section { display: none !important; }
+            #view-dashboard { display: block !important; width: 100% !important; }
+            .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+            .bg-gradient-to-br { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; }
+            .text-white { color: #000 !important; }
+            body { background: white !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
     </style>
 </head>
 <body class="text-slate-800 h-screen overflow-hidden flex selection:bg-indigo-100 relative">
@@ -89,6 +102,9 @@
                 <div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn cursor-pointer">
                     <i class="fa-solid fa-hand-holding-dollar w-8 text-lg"></i> <span class="font-medium">Collect Tuition</span>
                 </div>
+                <div onclick="switchTab('job')" id="nav-job" class="nav-btn cursor-pointer">
+                    <i class="fa-solid fa-briefcase w-8 text-lg"></i> <span class="font-medium">Job Desk</span>
+                </div>
                 <div onclick="switchTab('expenditure')" id="nav-expenditure" class="nav-btn cursor-pointer">
                     <i class="fa-solid fa-wallet w-8 text-lg"></i> <span class="font-medium">Expenditures</span>
                 </div>
@@ -132,7 +148,7 @@
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
                     <div class="bg-indigo-50 text-indigo-600 px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-semibold text-xs md:text-sm border border-indigo-100 shadow-sm flex items-center whitespace-nowrap">
-                        <i class="fa-solid fa-indian-rupee-sign md:mr-2"></i> <span class="hidden md:inline">Net Balance: </span> <span id="header-balance" class="ml-1 md:ml-2 text-base md:text-lg font-bold">₹0</span>
+                        <span class="hidden md:inline mr-2">Net Balance: </span> <span id="header-balance" class="text-base md:text-lg font-bold">₹0</span>
                     </div>
                 </div>
             </header>
@@ -140,6 +156,13 @@
             <div class="flex-1 overflow-y-auto p-4 md:p-10 pb-24 w-full">
                 
                 <div id="view-dashboard" class="view-section active space-y-6 md:space-y-8">
+                    
+                    <div class="flex justify-end">
+                        <button onclick="window.print()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold rounded-xl shadow-md transition-all flex items-center">
+                            <i class="fa-solid fa-print mr-2"></i> Print Financial Statement
+                        </button>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                         <div class="bg-white rounded-2xl md:rounded-3xl p-5 md:p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
                             <div class="absolute -right-6 -top-6 w-24 h-24 md:w-32 md:h-32 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out"></div>
@@ -149,7 +172,7 @@
                                     <div class="w-8 h-8 md:w-10 md:h-10 bg-emerald-100 text-emerald-600 rounded-lg md:rounded-xl flex items-center justify-center"><i class="fa-solid fa-arrow-trend-up"></i></div>
                                 </div>
                                 <h2 class="text-3xl md:text-4xl font-bold text-slate-800" id="dash-income">₹0</h2>
-                                <p class="text-[10px] md:text-xs text-emerald-600 mt-1 md:mt-2 font-medium">+ Admissions & Tuitions</p>
+                                <p class="text-[10px] md:text-xs text-emerald-600 mt-1 md:mt-2 font-medium">+ Tuitions, Admissions & Jobs</p>
                             </div>
                         </div>
                         <div class="bg-white rounded-2xl md:rounded-3xl p-5 md:p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
@@ -200,10 +223,21 @@
                         <div class="bg-gradient-to-r from-slate-900 to-indigo-900 p-6 md:p-8 text-white relative overflow-hidden">
                             <i class="fa-solid fa-id-card absolute -right-4 -bottom-4 md:-right-10 md:-bottom-10 text-7xl md:text-9xl text-white/10 transform rotate-12"></i>
                             <h2 class="text-xl md:text-2xl font-bold relative z-10">New Student Admission</h2>
-                            <p class="text-indigo-200 text-xs md:text-sm mt-1 relative z-10">Fill details and collect initial admission fees.</p>
+                            <p class="text-indigo-200 text-xs md:text-sm mt-1 relative z-10">Add student details, photo, and initial fees.</p>
                         </div>
 
                         <div class="p-5 md:p-8 space-y-6 md:space-y-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div>
+                                    <label class="form-label text-indigo-600">Admission Date</label>
+                                    <input type="date" id="reg-date" class="form-input border-indigo-200" required>
+                                </div>
+                                <div>
+                                    <label class="form-label text-indigo-600">Student Photo (Optional)</label>
+                                    <input type="file" id="reg-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+                            </div>
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <div>
                                     <label class="form-label">Full Name</label>
@@ -214,22 +248,30 @@
                                     <input type="text" id="reg-course" class="form-input" placeholder="e.g. PGDCA" required>
                                 </div>
                                 <div>
-                                    <label class="form-label">Mobile Number</label>
-                                    <input type="tel" id="reg-phone" class="form-input" placeholder="+91">
+                                    <label class="form-label">Fee Structure</label>
+                                    <select id="reg-feetype" class="form-input cursor-pointer" required>
+                                        <option value="Monthly">Monthly Payment</option>
+                                        <option value="One-Time">One-Time Payment</option>
+                                    </select>
                                 </div>
                                 <div>
-                                    <label class="form-label">Total Course Fee Commited (₹)</label>
-                                    <input type="number" id="reg-totalfee" class="form-input" placeholder="e.g. 15000" required>
+                                    <label class="form-label">Mobile Number</label>
+                                    <input type="tel" id="reg-phone" class="form-input" placeholder="+91">
                                 </div>
                             </div>
 
                             <hr class="border-slate-100">
 
                             <div class="bg-emerald-50/50 rounded-xl md:rounded-2xl p-4 md:p-6 border border-emerald-100">
-                                <h3 class="text-emerald-800 font-bold mb-3 md:mb-4 flex items-center text-sm md:text-base"><i class="fa-solid fa-money-check-dollar mr-2"></i> Initial Payment (Admission)</h3>
+                                <div class="flex justify-between items-center mb-3 md:mb-4">
+                                    <h3 class="text-emerald-800 font-bold flex items-center text-sm md:text-base"><i class="fa-solid fa-money-check-dollar mr-2"></i> Initial Payment Received</h3>
+                                </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-end">
                                     <div>
-                                        <label class="form-label text-emerald-700">Amount Paying Now (₹)</label>
+                                        <label class="form-label text-slate-500">Total Course Fee Commited (₹)</label>
+                                        <input type="number" id="reg-totalfee" class="form-input mb-4" placeholder="e.g. 15000" required>
+                                        
+                                        <label class="form-label text-emerald-700">Advance / Amount Paying Now (₹)</label>
                                         <input type="number" id="reg-paid" class="form-input border-emerald-200 focus:border-emerald-500 focus:ring-emerald-200 text-base md:text-lg font-bold text-emerald-700" placeholder="0" required>
                                     </div>
                                     <div>
@@ -245,11 +287,10 @@
 
                 <div id="view-tuition" class="view-section h-full">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                        
-                        <div class="lg:col-span-1 bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col h-[350px] md:h-[600px]">
+                        <div class="lg:col-span-1 bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col h-[350px] md:h-[650px]">
                             <div class="p-4 md:p-6 border-b border-slate-100 bg-slate-50 rounded-t-2xl md:rounded-t-3xl">
                                 <h3 class="font-bold text-slate-800 text-sm md:text-base">Registered Students</h3>
-                                <p class="text-[10px] md:text-xs text-slate-500">Select a student to add monthly fees</p>
+                                <p class="text-[10px] md:text-xs text-slate-500">Select a student to add fees</p>
                             </div>
                             <div class="p-3 md:p-4 overflow-y-auto flex-1 space-y-2" id="student-list"></div>
                         </div>
@@ -257,19 +298,20 @@
                         <div class="lg:col-span-2">
                             <div class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8 relative overflow-hidden h-full flex flex-col justify-center text-center" id="tuition-placeholder">
                                 <div class="w-16 h-16 md:w-24 md:h-24 bg-indigo-50 text-indigo-300 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 text-2xl md:text-4xl">
-                                    <i class="fa-solid fa-user-graduate"></i>
+                                    <i class="fa-solid fa-hand-holding-dollar"></i>
                                 </div>
-                                <h3 class="text-lg md:text-xl font-bold text-slate-400">Select a student from the list</h3>
-                                <p class="text-slate-400 text-xs md:text-sm mt-1 md:mt-2">Their fee details and payment options will appear here.</p>
+                                <h3 class="text-lg md:text-xl font-bold text-slate-400">Select a student</h3>
+                                <p class="text-slate-400 text-xs md:text-sm mt-1 md:mt-2">Fee details will appear here.</p>
                             </div>
 
                             <div id="tuition-active" class="hidden bg-white rounded-2xl md:rounded-3xl shadow-sm border border-indigo-100 overflow-hidden">
                                 <div class="p-5 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-indigo-50/30 gap-4">
                                     <div class="flex items-center space-x-3 md:space-x-4">
-                                        <div class="w-12 h-12 md:w-16 md:h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-lg md:text-xl font-bold shrink-0" id="active-student-initial"></div>
+                                        <div class="w-12 h-12 md:w-16 md:h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center text-lg md:text-xl font-bold shrink-0 overflow-hidden border-2 border-indigo-200" id="active-student-avatar"></div>
                                         <div class="text-left">
                                             <h2 class="text-lg md:text-2xl font-bold text-slate-800" id="active-student-name">Name</h2>
                                             <p class="text-xs md:text-sm text-indigo-600 font-medium" id="active-student-course">Course</p>
+                                            <span class="inline-block px-2 py-0.5 mt-1 text-[10px] bg-indigo-100 text-indigo-700 rounded-full font-bold uppercase tracking-wide" id="active-student-feetype">Monthly</span>
                                         </div>
                                     </div>
                                     <div class="text-left sm:text-right bg-white p-3 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
@@ -282,10 +324,14 @@
                                     <input type="hidden" id="tuition-student-id">
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
                                         <div>
-                                            <label class="form-label">Payment Month</label>
-                                            <input type="month" id="tuition-month" class="form-input cursor-pointer" required>
+                                            <label class="form-label">Payment Date</label>
+                                            <input type="date" id="tuition-date" class="form-input cursor-pointer" required>
                                         </div>
                                         <div>
+                                            <label class="form-label">Payment For Month (Optional)</label>
+                                            <input type="month" id="tuition-month" class="form-input cursor-pointer">
+                                        </div>
+                                        <div class="sm:col-span-2">
                                             <label class="form-label">Amount Received (₹)</label>
                                             <input type="number" id="tuition-amount" class="form-input text-base md:text-lg font-bold text-indigo-700 focus:border-indigo-500 focus:ring-indigo-200" placeholder="0" required>
                                         </div>
@@ -294,6 +340,46 @@
                                         <i class="fa-solid fa-check-circle mr-2"></i> Record Tuition Payment
                                     </button>
                                 </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-job" class="view-section max-w-5xl mx-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                        <div class="lg:col-span-1">
+                            <form onsubmit="submitJobApp(event)" class="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl md:rounded-3xl shadow-sm border border-blue-100 p-5 md:p-6 sticky top-0">
+                                <h3 class="text-base md:text-lg font-bold text-blue-900 mb-4 md:mb-6 flex items-center">
+                                    <div class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center mr-2 md:mr-3"><i class="fa-solid fa-briefcase text-sm"></i></div>
+                                    New Job Application
+                                </h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="form-label text-blue-700">Date Received</label>
+                                        <input type="date" id="job-date" class="form-input border-blue-200" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label text-blue-700">Applicant Name</label>
+                                        <input type="text" id="job-name" class="form-input" placeholder="e.g. Amit Kumar" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label text-blue-700">Applied Post / Exam</label>
+                                        <input type="text" id="job-post" class="form-input" placeholder="e.g. SSC CGL / Railway" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label text-blue-700">Amount Received (₹)</label>
+                                        <input type="number" id="job-amount" class="form-input text-blue-700 font-bold focus:border-blue-500 focus:ring-blue-200" placeholder="0" required>
+                                    </div>
+                                    <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all mt-4 cursor-pointer text-sm md:text-base">
+                                        Record Job Income
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="lg:col-span-2">
+                            <div class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 p-5 md:p-8 h-[400px] md:h-[600px] flex flex-col">
+                                <h3 class="text-base md:text-lg font-bold text-slate-800 mb-4 md:mb-6 border-b border-slate-100 pb-3 md:pb-4">Recent Job Applications</h3>
+                                <div class="overflow-y-auto flex-1 pr-2 space-y-3" id="job-list"></div>
                             </div>
                         </div>
                     </div>
@@ -308,6 +394,10 @@
                                     Add Expense
                                 </h3>
                                 <div class="space-y-4">
+                                    <div>
+                                        <label class="form-label">Payment Date</label>
+                                        <input type="date" id="exp-date" class="form-input" required>
+                                    </div>
                                     <div>
                                         <label class="form-label">Category</label>
                                         <select id="exp-category" class="form-input cursor-pointer" required>
@@ -353,8 +443,18 @@
         const defaultDatabase = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let appData = JSON.parse(JSON.stringify(defaultDatabase));
 
+        // Set default dates on load
+        function setDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reg-date').value = today;
+            document.getElementById('tuition-date').value = today;
+            document.getElementById('job-date').value = today;
+            document.getElementById('exp-date').value = today;
+        }
+
         // Load data from Google Drive
         async function initDatabase() {
+            setDefaultDates();
             try {
                 const response = await fetch(GOOGLE_APP_URL);
                 const data = await response.json();
@@ -374,6 +474,7 @@
             renderStudentList();
             renderLedger();
             renderExpenseList();
+            renderJobList();
         }
 
         function loadLocalBackup() {
@@ -381,10 +482,8 @@
             if (savedData) appData = JSON.parse(savedData);
         }
 
-        // Save data to Google Drive automatically
         function saveDatabase() {
             localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-            
             fetch(GOOGLE_APP_URL, {
                 method: 'POST',
                 body: JSON.stringify(appData),
@@ -392,7 +491,34 @@
             }).catch(error => console.log("Google sync failed. Will retry later.", error));
         }
 
-        // --- 2. MOBILE SIDEBAR LOGIC ---
+        // --- 2. IMAGE COMPRESSION (Prevents hitting storage limits) ---
+        function compressImage(file, callback) {
+            if(!file) return callback(null);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX_SIZE = 150; // Super small, perfect for avatars
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height) {
+                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                    } else {
+                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    callback(canvas.toDataURL('image/jpeg', 0.8));
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // --- 3. MOBILE SIDEBAR LOGIC ---
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
@@ -400,7 +526,7 @@
             overlay.classList.toggle('hidden');
         }
 
-        // --- 3. BACKUP AND RESTORE FUNCTIONS ---
+        // --- 4. BACKUP AND RESTORE FUNCTIONS ---
         function exportDatabaseBackup() {
             const dataStr = JSON.stringify(appData, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -427,6 +553,7 @@
                         renderStudentList();
                         renderLedger();
                         renderExpenseList();
+                        renderJobList();
                     } else {
                         alert("Error: Invalid backup file format.");
                     }
@@ -437,7 +564,7 @@
             reader.readAsText(file);
         }
 
-        // --- 4. LOGIN AUTHENTICATION ---
+        // --- 5. LOGIN AUTHENTICATION ---
         async function handleLogin(e) {
             e.preventDefault();
             const user = document.getElementById('username').value;
@@ -460,10 +587,7 @@
                 btnText.innerHTML = 'Secure Login <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>';
             } else {
                 errorMsg.classList.remove('hidden');
-                errorMsg.animate([
-                    { transform: 'translateX(0px)' }, { transform: 'translateX(-5px)' },
-                    { transform: 'translateX(5px)' }, { transform: 'translateX(0px)' }
-                ], { duration: 300 });
+                errorMsg.animate([{ transform: 'translateX(0px)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0px)' }], { duration: 300 });
             }
         }
 
@@ -474,43 +598,41 @@
             switchTab('dashboard'); 
         }
 
-        // --- 5. EXCEL BILL GENERATOR ---
+        // --- 6. EXCEL BILL GENERATOR ---
         function generateExcelBill(transactionDetails, billTitle) {
             const now = new Date();
-            const dateStr = now.toLocaleDateString('en-IN');
             const timeStr = now.toLocaleTimeString('en-IN');
             
             let wsData = [
                 ["EXCELLENT INSTITUTE"],
                 ["TEACHERS COLONY, SURADA, DIST - GANJAM, ODISHA - 761108"],
                 [""],
-                [`BILL / RECEIPT: ${billTitle}`],
-                ["Date:", dateStr, "Time:", timeStr],
+                [`RECEIPT: ${billTitle}`],
+                ["Printed Time:", timeStr],
                 ["--------------------------------------------------"],
                 ["DETAILS", "VALUE"]
             ];
 
-            for (const [key, value] of Object.entries(transactionDetails)) {
-                wsData.push([key, value]);
-            }
+            for (const [key, value] of Object.entries(transactionDetails)) { wsData.push([key, value]); }
             
             wsData.push(["--------------------------------------------------"]);
             wsData.push(["System Generated Receipt. Verified by Admin."]);
 
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-            ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 15 }];
+            ws['!cols'] = [{ wch: 25 }, { wch: 30 }];
             XLSX.utils.book_append_sheet(wb, ws, "Receipt");
             
-            const filename = `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`;
-            XLSX.writeFile(wb, filename);
+            XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
         }
 
-        // --- 6. CORE FUNCTIONS ---
-        function addStudent(name, course, totalFee, paidNow, phone) {
+        // --- 7. CORE FUNCTIONS ---
+        function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-            appData.students.push({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow) });
-            const dateStr = new Date().toISOString().split('T')[0];
+            appData.students.push({ 
+                id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow),
+                feeType: feeType, image: imageBase64 
+            });
             recordTransaction("income", `Admission Fee - ${name}`, parseFloat(paidNow), dateStr);
             renderStudentList();
             saveDatabase();
@@ -530,57 +652,88 @@
             updateDashboard();
             renderLedger();
             if(type === 'expense') renderExpenseList();
+            if(title.includes('Job Apply')) renderJobList();
             saveDatabase();
         }
 
-        // --- 7. FORM SUBMISSIONS ---
+        // --- 8. FORM SUBMISSIONS ---
         function submitRegistration(e) {
             e.preventDefault();
+            const date = document.getElementById('reg-date').value;
             const name = document.getElementById('reg-name').value;
             const course = document.getElementById('reg-course').value;
+            const feeType = document.getElementById('reg-feetype').value;
             const phone = document.getElementById('reg-phone').value;
             const totalFee = document.getElementById('reg-totalfee').value;
             const paid = document.getElementById('reg-paid').value;
+            const fileInput = document.getElementById('reg-image');
 
-            const stId = addStudent(name, course, totalFee, paid, phone);
-            
-            generateExcelBill({
-                "Student ID": stId, "Student Name": name, "Phone Number": phone,
-                "Course Name": course, "Total Course Fee": `₹ ${totalFee}`,
-                "Amount Paid Now": `₹ ${paid}`, "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
-            }, "NEW_ADMISSION");
+            // Process image then save
+            compressImage(fileInput.files[0], function(base64Image) {
+                const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, base64Image);
+                
+                generateExcelBill({
+                    "Receipt Date": date, "Student ID": stId, "Student Name": name, "Fee Structure": feeType,
+                    "Course Name": course, "Total Course Fee": `₹ ${totalFee}`,
+                    "Amount Paid Advance": `₹ ${paid}`, "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
+                }, "NEW_ADMISSION");
 
-            alert(`Success! ${name} registered. Excel Bill Downloaded.`);
-            e.target.reset();
-            switchTab('dashboard'); 
+                alert(`Success! ${name} registered. Excel Receipt Downloaded.`);
+                e.target.reset();
+                setDefaultDates();
+                switchTab('dashboard'); 
+            });
         }
 
         function submitTuitionFee(e) {
             e.preventDefault();
             const stId = document.getElementById('tuition-student-id').value;
+            const date = document.getElementById('tuition-date').value;
             const amount = parseFloat(document.getElementById('tuition-amount').value);
-            const month = document.getElementById('tuition-month').value;
+            const month = document.getElementById('tuition-month').value || "N/A";
 
             let student = appData.students.find(s => s.id === stId);
             if(student) {
                 student.paidFee += amount;
-                recordTransaction("income", `Tuition (${month}) - ${student.name}`, amount, new Date().toISOString().split('T')[0]);
+                const desc = month !== "N/A" ? ` (${month})` : "";
+                recordTransaction("income", `Tuition${desc} - ${student.name}`, amount, date);
                 
                 generateExcelBill({
-                    "Student ID": student.id, "Student Name": student.name, "Course Name": student.course,
-                    "Payment For Month": month, "Amount Paid": `₹ ${amount}`,
+                    "Receipt Date": date, "Student ID": student.id, "Student Name": student.name, 
+                    "Course Name": student.course, "Payment For Month": month, "Amount Paid": `₹ ${amount}`,
                     "Remaining Total Due": `₹ ${student.totalFee - student.paidFee}`
                 }, "TUITION_FEE");
 
-                alert(`₹${amount} tuition recorded for ${student.name}! Excel Bill Downloaded.`);
+                alert(`₹${amount} tuition recorded! Excel Receipt Downloaded.`);
                 e.target.reset();
+                setDefaultDates();
                 renderStudentList(); 
                 selectStudent(stId); 
             }
         }
 
+        function submitJobApp(e) {
+            e.preventDefault();
+            const date = document.getElementById('job-date').value;
+            const name = document.getElementById('job-name').value;
+            const post = document.getElementById('job-post').value;
+            const amount = document.getElementById('job-amount').value;
+
+            recordTransaction("income", `Job Apply: ${name}`, amount, date, post);
+            
+            generateExcelBill({
+                "Date": date, "Applicant Name": name, "Applied For": post,
+                "Amount Received": `₹ ${amount}`, "Status": "Application Received"
+            }, "JOB_APPLICATION");
+
+            alert(`Job income of ₹${amount} recorded. Excel Receipt Downloaded.`);
+            e.target.reset();
+            setDefaultDates();
+        }
+
         function submitExpense(e) {
             e.preventDefault();
+            const date = document.getElementById('exp-date').value;
             const category = document.getElementById('exp-category').value;
             const amount = document.getElementById('exp-amount').value;
             const desc = document.getElementById('exp-desc').value;
@@ -589,18 +742,19 @@
                 if(!confirm("Warning: Expense is greater than available balance. Proceed anyway?")) return;
             }
 
-            recordTransaction("expense", category, amount, new Date().toISOString().split('T')[0], desc);
+            recordTransaction("expense", category, amount, date, desc);
             
             generateExcelBill({
-                "Expense Category": category, "Description": desc || "N/A",
+                "Date": date, "Expense Category": category, "Description": desc || "N/A",
                 "Amount Deducted": `₹ ${amount}`, "Status": "Paid out of Balance"
             }, "EXPENDITURE_VOUCHER");
 
             alert(`Expense of ₹${amount} deducted. Excel Voucher Downloaded.`);
             e.target.reset();
+            setDefaultDates();
         }
 
-        // --- 8. UI RENDERING & UPDATES ---
+        // --- 9. UI RENDERING & UPDATES ---
         function updateDashboard() {
             const format = (num) => `₹${num.toLocaleString('en-IN')}`;
             document.getElementById('dash-income').innerText = format(appData.stats.income);
@@ -609,7 +763,7 @@
             document.getElementById('header-balance').innerText = format(appData.stats.balance);
             
             const balEl = document.getElementById('header-balance');
-            balEl.className = `ml-1 md:ml-2 text-base md:text-lg font-bold ${appData.stats.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+            balEl.className = `text-base md:text-lg font-bold ${appData.stats.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
         }
 
         function renderStudentList() {
@@ -625,15 +779,20 @@
                 const dues = st.totalFee - st.paidFee;
                 const dueClass = dues > 0 ? 'text-rose-500 font-bold' : 'text-emerald-500 font-bold';
                 
+                // Show Image if exists, else show initial
+                const avatarHtml = st.image 
+                    ? `<img src="${st.image}" class="w-full h-full object-cover rounded-full">`
+                    : `<span class="font-bold text-xs md:text-base">${st.name.charAt(0)}</span>`;
+
                 const card = document.createElement('div');
                 card.className = "flex items-center justify-between p-3 md:p-4 bg-white border border-slate-100 rounded-xl md:rounded-2xl cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all group";
                 card.onclick = () => selectStudent(st.id);
                 card.innerHTML = `
                     <div class="flex items-center space-x-2 md:space-x-3">
-                        <div class="w-8 h-8 md:w-10 md:h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center font-bold text-xs md:text-base group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">${st.name.charAt(0)}</div>
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors overflow-hidden border border-slate-200">${avatarHtml}</div>
                         <div>
                             <p class="font-bold text-slate-700 text-xs md:text-sm">${st.name}</p>
-                            <p class="text-[9px] md:text-[10px] text-slate-400 uppercase tracking-wide">${st.id}</p>
+                            <p class="text-[9px] md:text-[10px] text-slate-400 uppercase tracking-wide">${st.id} • ${st.feeType || 'Monthly'}</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -653,41 +812,37 @@
             document.getElementById('tuition-active').classList.remove('hidden');
 
             document.getElementById('active-student-name').innerText = student.name;
-            document.getElementById('active-student-initial').innerText = student.name.charAt(0);
             document.getElementById('active-student-course').innerText = student.course;
+            document.getElementById('active-student-feetype').innerText = student.feeType || "Monthly";
             document.getElementById('tuition-student-id').value = student.id;
+
+            // Load Avatar
+            const avatarBox = document.getElementById('active-student-avatar');
+            avatarBox.innerHTML = student.image 
+                ? `<img src="${student.image}" class="w-full h-full object-cover">`
+                : student.name.charAt(0);
 
             const dues = student.totalFee - student.paidFee;
             const dueEl = document.getElementById('active-student-dues');
             dueEl.innerText = `₹${dues}`;
-            if(dues <= 0) {
-                dueEl.innerText = "Cleared";
-                dueEl.className = "text-xl md:text-2xl font-bold text-emerald-500";
-            } else {
-                dueEl.className = "text-xl md:text-2xl font-bold text-rose-500";
-            }
+            dueEl.className = dues <= 0 ? "text-xl md:text-2xl font-bold text-emerald-500" : "text-xl md:text-2xl font-bold text-rose-500";
+            if(dues <= 0) dueEl.innerText = "Cleared";
             
-            // On mobile, scroll down to the payment area automatically after clicking a student
-            if(window.innerWidth < 1024) {
-                document.getElementById('tuition-active').scrollIntoView({behavior: 'smooth'});
-            }
+            if(window.innerWidth < 1024) document.getElementById('tuition-active').scrollIntoView({behavior: 'smooth'});
         }
 
         function renderLedger() {
             const tbody = document.getElementById('transaction-ledger');
             tbody.innerHTML = '';
-            
             if(appData.transactions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 md:py-8 text-slate-400 text-xs md:text-sm">No transactions yet. Start by adding a student or expense.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 md:py-8 text-slate-400 text-xs md:text-sm">No transactions yet.</td></tr>';
                 return;
             }
-
-            appData.transactions.slice(0, 8).forEach(tx => {
+            appData.transactions.slice(0, 10).forEach(tx => {
                 const isInc = tx.type === 'income';
                 const color = isInc ? 'text-emerald-600' : 'text-rose-600';
                 const sign = isInc ? '+' : '-';
-                const badge = isInc ? `<span class="px-2 py-0.5 md:px-2.5 md:py-1 bg-emerald-50 text-emerald-600 rounded text-[9px] md:text-[10px] font-bold">IN</span>` : `<span class="px-2 py-0.5 md:px-2.5 md:py-1 bg-rose-50 text-rose-600 rounded text-[9px] md:text-[10px] font-bold">OUT</span>`;
-
+                const badge = isInc ? `<span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] md:text-[10px] font-bold">IN</span>` : `<span class="px-2 py-0.5 bg-rose-50 text-rose-600 rounded text-[9px] md:text-[10px] font-bold">OUT</span>`;
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="py-2 md:py-3 px-2 md:px-4 text-slate-500 whitespace-nowrap">${tx.date}</td>
@@ -703,25 +858,45 @@
             const listEl = document.getElementById('expense-list');
             listEl.innerHTML = '';
             const expenses = appData.transactions.filter(t => t.type === 'expense');
-            
             if(expenses.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-slate-400 text-xs md:text-sm mt-8"><i class="fa-solid fa-file-invoice text-2xl md:text-3xl mb-2 text-slate-200 block"></i> No expenditures recorded yet.</div>';
+                listEl.innerHTML = '<div class="text-center text-slate-400 text-xs md:text-sm mt-8"><i class="fa-solid fa-file-invoice text-2xl md:text-3xl mb-2 text-slate-200 block"></i> No expenditures recorded.</div>';
                 return;
             }
-
             expenses.forEach(tx => {
                 listEl.innerHTML += `
                     <div class="flex items-center justify-between p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100">
                         <div class="flex items-center space-x-3 md:space-x-4">
-                            <div class="w-10 h-10 md:w-12 md:h-12 bg-white rounded-lg md:rounded-xl border border-slate-200 text-slate-400 flex items-center justify-center text-sm md:text-lg">
-                                <i class="fa-solid fa-receipt"></i>
-                            </div>
+                            <div class="w-10 h-10 md:w-12 md:h-12 bg-white rounded-lg md:rounded-xl border border-slate-200 text-slate-400 flex items-center justify-center text-sm md:text-lg"><i class="fa-solid fa-receipt"></i></div>
                             <div>
                                 <h4 class="font-bold text-slate-700 text-xs md:text-base">${tx.title}</h4>
                                 <p class="text-[10px] md:text-xs text-slate-500">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p>
                             </div>
                         </div>
                         <h3 class="text-base md:text-lg font-bold text-rose-600">-₹${tx.amount.toLocaleString('en-IN')}</h3>
+                    </div>
+                `;
+            });
+        }
+
+        function renderJobList() {
+            const listEl = document.getElementById('job-list');
+            listEl.innerHTML = '';
+            const jobs = appData.transactions.filter(t => t.title.includes('Job Apply'));
+            if(jobs.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-slate-400 text-xs md:text-sm mt-8"><i class="fa-solid fa-briefcase text-2xl md:text-3xl mb-2 text-slate-200 block"></i> No job applications yet.</div>';
+                return;
+            }
+            jobs.forEach(tx => {
+                listEl.innerHTML += `
+                    <div class="flex items-center justify-between p-3 md:p-4 bg-blue-50/50 rounded-xl md:rounded-2xl border border-blue-100">
+                        <div class="flex items-center space-x-3 md:space-x-4">
+                            <div class="w-10 h-10 md:w-12 md:h-12 bg-white rounded-lg md:rounded-xl border border-blue-200 text-blue-500 flex items-center justify-center text-sm md:text-lg"><i class="fa-solid fa-user-tie"></i></div>
+                            <div>
+                                <h4 class="font-bold text-blue-900 text-xs md:text-base">${tx.title.replace('Job Apply: ', '')}</h4>
+                                <p class="text-[10px] md:text-xs text-blue-600">${tx.date} • ${tx.description}</p>
+                            </div>
+                        </div>
+                        <h3 class="text-base md:text-lg font-bold text-emerald-600">+₹${tx.amount.toLocaleString('en-IN')}</h3>
                     </div>
                 `;
             });
@@ -734,15 +909,12 @@
             document.getElementById(`view-${tabId}`).classList.add('active');
             document.getElementById(`nav-${tabId}`).classList.add('active');
 
-            const titles = { 'dashboard': 'Financial Dashboard', 'registration': 'New Admission', 'tuition': 'Tuition Fee Collection', 'expenditure': 'Institute Expenditures' };
+            const titles = { 'dashboard': 'Financial Dashboard', 'registration': 'New Admission', 'tuition': 'Tuition Fee Collection', 'expenditure': 'Institute Expenditures', 'job': 'Job Application Desk' };
             document.getElementById('page-title').innerText = titles[tabId];
             
-            // Auto-close sidebar on mobile after making a selection
             if(window.innerWidth < 768) {
                 const sidebar = document.getElementById('sidebar');
-                if(!sidebar.classList.contains('-translate-x-full')) {
-                    toggleSidebar();
-                }
+                if(!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
             }
         }
 
