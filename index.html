@@ -3,42 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excellent Institute - Premium ERP</title>
+    <title>Excellent Institute - Ultimate ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #f1f5f9; overflow: hidden; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; overflow: hidden; }
         
-        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); }
-        .soft-card { background: white; border-radius: 1.5rem; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08); border: 1px solid rgba(226, 232, 240, 0.8); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        .soft-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -10px rgba(79, 70, 229, 0.15); }
+        /* Advanced UI Panels & Cards */
+        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); }
+        .premium-card { background: #ffffff; border-radius: 1.5rem; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05); border: 1px solid rgba(226, 232, 240, 0.6); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .premium-card:hover { box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.1); transform: translateY(-4px); }
         
-        .form-input { width: 100%; border-radius: 1rem; border: 2px solid #e2e8f0; padding: 0.875rem 1rem; font-size: 0.875rem; transition: all 0.3s ease; background-color: #f8fafc; color: #1e293b; }
-        .form-input:focus { border-color: #6366f1; background-color: white; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); outline: none; }
+        /* Inputs & Controls */
+        .form-input { width: 100%; border-radius: 1rem; border: 2px solid #f1f5f9; padding: 0.875rem 1.25rem; font-size: 0.875rem; font-weight: 500; transition: all 0.3s ease; background-color: #f8fafc; color: #1e293b; }
+        .form-input:focus { border-color: #6366f1; background-color: white; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); outline: none; }
         .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
         
-        .nav-btn { width: 100%; display: flex; align-items: center; padding: 0.875rem 1.25rem; color: #94a3b8; border-radius: 1rem; transition: all 0.3s ease; cursor: pointer; font-weight: 500; margin-bottom: 0.5rem; text-decoration: none; }
-        .nav-btn:hover { background-color: rgba(255,255,255,0.1); color: white; transform: translateX(5px); }
-        .nav-btn.active { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4); font-weight: 600; }
+        /* Sidebar Navigation */
+        .nav-btn { width: 100%; display: flex; align-items: center; padding: 0.875rem 1.25rem; color: #94a3b8; border-radius: 1rem; transition: all 0.3s ease; cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; text-decoration: none; }
+        .nav-btn:hover { background-color: rgba(255,255,255,0.05); color: white; transform: translateX(4px); }
+        .nav-btn.active { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4); }
         
+        /* View Animations */
         .view-section { display: none; }
-        .view-section.active { display: block; animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .view-section.active { display: block; animation: fadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        @keyframes fadeSlideUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
         
-        @keyframes slideUpFade { 0% { opacity: 0; transform: translateY(30px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes pulse-soft { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } }
-        .animate-blob { animation: pulse-soft 6s infinite alternate; }
-
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        .bg-animated { background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab); background-size: 400% 400%; animation: gradientBG 15s ease infinite; }
+        /* Animated Backgrounds */
+        .bg-animated { background: linear-gradient(-45deg, #4f46e5, #ec4899, #06b6d4, #10b981); background-size: 400% 400%; animation: gradientBG 15s ease infinite; }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
+        /* Print Settings */
         #comprehensive-print-view { display: none; }
         @media print {
             body { background: white !important; overflow: visible !important; height: auto !important; }
@@ -54,24 +58,26 @@
     <div id="comprehensive-print-view" class="bg-white w-full"></div>
 
     <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-animated">
-        <div class="glass-panel relative z-10 w-full max-w-md p-8 md:p-10 rounded-[2.5rem] mx-4 transform transition-all">
+        <div class="glass-panel relative z-10 w-full max-w-md p-8 md:p-12 rounded-[2.5rem] mx-4 transform transition-all shadow-[0_0_50px_rgba(0,0,0,0.3)] border border-white/40">
             <div class="text-center mb-10">
-                <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=4f46e5&color=fff&size=128&bold=true&rounded=true'" alt="Institute Logo" class="w-28 h-28 mx-auto mb-6 object-cover rounded-full shadow-2xl shadow-indigo-500/20 bg-transparent border-4 border-white/20 p-0.5">
+                <div class="w-32 h-32 mx-auto mb-6 bg-white p-1 rounded-full shadow-2xl shadow-indigo-500/30">
+                    <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=4f46e5&color=fff&size=128&bold=true&rounded=true'" alt="Institute Logo" class="w-full h-full object-cover rounded-full">
+                </div>
                 <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Excellent Institute</h1>
-                <p class="text-sm text-indigo-600 mt-2 font-bold uppercase tracking-widest">Secure Admin Portal</p>
+                <p class="text-xs text-indigo-600 mt-2 font-bold uppercase tracking-widest bg-indigo-50 inline-block px-3 py-1 rounded-full border border-indigo-100">Secure Admin Portal</p>
             </div>
             <form id="login-form" onsubmit="handleLogin(event)" class="space-y-6">
                 <div class="relative group">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-400"><i class="fa-solid fa-user text-lg"></i></div>
-                    <input type="text" id="username" class="form-input pl-12 py-4 text-lg bg-white/50 backdrop-blur-sm" placeholder="Login ID" required>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-user text-lg"></i></div>
+                    <input type="text" id="username" class="form-input pl-12 py-4 text-lg bg-white/70 backdrop-blur-sm" placeholder="Login ID" required>
                 </div>
                 <div class="relative group">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600 text-slate-400"><i class="fa-solid fa-lock text-lg"></i></div>
-                    <input type="password" id="password" class="form-input pl-12 py-4 text-lg bg-white/50 backdrop-blur-sm" placeholder="Password" required>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-lock text-lg"></i></div>
+                    <input type="password" id="password" class="form-input pl-12 py-4 text-lg bg-white/70 backdrop-blur-sm" placeholder="Password" required>
                 </div>
-                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner">Access Denied! Incorrect Credentials.</p>
-                <button type="submit" id="login-btn" class="w-full py-4 mt-8 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-lg rounded-2xl transition-all duration-500 shadow-xl hover:shadow-indigo-500/40 flex justify-center items-center transform hover:-translate-y-1">
-                    <span id="login-btn-text">Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i></span>
+                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.</p>
+                <button type="submit" id="login-btn" class="w-full py-4 mt-8 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 shadow-xl hover:shadow-indigo-500/40 flex justify-center items-center transform hover:-translate-y-1">
+                    <span id="login-btn-text">Authenticate <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i></span>
                 </button>
             </form>
         </div>
@@ -81,103 +87,170 @@
         
         <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-40 hidden md:hidden backdrop-blur-sm transition-opacity duration-300 opacity-0" onclick="toggleSidebar()"></div>
 
-        <aside id="sidebar" class="w-[280px] bg-slate-900 text-slate-300 flex flex-col z-50 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-500 ease-out h-full shadow-[20px_0_50px_rgba(0,0,0,0.1)]">
+        <aside id="sidebar" class="w-[280px] bg-slate-900 text-slate-300 flex flex-col z-50 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-500 ease-out h-full shadow-[20px_0_50px_rgba(0,0,0,0.1)] border-r border-slate-800">
+            
             <div class="h-24 flex items-center px-6 bg-slate-950/50 relative overflow-hidden border-b border-slate-800 shrink-0">
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
-                <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=fff&color=1e293b&size=64&bold=true&rounded=true'" alt="Institute Logo" class="w-14 h-14 mr-3 rounded-full shadow-lg shadow-indigo-500/50 object-cover bg-transparent relative z-10 shrink-0 border-2 border-slate-700">
+                <div class="w-12 h-12 bg-white rounded-full p-0.5 shadow-lg shadow-indigo-500/50 relative z-10 shrink-0 mr-3">
+                    <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=4f46e5&color=fff&size=64&bold=true&rounded=true'" alt="Institute Logo" class="w-full h-full object-cover rounded-full bg-transparent">
+                </div>
                 <div class="relative z-10">
-                    <h1 class="text-lg font-bold text-white tracking-wide">Excellent Inst.</h1>
-                    <p class="text-[10px] text-indigo-400 font-bold tracking-widest uppercase">ERP System</p>
+                    <h1 class="text-lg font-bold text-white tracking-wide leading-tight">Excellent Inst.</h1>
+                    <p class="text-[10px] text-indigo-400 font-bold tracking-widest uppercase">ERP Software</p>
                 </div>
                 <button onclick="toggleSidebar()" class="md:hidden absolute right-4 text-slate-400 hover:text-white bg-slate-800 w-8 h-8 rounded-lg flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
             <nav class="flex-1 px-4 py-8 overflow-y-auto custom-scrollbar">
-                <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Overview</p><div onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active"><i class="fa-solid fa-chart-pie w-8 text-lg"></i> <span>Dashboard</span></div></div>
-                <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Student Desk</p><div onclick="switchTab('registration')" id="nav-registration" class="nav-btn"><i class="fa-solid fa-user-plus w-8 text-lg"></i> <span>New Admission</span></div><div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn"><i class="fa-solid fa-hand-holding-dollar w-8 text-lg"></i> <span>Fees & Exams</span></div></div>
-                <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Service Desk</p><div onclick="switchTab('job')" id="nav-job" class="nav-btn"><i class="fa-solid fa-briefcase w-8 text-lg"></i> <span>Job Applications</span></div><div onclick="switchTab('print')" id="nav-print" class="nav-btn"><i class="fa-solid fa-print w-8 text-lg"></i> <span>Print Services</span></div></div>
-                <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Finance</p><div onclick="switchTab('expenditure')" id="nav-expenditure" class="nav-btn"><i class="fa-solid fa-wallet w-8 text-lg"></i> <span>Expenditures</span></div></div>
-                
+                <div class="mb-6">
+                    <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p>
+                    <div onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active"><i class="fa-solid fa-layer-group w-8 text-lg"></i> <span>Dashboard</span></div>
+                </div>
+                <div class="mb-6">
+                    <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics</p>
+                    <div onclick="switchTab('registration')" id="nav-registration" class="nav-btn"><i class="fa-solid fa-user-plus w-8 text-lg"></i> <span>New Admission</span></div>
+                    <div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn"><i class="fa-solid fa-graduation-cap w-8 text-lg"></i> <span>Student Database</span></div>
+                </div>
+                <div class="mb-6">
+                    <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Services & Forms</p>
+                    <div onclick="switchTab('job')" id="nav-job" class="nav-btn"><i class="fa-solid fa-briefcase w-8 text-lg"></i> <span>Job Applications</span></div>
+                    <div onclick="switchTab('print')" id="nav-print" class="nav-btn"><i class="fa-solid fa-print w-8 text-lg"></i> <span>Print & Xerox Desk</span></div>
+                    <a href="Admission_form.pdf" target="_blank" class="nav-btn mt-2 bg-slate-800/50 hover:bg-slate-800"><i class="fa-solid fa-file-pdf w-8 text-lg text-rose-400"></i> <span class="text-sm">Admission PDF</span></a>
+                    <a href="Terms&conditions.pdf" target="_blank" class="nav-btn bg-slate-800/50 hover:bg-slate-800"><i class="fa-solid fa-file-contract w-8 text-lg text-emerald-400"></i> <span class="text-sm">Terms PDF</span></a>
+                </div>
                 <div class="mb-2">
-                    <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Institute Forms</p>
-                    <a href="Admission_form.pdf" target="_blank" class="nav-btn"><i class="fa-solid fa-file-pdf w-8 text-lg text-rose-400"></i> <span>Admission Form</span></a>
-                    <a href="Terms&conditions.pdf" target="_blank" class="nav-btn"><i class="fa-solid fa-file-contract w-8 text-lg text-emerald-400"></i> <span>Terms & Conditions</span></a>
+                    <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Finance</p>
+                    <div onclick="switchTab('expenditure')" id="nav-expenditure" class="nav-btn"><i class="fa-solid fa-wallet w-8 text-lg"></i> <span>Expenditures</span></div>
                 </div>
             </nav>
             
-            <div class="p-5 bg-slate-950/30 border-t border-slate-800 shrink-0">
-                <div class="flex items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-bold shadow-md mr-3">AD</div>
-                    <div class="flex-1"><p class="text-xs font-bold text-white">Admin Portal</p><p class="text-[9px] text-emerald-400 font-bold tracking-wider"><i class="fa-solid fa-lock text-[8px] mr-1"></i>Encrypted</p></div>
-                    <button onclick="logout()" class="w-8 h-8 rounded-lg text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 flex items-center justify-center transition-colors"><i class="fa-solid fa-power-off"></i></button>
+            <div class="p-5 bg-slate-950 border-t border-slate-800 shrink-0">
+                <div class="flex items-center bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-inner">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-bold shadow-md mr-3 relative">
+                        AD
+                        <div class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-800"></div>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-white leading-tight">Admin User</p>
+                        <p class="text-[9px] text-emerald-400 font-bold tracking-wider uppercase mt-0.5"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>Cloud Synced</p>
+                    </div>
+                    <button onclick="logout()" class="w-8 h-8 rounded-lg text-rose-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-power-off text-sm"></i></button>
                 </div>
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col relative h-screen w-full">
+        <main class="flex-1 flex flex-col relative h-screen w-full bg-slate-100/50">
+            
             <header class="h-24 px-4 md:px-8 flex items-center justify-between shrink-0 z-10 relative">
-                <div class="absolute top-0 left-0 w-full h-full bg-slate-50 opacity-90 backdrop-blur-md border-b border-slate-200 z-0"></div>
+                <div class="absolute top-0 left-0 w-full h-full bg-white/70 backdrop-blur-xl border-b border-slate-200/60 z-0"></div>
                 <div class="flex items-center relative z-10">
                     <button onclick="toggleSidebar()" class="mr-4 text-slate-700 hover:text-indigo-600 md:hidden bg-white w-10 h-10 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center transition-transform active:scale-95"><i class="fa-solid fa-bars text-lg"></i></button>
-                    <div><h2 id="page-title" class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">Financial Dashboard</h2><p class="text-xs text-slate-500 mt-1 font-semibold uppercase tracking-widest hidden sm:block">Real-time ERP Overview</p></div>
+                    <div>
+                        <h2 id="page-title" class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">System Dashboard</h2>
+                        <p class="text-xs text-slate-500 mt-1 font-bold uppercase tracking-widest hidden sm:block text-indigo-600">Financial Overview</p>
+                    </div>
                 </div>
-                <div class="relative z-10">
-                    <div class="bg-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg"><i class="fa-solid fa-indian-rupee-sign"></i></div>
-                        <div class="flex flex-col"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block leading-tight">Net Balance</span><span id="header-balance" class="text-lg md:text-xl font-black text-slate-800 leading-tight">₹0</span></div>
+                <div class="relative z-10 flex items-center gap-3">
+                    <div class="bg-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shadow-inner"><i class="fa-solid fa-vault"></i></div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block leading-tight">Net Balance</span>
+                            <span id="header-balance" class="text-lg md:text-xl font-black text-slate-800 leading-tight">₹0</span>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 pb-24 w-full scroll-smooth relative z-0">
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 pb-24 w-full scroll-smooth relative z-0 custom-scrollbar">
                 
                 <div id="view-dashboard" class="view-section active space-y-8 max-w-7xl mx-auto">
-                    <div class="flex justify-end mb-4">
-                        <button onclick="generateComprehensivePrint()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center transform hover:-translate-y-1"><i class="fa-solid fa-print mr-2 text-lg"></i> Print Financial Statement</button>
+                    
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex items-center gap-3 text-slate-600 text-sm font-bold w-full sm:w-auto">
+                            <i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i> Database Active & Synced
+                        </div>
+                        <button onclick="generateComprehensivePrint()" class="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center transform hover:-translate-y-1">
+                            <i class="fa-solid fa-print mr-2 text-lg"></i> Print Full Financial Report
+                        </button>
                     </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="soft-card p-8 relative overflow-hidden group">
-                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-emerald-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700 animate-blob"></div>
+                        <div class="premium-card p-8 relative overflow-hidden group">
+                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-emerald-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
                             <div class="relative z-10">
-                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-arrow-trend-up"></i></div><span class="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-emerald-100">Income</span></div>
+                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-arrow-trend-up"></i></div><span class="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-emerald-100">Total In</span></div>
                                 <h3 class="text-sm font-bold text-slate-500 mb-1">Total Revenue</h3><h2 class="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-2" id="dash-income">₹0</h2><p class="text-xs text-slate-400 font-medium">+ Tuitions, Exams, Jobs & Print</p>
                             </div>
                         </div>
-                        <div class="soft-card p-8 relative overflow-hidden group">
-                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-rose-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700 animate-blob" style="animation-delay: 2s;"></div>
+                        <div class="premium-card p-8 relative overflow-hidden group">
+                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-rose-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
                             <div class="relative z-10">
-                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-arrow-trend-down"></i></div><span class="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-rose-100">Outflow</span></div>
+                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-arrow-trend-down"></i></div><span class="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-rose-100">Total Out</span></div>
                                 <h3 class="text-sm font-bold text-slate-500 mb-1">Total Expenditures</h3><h2 class="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-2" id="dash-expense">₹0</h2><p class="text-xs text-slate-400 font-medium">- Bills, Salaries & Purchases</p>
                             </div>
                         </div>
-                        <div class="soft-card p-8 bg-slate-900 border-none relative overflow-hidden group">
-                            <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 z-0"></div>
-                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-indigo-500/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700 animate-blob" style="animation-delay: 4s;"></div>
+                        <div class="premium-card p-8 bg-gradient-to-br from-slate-900 to-slate-800 border-none relative overflow-hidden group shadow-xl">
+                            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-indigo-500/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                             <div class="relative z-10">
-                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-white/10 text-white backdrop-blur-md rounded-2xl flex items-center justify-center text-xl shadow-inner border border-white/10"><i class="fa-solid fa-vault"></i></div><span class="px-3 py-1 bg-indigo-500/30 text-indigo-200 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-indigo-400/30">Available</span></div>
-                                <h3 class="text-sm font-bold text-indigo-200 mb-1">Net Cash Balance</h3><h2 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-2" id="dash-balance">₹0</h2><p class="text-xs text-indigo-300 font-medium">Income minus Expenses</p>
+                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-white/10 text-white backdrop-blur-md rounded-2xl flex items-center justify-center text-xl shadow-inner border border-white/10"><i class="fa-solid fa-scale-balanced"></i></div><span class="px-3 py-1 bg-indigo-500/30 text-indigo-200 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-indigo-400/30">Net Cash</span></div>
+                                <h3 class="text-sm font-bold text-indigo-200 mb-1">Available Balance</h3><h2 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-2" id="dash-balance">₹0</h2><p class="text-xs text-indigo-300 font-medium">Income minus Expenses</p>
                             </div>
                         </div>
                     </div>
-                    <div class="soft-card p-6 md:p-8">
-                        <div class="flex items-center justify-between mb-6"><h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-list-ul mr-3 text-indigo-500 bg-indigo-50 p-2 rounded-lg"></i> Recent Transactions</h3></div>
-                        <div class="overflow-x-auto w-full custom-scrollbar pb-2">
-                            <table class="w-full text-left border-collapse min-w-[600px]">
-                                <thead>
-                                    <tr class="text-slate-400 text-xs font-bold uppercase border-b-2 border-slate-100 tracking-wider">
-                                        <th class="py-4 px-4">Date</th><th class="py-4 px-4">Description</th><th class="py-4 px-4 text-center">Type</th><th class="py-4 px-4 text-right">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="transaction-ledger" class="text-sm divide-y divide-slate-50 font-medium"></tbody>
-                            </table>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <div class="lg:col-span-2 premium-card p-6 md:p-8 flex flex-col h-[500px]">
+                            <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4 shrink-0">
+                                <h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-list-ul mr-3 text-indigo-500"></i> Recent Activity</h3>
+                            </div>
+                            <div class="overflow-auto w-full custom-scrollbar flex-1">
+                                <table class="w-full text-left border-collapse min-w-[500px]">
+                                    <thead>
+                                        <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10">
+                                            <th class="py-3 px-4 rounded-l-lg">Date</th><th class="py-3 px-4">Description</th><th class="py-3 px-4 text-center">Type</th><th class="py-3 px-4 text-right rounded-r-lg">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transaction-ledger" class="text-sm divide-y divide-slate-50 font-medium"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-1 premium-card p-6 md:p-8 bg-gradient-to-b from-indigo-50 to-white flex flex-col h-[500px]">
+                            <div class="flex items-center justify-between mb-6 border-b border-indigo-100 pb-4 shrink-0">
+                                <h3 class="text-xl font-extrabold text-indigo-900 flex items-center"><i class="fa-solid fa-hard-drive mr-3 text-indigo-500"></i> Data & Security</h3>
+                            </div>
+                            <div class="flex-1 flex flex-col justify-center space-y-6">
+                                
+                                <div class="text-center mb-2">
+                                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md border border-indigo-100 text-3xl text-indigo-400">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    </div>
+                                    <p class="text-sm text-slate-600 font-medium">Your data is synced securely to the cloud. You can also save a manual copy to your computer.</p>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <button onclick="exportDatabaseBackup()" class="w-full py-4 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white font-bold rounded-2xl shadow-sm border border-emerald-200 transition-all flex flex-col items-center justify-center group cursor-pointer">
+                                        <i class="fa-solid fa-download text-2xl mb-1 group-hover:scale-110 transition-transform"></i>
+                                        <span>Download Backup File (.json)</span>
+                                    </button>
+                                    
+                                    <label class="w-full py-4 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold rounded-2xl shadow-sm border border-blue-200 transition-all flex flex-col items-center justify-center group cursor-pointer">
+                                        <i class="fa-solid fa-upload text-2xl mb-1 group-hover:scale-110 transition-transform"></i>
+                                        <span>Restore Data from File</span>
+                                        <input type="file" accept=".json" class="hidden" onchange="importDatabaseBackup(event)">
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="view-registration" class="view-section max-w-5xl mx-auto">
-                    <form id="reg-form" onsubmit="submitRegistration(event)" class="soft-card overflow-hidden">
-                        <div class="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 p-8 md:p-10 text-white relative overflow-hidden">
-                            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                    <form id="reg-form" onsubmit="submitRegistration(event)" class="premium-card overflow-hidden">
+                        <div class="bg-slate-900 p-8 md:p-10 text-white relative overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20"></div>
                             <i class="fa-solid fa-id-card absolute -right-6 -bottom-6 text-9xl text-white/5 transform -rotate-12"></i>
                             <h2 class="text-3xl font-black relative z-10 tracking-tight mb-2">New Student Admission</h2>
                             <p class="text-indigo-200 text-sm relative z-10 font-medium">Create a new student profile and collect initial admission fees.</p>
@@ -197,10 +270,10 @@
                             <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-[1.5rem] p-6 md:p-8 border border-emerald-100 shadow-sm">
                                 <h3 class="text-emerald-800 font-black mb-6 flex items-center text-lg"><i class="fa-solid fa-money-check-dollar mr-3 text-2xl text-emerald-500"></i> Financial Commitment</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                                    <div><label class="form-label text-emerald-700">Fee Structure</label><select id="reg-feetype" class="form-input bg-white border-emerald-200" required><option value="Monthly">Monthly Payment</option><option value="One-Time">One-Time Payment</option></select></div>
+                                    <div><label class="form-label text-emerald-700">Fee Structure</label><select id="reg-feetype" class="form-input bg-white border-emerald-200 cursor-pointer" required><option value="Monthly">Monthly Payment</option><option value="One-Time">One-Time Payment</option></select></div>
                                     <div><label class="form-label text-emerald-700">Total Course Fee (₹)</label><input type="number" id="reg-totalfee" class="form-input bg-white border-emerald-200 font-bold" placeholder="e.g. 15000" required></div>
                                     <div><label class="form-label text-emerald-800">Admission Fee (Advance Paid) ₹</label><input type="number" id="reg-paid" class="form-input border-emerald-400 focus:border-emerald-600 focus:ring-emerald-200 text-xl font-black text-emerald-700 bg-white shadow-inner" placeholder="0" required></div>
-                                    <div class="md:col-span-3 mt-4"><button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-emerald-500/40 transition-all cursor-pointer transform hover:-translate-y-1">Register Student & Generate Receipt <i class="fa-solid fa-file-invoice ml-2"></i></button></div>
+                                    <div class="md:col-span-3 mt-4"><button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-2xl shadow-lg shadow-emerald-500/40 transition-all cursor-pointer transform hover:-translate-y-1">Register Student & Generate Receipt <i class="fa-solid fa-file-invoice ml-2"></i></button></div>
                                 </div>
                             </div>
                         </div>
@@ -210,51 +283,55 @@
                 <div id="view-tuition" class="view-section h-full max-w-7xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
                         
-                        <div class="lg:col-span-4 soft-card flex flex-col h-[500px] lg:h-[700px] overflow-hidden">
-                            <div class="p-5 border-b border-slate-100 bg-slate-50 z-10 relative shrink-0">
+                        <div class="lg:col-span-4 premium-card flex flex-col h-[500px] lg:h-[750px] overflow-hidden bg-white">
+                            <div class="p-6 border-b border-slate-100 bg-slate-50 z-10 relative shrink-0">
                                 <h3 class="font-extrabold text-slate-800 text-lg">Student Database</h3>
                                 <p class="text-xs text-slate-500 font-medium mt-1 mb-4">Select a student to manage fees</p>
                                 
                                 <div class="space-y-3">
-                                    <input type="text" id="filter-search" oninput="renderStudentList()" placeholder="Search Name or ID..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white">
+                                    <div class="relative">
+                                        <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i>
+                                        <input type="text" id="filter-search" oninput="renderStudentList()" placeholder="Search Name or ID..." class="w-full rounded-xl border border-slate-200 pl-9 py-2.5 text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white">
+                                    </div>
                                     <div class="flex gap-2">
-                                        <select id="filter-due" onchange="renderStudentList()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white cursor-pointer font-medium text-slate-600">
+                                        <select id="filter-due" onchange="renderStudentList()" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600">
                                             <option value="all">All Dues Status</option><option value="pending">Pending Dues</option><option value="cleared">Cleared Dues</option>
                                         </select>
-                                        <select id="filter-course" onchange="renderStudentList()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white cursor-pointer font-medium text-slate-600">
-                                            <option value="all">All Courses / Batches</option>
+                                        <select id="filter-course" onchange="renderStudentList()" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600">
+                                            <option value="all">All Batches</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
-                            <div class="p-4 overflow-y-auto flex-1 space-y-3 custom-scrollbar bg-slate-50/50" id="student-list"></div>
+                            <div class="p-4 overflow-y-auto flex-1 space-y-3 custom-scrollbar bg-slate-50/30" id="student-list"></div>
                         </div>
 
                         <div class="lg:col-span-8 h-full flex flex-col">
-                            <div class="soft-card p-8 flex-1 flex flex-col items-center justify-center text-center" id="tuition-placeholder">
-                                <div class="w-28 h-28 bg-indigo-50 text-indigo-300 rounded-[2rem] flex items-center justify-center mb-6 text-5xl shadow-inner border border-indigo-100"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-                                <h3 class="text-2xl font-extrabold text-slate-400 mb-2">Select a student</h3>
-                                <p class="text-slate-400 font-medium">Their fee details and profile will appear here.</p>
+                            
+                            <div class="premium-card p-8 flex-1 flex flex-col items-center justify-center text-center" id="tuition-placeholder">
+                                <div class="w-32 h-32 bg-indigo-50 text-indigo-300 rounded-full flex items-center justify-center mb-6 text-6xl shadow-inner border border-indigo-100"><i class="fa-solid fa-user-graduate"></i></div>
+                                <h3 class="text-2xl font-extrabold text-slate-400 mb-2">Select a Student</h3>
+                                <p class="text-slate-400 font-medium">Their fee details, exams, and profile will appear here.</p>
                             </div>
 
-                            <div id="tuition-active" class="hidden soft-card overflow-hidden flex-1 flex flex-col">
+                            <div id="tuition-active" class="hidden premium-card overflow-hidden flex-1 flex flex-col shadow-xl">
                                 <div class="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-900 text-white gap-6 relative overflow-hidden shrink-0">
                                     <div class="absolute right-0 top-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
                                     <div class="flex items-center space-x-5 relative z-10">
-                                        <div class="w-20 h-20 bg-slate-800 text-white rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden border-2 border-slate-600 shadow-xl" id="active-student-avatar"></div>
+                                        <div class="w-24 h-24 bg-slate-800 text-white rounded-2xl flex items-center justify-center text-3xl font-bold shrink-0 overflow-hidden border-4 border-slate-700 shadow-xl" id="active-student-avatar"></div>
                                         <div class="text-left">
                                             <div class="flex items-center gap-3 mb-1">
                                                 <h2 class="text-3xl font-black tracking-tight leading-none" id="active-student-name">Name</h2>
-                                                <button onclick="openEditModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-slate-300 hover:text-white" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
-                                                <button onclick="openDeleteModal()" class="w-8 h-8 rounded-full bg-rose-500/20 hover:bg-rose-500/40 flex items-center justify-center transition-colors text-rose-300 hover:text-rose-100" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
+                                                <button onclick="openEditModal()" class="w-8 h-8 rounded-full bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white flex items-center justify-center transition-all" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
+                                                <button onclick="openDeleteModal()" class="w-8 h-8 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition-all" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
                                             </div>
-                                            <div class="flex items-center space-x-2 mt-1 opacity-80"><i class="fa-solid fa-book text-xs"></i><p class="text-sm font-medium" id="active-student-course">Course</p><span class="text-slate-500">•</span><p class="text-xs" id="active-student-gender">Gender</p></div>
+                                            <div class="flex items-center space-x-2 mt-2 opacity-80"><i class="fa-solid fa-book text-xs"></i><p class="text-sm font-medium" id="active-student-course">Course</p><span class="text-slate-500">•</span><p class="text-xs" id="active-student-gender">Gender</p></div>
                                             <span class="inline-block px-3 py-1 mt-3 text-[10px] bg-white/10 text-white rounded-lg font-bold uppercase tracking-wider border border-white/10" id="active-student-feetype">Monthly</span>
                                         </div>
                                     </div>
-                                    <div class="text-left sm:text-right bg-slate-800/50 p-5 rounded-2xl border border-slate-700 w-full sm:w-auto relative z-10 backdrop-blur-sm">
+                                    <div class="text-left sm:text-right bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl border border-slate-700 w-full sm:w-auto relative z-10 shadow-inner">
                                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pending Course Dues</p>
-                                        <p class="text-3xl font-black text-rose-400 drop-shadow-md" id="active-student-dues">₹0</p>
+                                        <p class="text-4xl font-black text-rose-400 drop-shadow-md" id="active-student-dues">₹0</p>
                                     </div>
                                 </div>
                                 
@@ -263,19 +340,21 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                         <div><label class="form-label">Payment Date</label><input type="date" id="tuition-date" class="form-input cursor-pointer" required></div>
                                         <div>
-                                            <label class="form-label">Type of Fee Being Paid</label>
+                                            <label class="form-label text-indigo-600">Type of Fee Being Paid</label>
                                             <select id="tuition-feetype-select" class="form-input cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required>
                                                 <option value="Course Tuition Fee">📖 Course Tuition Fee</option>
                                                 <option value="Admission Fee">🎟️ Admission Fee (Late Advance)</option>
                                                 <option value="Exam / Certificate Fee">📝 Exam / Certificate Fee (Extra)</option>
                                                 <option value="Other Fee">💡 Other Fee (Extra)</option>
                                             </select>
-                                            <p class="text-[10px] text-slate-400 mt-2 font-medium italic"><i class="fa-solid fa-circle-info"></i> Course Tuition & Admission Fees reduce the Course Dues.</p>
+                                            <p class="text-[10px] text-slate-500 mt-2 font-medium"><i class="fa-solid fa-circle-info mr-1 text-indigo-400"></i><span class="text-emerald-600 font-bold">Tuition & Admission</span> reduce dues. <span class="text-rose-500 font-bold">Exam/Other</span> do not.</p>
                                         </div>
                                         <div><label class="form-label">Description / Month (Optional)</label><input type="text" id="tuition-desc" class="form-input" placeholder="e.g. March / First Sem"></div>
                                         <div><label class="form-label text-emerald-700">Amount Received (₹)</label><input type="number" id="tuition-amount" class="form-input text-2xl py-3 font-black text-emerald-600 bg-emerald-50 border-emerald-200 shadow-inner" placeholder="0" required></div>
                                     </div>
-                                    <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-xl transition-all flex justify-center items-center text-lg cursor-pointer transform hover:-translate-y-1"><i class="fa-solid fa-receipt mr-3 text-xl"></i> Record Payment & Download Receipt</button>
+                                    <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-xl shadow-slate-900/20 transition-all flex justify-center items-center text-lg cursor-pointer transform hover:-translate-y-1">
+                                        <i class="fa-solid fa-receipt mr-3 text-xl"></i> Record Payment & Generate Receipt
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -285,19 +364,19 @@
                 <div id="view-job" class="view-section max-w-6xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
                         <div class="lg:col-span-5">
-                            <form onsubmit="submitJobApp(event)" class="soft-card p-8 bg-gradient-to-br from-blue-50 to-white border border-blue-100 sticky top-0">
+                            <form onsubmit="submitJobApp(event)" class="premium-card p-8 bg-gradient-to-br from-blue-50 to-white border border-blue-100 sticky top-0">
                                 <h3 class="text-xl font-black text-blue-900 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-blue-500/30"><i class="fa-solid fa-briefcase text-xl"></i></div>New Job Application</h3>
                                 <div class="space-y-5">
                                     <div><label class="form-label text-blue-800">Date Received</label><input type="date" id="job-date" class="form-input bg-white" required></div>
                                     <div><label class="form-label text-blue-800">Applicant Name</label><input type="text" id="job-name" class="form-input bg-white" placeholder="e.g. Amit Kumar" required></div>
                                     <div><label class="form-label text-blue-800">Applied Post / Exam</label><input type="text" id="job-post" class="form-input bg-white" placeholder="e.g. SSC CGL / Railway" required></div>
                                     <div><label class="form-label text-blue-800">Amount Received (₹)</label><input type="number" id="job-amount" class="form-input text-xl text-blue-700 font-black bg-white border-blue-200 shadow-inner" placeholder="0" required></div>
-                                    <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Record Job Income</button>
+                                    <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Record Job Income</button>
                                 </div>
                             </form>
                         </div>
                         <div class="lg:col-span-7">
-                            <div class="soft-card p-8 h-[500px] lg:h-[700px] flex flex-col">
+                            <div class="premium-card p-8 h-[500px] lg:h-[700px] flex flex-col">
                                 <h3 class="text-xl font-extrabold text-slate-800 mb-6 border-b border-slate-100 pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-3 text-slate-400"></i> Recent Applications</h3>
                                 <div class="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar" id="job-list"></div>
                             </div>
@@ -308,19 +387,19 @@
                 <div id="view-print" class="view-section max-w-6xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
                         <div class="lg:col-span-5">
-                            <form onsubmit="submitPrintIncome(event)" class="soft-card p-8 bg-gradient-to-br from-purple-50 to-white border border-purple-100 sticky top-0">
+                            <form onsubmit="submitPrintIncome(event)" class="premium-card p-8 bg-gradient-to-br from-purple-50 to-white border border-purple-100 sticky top-0">
                                 <h3 class="text-xl font-black text-purple-900 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-purple-500/30"><i class="fa-solid fa-print text-xl"></i></div>Print & Copy Services</h3>
                                 <div class="space-y-5">
                                     <div><label class="form-label text-purple-800">Date</label><input type="date" id="print-date" class="form-input bg-white" required></div>
-                                    <div><label class="form-label text-purple-800">Service Provided</label><select id="print-service" class="form-input bg-white cursor-pointer font-medium" required><option value="Photocopy (Xerox)">Photocopy (Xerox)</option><option value="Color Printout">Color Printout</option><option value="B/W Printout">B/W Printout</option><option value="Lamination">Lamination</option><option value="Spiral Binding">Spiral Binding</option><option value="Other Service">Other Service</option></select></div>
+                                    <div><label class="form-label text-purple-800">Service Provided</label><select id="print-service" class="form-input bg-white cursor-pointer font-bold text-slate-700" required><option value="Photocopy (Xerox)">Photocopy (Xerox)</option><option value="Color Printout">Color Printout</option><option value="B/W Printout">B/W Printout</option><option value="Lamination">Lamination</option><option value="Spiral Binding">Spiral Binding</option><option value="Other Service">Other Service</option></select></div>
                                     <div><label class="form-label text-purple-800">Customer / Desc (Optional)</label><input type="text" id="print-desc" class="form-input bg-white" placeholder="e.g. 100 pages project"></div>
                                     <div><label class="form-label text-purple-800">Amount Received (₹)</label><input type="number" id="print-amount" class="form-input text-xl text-purple-700 font-black bg-white border-purple-200 shadow-inner" placeholder="0" required></div>
-                                    <button type="submit" class="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Add to Revenue</button>
+                                    <button type="submit" class="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-lg shadow-purple-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Add to Revenue</button>
                                 </div>
                             </form>
                         </div>
                         <div class="lg:col-span-7">
-                            <div class="soft-card p-8 h-[500px] lg:h-[700px] flex flex-col">
+                            <div class="premium-card p-8 h-[500px] lg:h-[700px] flex flex-col">
                                 <h3 class="text-xl font-extrabold text-slate-800 mb-6 border-b border-slate-100 pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-3 text-slate-400"></i> Recent Print Income</h3>
                                 <div class="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar" id="print-list"></div>
                             </div>
@@ -331,19 +410,19 @@
                 <div id="view-expenditure" class="view-section max-w-6xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
                         <div class="lg:col-span-5">
-                            <form onsubmit="submitExpense(event)" class="soft-card p-8 bg-gradient-to-br from-rose-50 to-white border border-rose-100 sticky top-0">
+                            <form onsubmit="submitExpense(event)" class="premium-card p-8 bg-gradient-to-br from-rose-50 to-white border border-rose-100 sticky top-0">
                                 <h3 class="text-xl font-black text-rose-900 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-rose-500/30"><i class="fa-solid fa-minus text-xl"></i></div>Record Expense</h3>
                                 <div class="space-y-5">
                                     <div><label class="form-label text-rose-800">Payment Date</label><input type="date" id="exp-date" class="form-input bg-white" required></div>
-                                    <div><label class="form-label text-rose-800">Category</label><select id="exp-category" class="form-input bg-white cursor-pointer font-medium" required><option value="Electricity Bill">Electricity Bill</option><option value="Office Rent">Office Rent</option><option value="Staff Salary">Staff Salary</option><option value="Maintenance & Repair">Maintenance & Repair</option><option value="Paper & Ink Supplies">Paper & Ink Supplies</option><option value="Institute Promotion">Institute Promotion</option><option value="Miscellaneous">Miscellaneous</option></select></div>
+                                    <div><label class="form-label text-rose-800">Category</label><select id="exp-category" class="form-input bg-white cursor-pointer font-bold text-slate-700" required><option value="Electricity Bill">Electricity Bill</option><option value="Office Rent">Office Rent</option><option value="Staff Salary">Staff Salary</option><option value="Maintenance & Repair">Maintenance & Repair</option><option value="Paper & Ink Supplies">Paper & Ink Supplies</option><option value="Institute Promotion">Institute Promotion</option><option value="Miscellaneous">Miscellaneous</option></select></div>
                                     <div><label class="form-label text-rose-800">Amount (₹)</label><input type="number" id="exp-amount" class="form-input text-xl text-rose-600 font-black bg-white border-rose-200 shadow-inner" placeholder="0" required></div>
                                     <div><label class="form-label text-rose-800">Description (Optional)</label><input type="text" id="exp-desc" class="form-input bg-white" placeholder="e.g. March Electricity"></div>
-                                    <button type="submit" class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Deduct from Balance</button>
+                                    <button type="submit" class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Deduct from Balance</button>
                                 </div>
                             </form>
                         </div>
                         <div class="lg:col-span-7">
-                            <div class="soft-card p-8 h-[500px] lg:h-[700px] flex flex-col">
+                            <div class="premium-card p-8 h-[500px] lg:h-[700px] flex flex-col">
                                 <h3 class="text-xl font-extrabold text-slate-800 mb-6 border-b border-slate-100 pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-3 text-slate-400"></i> Expenditure History</h3>
                                 <div class="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar" id="expense-list"></div>
                             </div>
@@ -356,25 +435,25 @@
     </div>
 
     <div id="edit-student-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-        <div class="soft-card w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="edit-modal-content">
+        <div class="premium-card w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="edit-modal-content">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
-                <h3 class="text-xl font-black text-slate-800"><i class="fa-solid fa-user-pen mr-2 text-indigo-600"></i> Edit Profile</h3>
+                <h3 class="text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-user-pen mr-3 text-indigo-600"></i> Edit Profile</h3>
                 <button onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+            <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
                 <form id="edit-student-form" class="space-y-6">
                     <input type="hidden" id="edit-student-id">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div><label class="form-label">Full Name</label><input type="text" id="edit-name" class="form-input" required></div>
                         <div><label class="form-label">Admission Date</label><input type="date" id="edit-date" class="form-input" required></div>
                         <div><label class="form-label">Mobile Number</label><input type="tel" id="edit-phone" class="form-input"></div>
-                        <div><label class="form-label">Gender</label><select id="edit-gender" class="form-input"><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                        <div><label class="form-label">Gender</label><select id="edit-gender" class="form-input font-medium"><option value="Male">Male</option><option value="Female">Female</option></select></div>
                         <div><label class="form-label">Course</label><input type="text" id="edit-course" class="form-input" required></div>
-                        <div><label class="form-label">Fee Structure</label><select id="edit-feetype" class="form-input"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
-                        <div><label class="form-label">Total Course Fee (₹)</label><input type="number" id="edit-totalfee" class="form-input font-bold" required></div>
+                        <div><label class="form-label">Fee Structure</label><select id="edit-feetype" class="form-input font-medium"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
+                        <div><label class="form-label text-indigo-600">Total Course Fee (₹)</label><input type="number" id="edit-totalfee" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required></div>
                         <div>
                             <label class="form-label">Update Photo (Optional)</label>
-                            <input type="file" id="edit-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl">
+                            <input type="file" id="edit-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl">
                         </div>
                     </div>
                 </form>
@@ -387,21 +466,21 @@
     </div>
 
     <div id="delete-student-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-        <div class="soft-card w-full max-w-md mx-4 flex flex-col transform scale-95 transition-transform duration-300 border-2 border-rose-500/30" id="delete-modal-content">
+        <div class="premium-card w-full max-w-md mx-4 flex flex-col transform scale-95 transition-transform duration-300 border-2 border-rose-500/30" id="delete-modal-content">
             <div class="p-6 border-b border-rose-100 bg-rose-50 rounded-t-[1.5rem]">
-                <h3 class="text-xl font-black text-rose-600"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Delete Student</h3>
+                <h3 class="text-xl font-black text-rose-600 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-3 text-2xl"></i> Delete Student</h3>
             </div>
-            <div class="p-6 space-y-4">
-                <p class="text-sm text-slate-600 font-medium">This will permanently remove <span id="delete-student-name" class="font-bold text-slate-800"></span> and ALL their payment records from the cloud. This action cannot be undone.</p>
+            <div class="p-8 space-y-5 bg-white">
+                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove <span id="delete-student-name" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded"></span> and <strong class="text-rose-600">ALL their payment records</strong> from the database. The Net Balance will be recalculated. This action cannot be undone.</p>
                 <div>
-                    <label class="form-label text-rose-600">Enter Delete Password</label>
-                    <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50/30" placeholder="Required" required>
-                    <p id="delete-error" class="text-rose-500 text-xs font-bold mt-2 hidden">Incorrect Password!</p>
+                    <label class="form-label text-rose-600">Enter Admin Delete Password</label>
+                    <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50 text-lg tracking-widest" placeholder="••••••••" required>
+                    <p id="delete-error" class="text-rose-500 text-xs font-bold mt-2 hidden"><i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!</p>
                 </div>
             </div>
             <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-3">
                 <button onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-                <button id="confirm-delete-btn" onclick="confirmDeleteStudent()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center">
+                <button id="confirm-delete-btn" onclick="confirmDeleteStudent()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center transform hover:-translate-y-1">
                     <span id="delete-btn-text">Confirm Delete</span>
                 </button>
             </div>
@@ -579,6 +658,42 @@
             XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
         }
 
+        function generateComprehensivePrint() {
+            let printDiv = document.getElementById('comprehensive-print-view');
+            let now = new Date().toLocaleString('en-IN');
+            let html = `
+                <div style="text-align: center; margin-bottom: 20px; font-family: sans-serif;">
+                    <h1 style="font-size: 28px; font-weight: bold; margin: 0; color: #1e293b;">EXCELLENT INSTITUTE</h1>
+                    <p style="margin: 0; font-size: 14px; color: #475569;">TEACHERS COLONY, SURADA, DIST - GANJAM, ODISHA - 761108</p>
+                    <h2 style="font-size: 20px; margin-top: 15px; border-bottom: 2px solid #1e293b; display: inline-block; padding-bottom: 5px;">Comprehensive Financial Statement</h2>
+                    <p style="font-size: 12px; text-align: right; margin-top: 10px; font-weight: bold;">Generated on: ${now}</p>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 30px; border: 2px solid #e2e8f0; padding: 15px; background: #f8fafc; border-radius: 10px; font-family: sans-serif;">
+                    <div><strong style="color: #64748b; text-transform: uppercase; font-size: 12px;">Total Revenue</strong><br><span style="font-size: 24px; font-weight: bold; color: #059669;">₹${appData.stats.income.toLocaleString('en-IN')}</span></div>
+                    <div><strong style="color: #64748b; text-transform: uppercase; font-size: 12px;">Total Expenditure</strong><br><span style="font-size: 24px; font-weight: bold; color: #e11d48;">₹${appData.stats.expense.toLocaleString('en-IN')}</span></div>
+                    <div><strong style="color: #64748b; text-transform: uppercase; font-size: 12px;">Net Balance</strong><br><span style="font-size: 24px; font-weight: bold; color: #4f46e5;">₹${appData.stats.balance.toLocaleString('en-IN')}</span></div>
+                </div>
+                <h3 style="font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-family: sans-serif;">Complete Transaction Ledger</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; font-family: sans-serif;">
+                    <thead><tr style="border-bottom: 2px solid #1e293b;"><th style="padding: 8px 5px;">Date</th><th style="padding: 8px 5px;">Description / Title</th><th style="padding: 8px 5px;">Type</th><th style="padding: 8px 5px; text-align: right;">Amount</th></tr></thead>
+                    <tbody>
+            `;
+            appData.transactions.forEach(tx => {
+                let isInc = tx.type === 'income'; let sign = isInc ? '+' : '-';
+                html += `
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 8px 5px; color: #475569;">${tx.date}</td>
+                        <td style="padding: 8px 5px;"><strong>${tx.title}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
+                        <td style="padding: 8px 5px; font-weight: bold; color: ${isInc ? '#059669' : '#e11d48'}">${isInc ? 'INCOME' : 'EXPENSE'}</td>
+                        <td style="padding: 8px 5px; text-align: right; font-weight: bold;">${sign}₹${tx.amount.toLocaleString('en-IN')}</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table><div style="margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px dashed #e2e8f0; padding-top: 10px; font-family: sans-serif;">-- End of Official Statement --</div>`;
+            document.getElementById('comprehensive-print-view').innerHTML = html;
+            window.print();
+        }
+
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ 
@@ -670,15 +785,13 @@
             document.getElementById('delete-password-input').value = '';
             document.getElementById('delete-error').classList.add('hidden');
 
-            const modal = document.getElementById('delete-student-modal');
-            const content = document.getElementById('delete-modal-content');
+            const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
         }
 
         function closeDeleteModal() {
-            const modal = document.getElementById('delete-student-modal');
-            const content = document.getElementById('delete-modal-content');
+            const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
             modal.classList.add('opacity-0'); content.classList.add('scale-95');
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
@@ -707,9 +820,7 @@
                     // Remove all transactions that contain the student's name
                     appData.transactions = appData.transactions.filter(tx => !tx.title.includes(student.name));
                     
-                    recalculateStats();
-                    saveDatabase();
-                    refreshAllUI();
+                    recalculateStats(); saveDatabase(); refreshAllUI();
                     
                     closeDeleteModal();
                     document.getElementById('tuition-placeholder').classList.remove('hidden');
@@ -724,7 +835,6 @@
             }
         }
 
-        // --- SUBMISSIONS (Cont.) ---
         function submitTuitionFee(e) {
             e.preventDefault();
             const stId = document.getElementById('tuition-student-id').value; const date = document.getElementById('tuition-date').value;
@@ -733,10 +843,7 @@
 
             let student = appData.students.find(s => s.id === stId);
             if(student) {
-                // UPDATE: Course Tuition & Admission Fees reduce course dues
-                if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") {
-                    student.paidFee += amount; 
-                }
+                if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
                 
                 const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
                 recordTransaction("income", `${finalDesc} - ${student.name}`, amount, date);
@@ -779,7 +886,6 @@
             e.target.reset(); setDefaultDates();
         }
 
-        // --- UI RENDERING ---
         function updateDashboard() {
             const format = (num) => `₹${num.toLocaleString('en-IN')}`;
             document.getElementById('dash-income').innerText = format(appData.stats.income);
@@ -795,16 +901,15 @@
             const courseF = document.getElementById('filter-course') ? document.getElementById('filter-course').value : 'all';
 
             listEl.innerHTML = '';
-            
             if(appData.students.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-200 block"></i> No students yet.</div>'; return;
+                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-folder-open text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No students yet</p></div>'; return;
             }
 
             const courseSelect = document.getElementById('filter-course');
             if (courseSelect) {
                 const currentVal = courseSelect.value;
                 const uniqueCourses = [...new Set(appData.students.map(s => s.course))];
-                let optionsHtml = '<option value="all">All Courses / Batches</option>';
+                let optionsHtml = '<option value="all">All Batches</option>';
                 uniqueCourses.forEach(c => { optionsHtml += `<option value="${c}">${c}</option>`; });
                 courseSelect.innerHTML = optionsHtml;
                 courseSelect.value = uniqueCourses.includes(currentVal) ? currentVal : 'all';
@@ -819,21 +924,27 @@
             });
 
             if(filteredStudents.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10 text-sm">No students match your filter.</div>'; return;
+                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10 text-sm font-bold"><i class="fa-solid fa-magnifying-glass text-3xl mb-3 block text-slate-300"></i>No matches found</div>'; return;
             }
 
             filteredStudents.forEach(st => {
                 const dues = st.totalFee - st.paidFee;
                 const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
                 const card = document.createElement('div');
-                card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all group transform hover:-translate-y-1";
+                card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
                 card.onclick = () => selectStudent(st.id);
                 card.innerHTML = `
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors overflow-hidden shadow-sm shrink-0">${avatar}</div>
-                        <div><p class="font-bold text-slate-800 text-sm">${st.name}</p><p class="text-[10px] text-slate-500 font-medium uppercase tracking-wide mt-0.5">${st.id} • ${st.course}</p></div>
+                    <div class="flex items-center space-x-4 overflow-hidden">
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors overflow-hidden shadow-inner shrink-0">${avatar}</div>
+                        <div class="truncate">
+                            <p class="font-extrabold text-slate-800 text-sm truncate">${st.name}</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-0.5 truncate">${st.id} • ${st.course}</p>
+                        </div>
                     </div>
-                    <div class="text-right shrink-0"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Due</p><p class="${dues > 0 ? 'text-rose-500' : 'text-emerald-500'} font-black text-sm">₹${dues}</p></div>
+                    <div class="text-right shrink-0 ml-2">
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Due</p>
+                        <p class="${dues > 0 ? 'text-rose-500' : 'text-emerald-500'} font-black text-sm drop-shadow-sm">₹${dues}</p>
+                    </div>
                 `;
                 listEl.appendChild(card);
             });
@@ -865,11 +976,11 @@
             if(appData.transactions.length === 0) return;
             appData.transactions.slice(0, 15).forEach(tx => {
                 const isInc = tx.type === 'income';
-                const badge = isInc ? `<span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black tracking-widest">IN</span>` : `<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-lg text-[10px] font-black tracking-widest">OUT</span>`;
+                const badge = isInc ? `<span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">IN</span>` : `<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">OUT</span>`;
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
-                        <td class="py-4 px-4 text-slate-500 text-xs font-semibold">${tx.date}</td>
-                        <td class="py-4 px-4 font-bold text-slate-800">${tx.title}</td>
+                        <td class="py-4 px-4 text-slate-500 text-xs font-bold whitespace-nowrap">${tx.date}</td>
+                        <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title}</td>
                         <td class="py-4 px-4 text-center">${badge}</td>
                         <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
                     </tr>
@@ -880,16 +991,16 @@
         function renderList(containerId, filterKeyword, iconClass, colorClass, emptyMsg) {
             const listEl = document.getElementById(containerId); listEl.innerHTML = '';
             const items = appData.transactions.filter(t => t.title.includes(filterKeyword));
-            if(items.length === 0) { listEl.innerHTML = `<div class="text-center text-slate-400 mt-10"><i class="${iconClass} text-4xl mb-3 text-slate-200 block"></i> ${emptyMsg}</div>`; return; }
+            if(items.length === 0) { listEl.innerHTML = `<div class="text-center text-slate-400 mt-10"><i class="${iconClass} text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">${emptyMsg}</p></div>`; return; }
             items.forEach(tx => {
                 const isInc = tx.type === 'income';
                 listEl.innerHTML += `
-                    <div class="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1">
+                    <div class="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3">
                         <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 rounded-xl bg-${colorClass}-100 text-${colorClass}-600 flex items-center justify-center text-xl shadow-inner"><i class="${iconClass}"></i></div>
-                            <div><h4 class="font-bold text-slate-800 text-sm">${tx.title.replace(filterKeyword + ': ', '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
+                            <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100"><i class="${iconClass}"></i></div>
+                            <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(filterKeyword + ': ', '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                         </div>
-                        <h3 class="text-xl font-black ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
+                        <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
                     </div>
                 `;
             });
@@ -904,7 +1015,7 @@
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${tabId}`).classList.add('active');
             document.getElementById(`nav-${tabId}`).classList.add('active');
-            const titles = { 'dashboard': 'Financial Dashboard', 'registration': 'New Admission', 'tuition': 'Fee & Exam Collection', 'job': 'Job Desk Income', 'print': 'Print & Xerox Income', 'expenditure': 'Institute Expenditures' };
+            const titles = { 'dashboard': 'System Dashboard', 'registration': 'New Admission', 'tuition': 'Student Database', 'job': 'Job Applications', 'print': 'Print & Copy Desk', 'expenditure': 'Expenditures' };
             document.getElementById('page-title').innerText = titles[tabId];
             if(window.innerWidth < 768) {
                 const sidebar = document.getElementById('sidebar');
