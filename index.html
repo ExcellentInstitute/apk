@@ -83,7 +83,7 @@
         <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-40 hidden md:hidden backdrop-blur-sm transition-opacity duration-300 opacity-0" onclick="toggleSidebar()"></div>
 
         <aside id="sidebar" class="w-[280px] bg-slate-900 text-slate-300 flex flex-col z-50 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-500 ease-out h-full shadow-[20px_0_50px_rgba(0,0,0,0.1)]">
-            <div class="h-24 flex items-center px-6 bg-slate-950/50 relative overflow-hidden border-b border-slate-800">
+            <div class="h-24 flex items-center px-6 bg-slate-950/50 relative overflow-hidden border-b border-slate-800 shrink-0">
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
                 <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=fff&color=1e293b&size=64&bold=true&rounded=true'" alt="Institute Logo" class="w-14 h-14 mr-3 rounded-full shadow-lg shadow-indigo-500/50 object-cover bg-transparent relative z-10 shrink-0 border-2 border-slate-700">
                 <div class="relative z-10">
@@ -106,7 +106,7 @@
                 </div>
             </nav>
             
-            <div class="p-5 bg-slate-950/30 border-t border-slate-800">
+            <div class="p-5 bg-slate-950/30 border-t border-slate-800 shrink-0">
                 <div class="flex items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700">
                     <div class="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-bold shadow-md mr-3">AD</div>
                     <div class="flex-1"><p class="text-xs font-bold text-white">Admin Portal</p><p class="text-[9px] text-emerald-400 font-bold tracking-wider"><i class="fa-solid fa-lock text-[8px] mr-1"></i>Encrypted</p></div>
@@ -210,13 +210,29 @@
 
                 <div id="view-tuition" class="view-section h-full max-w-7xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
-                        <div class="lg:col-span-4 soft-card flex flex-col h-[400px] lg:h-[700px] overflow-hidden">
-                            <div class="p-6 border-b border-slate-100 bg-slate-50 z-10 relative">
+                        
+                        <div class="lg:col-span-4 soft-card flex flex-col h-[500px] lg:h-[700px] overflow-hidden">
+                            <div class="p-5 border-b border-slate-100 bg-slate-50 z-10 relative shrink-0">
                                 <h3 class="font-extrabold text-slate-800 text-lg">Student Database</h3>
-                                <p class="text-xs text-slate-500 font-medium mt-1">Select a student to manage fees & edits</p>
+                                <p class="text-xs text-slate-500 font-medium mt-1 mb-4">Select a student to manage fees</p>
+                                
+                                <div class="space-y-3">
+                                    <input type="text" id="filter-search" oninput="renderStudentList()" placeholder="Search Name or ID..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white">
+                                    <div class="flex gap-2">
+                                        <select id="filter-due" onchange="renderStudentList()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white cursor-pointer font-medium text-slate-600">
+                                            <option value="all">All Dues Status</option>
+                                            <option value="pending">Pending Dues</option>
+                                            <option value="cleared">Cleared Dues</option>
+                                        </select>
+                                        <select id="filter-course" onchange="renderStudentList()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white cursor-pointer font-medium text-slate-600">
+                                            <option value="all">All Courses / Batches</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                             <div class="p-4 overflow-y-auto flex-1 space-y-3 custom-scrollbar bg-slate-50/50" id="student-list"></div>
                         </div>
+
                         <div class="lg:col-span-8 h-full flex flex-col">
                             <div class="soft-card p-8 flex-1 flex flex-col items-center justify-center text-center" id="tuition-placeholder">
                                 <div class="w-28 h-28 bg-indigo-50 text-indigo-300 rounded-[2rem] flex items-center justify-center mb-6 text-5xl shadow-inner border border-indigo-100"><i class="fa-solid fa-hand-holding-dollar"></i></div>
@@ -248,7 +264,16 @@
                                     <input type="hidden" id="tuition-student-id">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                         <div><label class="form-label">Payment Date</label><input type="date" id="tuition-date" class="form-input cursor-pointer" required></div>
-                                        <div><label class="form-label">Type of Fee</label><select id="tuition-feetype-select" class="form-input cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required><option value="Course Tuition Fee">📖 Course Tuition Fee</option><option value="Exam Fee">📝 Exam Fee (Extra)</option><option value="Certificate / Other Fee">🎓 Certificate / Other (Extra)</option></select><p class="text-[10px] text-slate-400 mt-2 font-medium italic"><i class="fa-solid fa-circle-info"></i> Note: Exam & Other fees do not reduce Course Dues.</p></div>
+                                        <div>
+                                            <label class="form-label">Type of Fee</label>
+                                            <select id="tuition-feetype-select" class="form-input cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required>
+                                                <option value="Course Tuition Fee">📖 Course Tuition Fee</option>
+                                                <option value="Admission Fee">🎟️ Admission Fee</option>
+                                                <option value="Exam / Certificate Fee">📝 Exam / Certificate Fee (Extra)</option>
+                                                <option value="Other Fee">💡 Other Fee (Extra)</option>
+                                            </select>
+                                            <p class="text-[10px] text-slate-400 mt-2 font-medium italic"><i class="fa-solid fa-circle-info"></i> Note: Exam & Other fees do not reduce Course Dues.</p>
+                                        </div>
                                         <div><label class="form-label">Description / Month (Optional)</label><input type="text" id="tuition-desc" class="form-input" placeholder="e.g. March / First Sem"></div>
                                         <div><label class="form-label text-emerald-700">Amount Received (₹)</label><input type="number" id="tuition-amount" class="form-input text-2xl py-3 font-black text-emerald-600 bg-emerald-50 border-emerald-200 shadow-inner" placeholder="0" required></div>
                                     </div>
@@ -365,7 +390,9 @@
 
     <script>
         const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
-        let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
+        
+        const defaultDatabase = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
+        let appData = JSON.parse(JSON.stringify(defaultDatabase));
         let sessionPassword = ""; 
 
         window.onload = function() {
@@ -395,12 +422,11 @@
             if (user !== 'excellent') { showError(errorMsg); return; }
 
             errorMsg.classList.add('hidden');
-            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating with Cloud...';
+            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
             
             try {
                 const response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
                 const data = await response.json();
-                
                 if(data.error) throw new Error("Invalid Password");
 
                 sessionPassword = pass;
@@ -419,7 +445,6 @@
                     btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
                     document.getElementById('login-screen').style.opacity = '1';
                 }, 500);
-
             } catch(err) {
                 showError(errorMsg);
                 btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
@@ -504,50 +529,6 @@
             XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
         }
 
-        function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
-            const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-            appData.students.unshift({ 
-                id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow),
-                feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 
-            });
-            recordTransaction("income", `Admission Fee - ${name}`, parseFloat(paidNow), dateStr);
-            renderStudentList(); saveDatabase(); return id;
-        }
-
-        function recordTransaction(type, title, amount, dateStr, desc = "") {
-            appData.transactions.push({ 
-                id: 'TXN' + Math.floor(Math.random() * 9000 + 1000),
-                type: type, title: title, amount: parseFloat(amount), date: dateStr, description: desc
-            });
-            // Keep transactions sorted by date (newest first)
-            appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
-            
-            if (type === 'income') appData.stats.income += parseFloat(amount);
-            if (type === 'expense') appData.stats.expense += parseFloat(amount);
-            appData.stats.balance = appData.stats.income - appData.stats.expense;
-            refreshAllUI(); saveDatabase();
-        }
-
-        function submitRegistration(e) {
-            e.preventDefault();
-            const date = document.getElementById('reg-date').value; const name = document.getElementById('reg-name').value;
-            const course = document.getElementById('reg-course').value; const feeType = document.getElementById('reg-feetype').value;
-            const gender = document.getElementById('reg-gender').value; const phone = document.getElementById('reg-phone').value;
-            const totalFee = document.getElementById('reg-totalfee').value; const paid = document.getElementById('reg-paid').value;
-            const fileInput = document.getElementById('reg-image');
-
-            compressImage(fileInput.files[0], function(base64Image) {
-                const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image);
-                generateExcelBill({
-                    "Receipt Date": date, "Student ID": stId, "Student Name": name, "Gender": gender, "Fee Structure": feeType,
-                    "Course Name": course, "Total Course Fee": `₹ ${totalFee}`, "Advance Paid": `₹ ${paid}`, 
-                    "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
-                }, "NEW_ADMISSION");
-                alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); 
-            });
-        }
-
-        // --- COMPREHENSIVE PRINT GENERATOR ---
         function generateComprehensivePrint() {
             let printDiv = document.getElementById('comprehensive-print-view');
             let now = new Date().toLocaleString('en-IN');
@@ -592,65 +573,92 @@
                 `;
             });
             
-            html += `
-                    </tbody>
-                </table>
+            html += `</tbody></table>
                 <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px dashed #e2e8f0; padding-top: 10px;">
                     -- End of Official Statement --
-                </div>
-            `;
+                </div>`;
             
+            let printDiv = document.getElementById('comprehensive-print-view');
             printDiv.innerHTML = html;
             window.print();
         }
 
-        // --- EDIT MODAL LOGIC ---
+        function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
+            const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
+            appData.students.unshift({ 
+                id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow),
+                feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 
+            });
+            recordTransaction("income", `Admission Fee - ${name}`, parseFloat(paidNow), dateStr);
+            renderStudentList(); saveDatabase(); return id;
+        }
+
+        function recordTransaction(type, title, amount, dateStr, desc = "") {
+            appData.transactions.push({ 
+                id: 'TXN' + Math.floor(Math.random() * 9000 + 1000),
+                type: type, title: title, amount: parseFloat(amount), date: dateStr, description: desc
+            });
+            appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
+            if (type === 'income') appData.stats.income += parseFloat(amount);
+            if (type === 'expense') appData.stats.expense += parseFloat(amount);
+            appData.stats.balance = appData.stats.income - appData.stats.expense;
+            refreshAllUI(); saveDatabase();
+        }
+
+        function submitRegistration(e) {
+            e.preventDefault();
+            const date = document.getElementById('reg-date').value; const name = document.getElementById('reg-name').value;
+            const course = document.getElementById('reg-course').value; const feeType = document.getElementById('reg-feetype').value;
+            const gender = document.getElementById('reg-gender').value; const phone = document.getElementById('reg-phone').value;
+            const totalFee = document.getElementById('reg-totalfee').value; const paid = document.getElementById('reg-paid').value;
+            const fileInput = document.getElementById('reg-image');
+
+            compressImage(fileInput.files[0], function(base64Image) {
+                const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image);
+                generateExcelBill({
+                    "Receipt Date": date, "Student ID": stId, "Student Name": name, "Gender": gender, "Fee Structure": feeType,
+                    "Course Name": course, "Total Course Fee": `₹ ${totalFee}`, "Advance Paid": `₹ ${paid}`, 
+                    "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
+                }, "NEW_ADMISSION");
+                alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); 
+            });
+        }
+
         function openEditModal() {
             const stId = document.getElementById('tuition-student-id').value;
             const student = appData.students.find(s => s.id === stId);
             if(!student) return;
 
-            document.getElementById('edit-student-id').value = student.id;
-            document.getElementById('edit-name').value = student.name;
+            document.getElementById('edit-student-id').value = student.id; document.getElementById('edit-name').value = student.name;
             document.getElementById('edit-date').value = student.date || new Date().toISOString().split('T')[0];
-            document.getElementById('edit-phone').value = student.phone || '';
-            document.getElementById('edit-gender').value = student.gender || 'Male';
-            document.getElementById('edit-course').value = student.course;
-            document.getElementById('edit-feetype').value = student.feeType || 'Monthly';
+            document.getElementById('edit-phone').value = student.phone || ''; document.getElementById('edit-gender').value = student.gender || 'Male';
+            document.getElementById('edit-course').value = student.course; document.getElementById('edit-feetype').value = student.feeType || 'Monthly';
             document.getElementById('edit-totalfee').value = student.totalFee;
 
-            const modal = document.getElementById('edit-student-modal');
-            const content = document.getElementById('edit-modal-content');
+            const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
         }
 
         function closeEditModal() {
-            const modal = document.getElementById('edit-student-modal');
-            const content = document.getElementById('edit-modal-content');
+            const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
             modal.classList.add('opacity-0'); content.classList.add('scale-95');
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
         function submitEditStudent(e) {
             e.preventDefault();
-            const id = document.getElementById('edit-student-id').value;
-            let student = appData.students.find(s => s.id === id);
+            const id = document.getElementById('edit-student-id').value; let student = appData.students.find(s => s.id === id);
             if(!student) return;
 
-            student.name = document.getElementById('edit-name').value;
-            student.date = document.getElementById('edit-date').value;
-            student.phone = document.getElementById('edit-phone').value;
-            student.gender = document.getElementById('edit-gender').value;
-            student.course = document.getElementById('edit-course').value;
-            student.feeType = document.getElementById('edit-feetype').value;
+            student.name = document.getElementById('edit-name').value; student.date = document.getElementById('edit-date').value;
+            student.phone = document.getElementById('edit-phone').value; student.gender = document.getElementById('edit-gender').value;
+            student.course = document.getElementById('edit-course').value; student.feeType = document.getElementById('edit-feetype').value;
             student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
 
             const fileInput = document.getElementById('edit-image');
             if(fileInput.files && fileInput.files[0]) {
-                compressImage(fileInput.files[0], function(base64Image) {
-                    student.image = base64Image; finalizeEdit(student);
-                });
+                compressImage(fileInput.files[0], function(base64Image) { student.image = base64Image; finalizeEdit(student); });
             } else { finalizeEdit(student); }
         }
 
@@ -658,6 +666,7 @@
             closeEditModal(); saveDatabase(); renderStudentList(); selectStudent(student.id); alert("Profile updated successfully!");
         }
 
+        // --- UPDATED EXAM FEE LOGIC ---
         function submitTuitionFee(e) {
             e.preventDefault();
             const stId = document.getElementById('tuition-student-id').value; const date = document.getElementById('tuition-date').value;
@@ -666,7 +675,11 @@
 
             let student = appData.students.find(s => s.id === stId);
             if(student) {
-                if(feeCategory === "Course Tuition Fee") student.paidFee += amount; 
+                // UPDATE: Both Course Tuition Fee AND Admission Fee reduce course dues
+                if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") {
+                    student.paidFee += amount; 
+                }
+                
                 const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
                 recordTransaction("income", `${finalDesc} - ${student.name}`, amount, date);
                 
@@ -676,8 +689,7 @@
                     "Remaining Course Due": `₹ ${student.totalFee - student.paidFee}`
                 }, feeCategory.toUpperCase().replace(/\s+/g, '_'));
 
-                alert(`₹${amount} recorded for ${student.name}!`);
-                e.target.reset(); setDefaultDates(); selectStudent(stId); 
+                alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
             }
         }
 
@@ -718,9 +730,40 @@
         }
 
         function renderStudentList() {
-            const listEl = document.getElementById('student-list'); listEl.innerHTML = '';
-            if(appData.students.length === 0) { listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-200 block"></i> No students yet.</div>'; return; }
-            appData.students.forEach(st => {
+            const listEl = document.getElementById('student-list');
+            const searchQ = document.getElementById('filter-search') ? document.getElementById('filter-search').value.toLowerCase() : '';
+            const dueF = document.getElementById('filter-due') ? document.getElementById('filter-due').value : 'all';
+            const courseF = document.getElementById('filter-course') ? document.getElementById('filter-course').value : 'all';
+
+            listEl.innerHTML = '';
+            
+            if(appData.students.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-200 block"></i> No students yet.</div>'; return;
+            }
+
+            const courseSelect = document.getElementById('filter-course');
+            if (courseSelect) {
+                const currentVal = courseSelect.value;
+                const uniqueCourses = [...new Set(appData.students.map(s => s.course))];
+                let optionsHtml = '<option value="all">All Courses / Batches</option>';
+                uniqueCourses.forEach(c => { optionsHtml += `<option value="${c}">${c}</option>`; });
+                courseSelect.innerHTML = optionsHtml;
+                courseSelect.value = uniqueCourses.includes(currentVal) ? currentVal : 'all';
+            }
+
+            const filteredStudents = appData.students.filter(st => {
+                const dues = st.totalFee - st.paidFee;
+                const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
+                const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
+                const matchCourse = courseF === 'all' || st.course === courseF;
+                return matchSearch && matchDue && matchCourse;
+            });
+
+            if(filteredStudents.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10 text-sm">No students match your filter.</div>'; return;
+            }
+
+            filteredStudents.forEach(st => {
                 const dues = st.totalFee - st.paidFee;
                 const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
                 const card = document.createElement('div');
@@ -728,10 +771,10 @@
                 card.onclick = () => selectStudent(st.id);
                 card.innerHTML = `
                     <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors overflow-hidden shadow-sm">${avatar}</div>
-                        <div><p class="font-bold text-slate-800 text-sm">${st.name}</p><p class="text-[10px] text-slate-500 font-medium uppercase tracking-wide mt-0.5">${st.id} • ${st.gender || 'N/A'}</p></div>
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors overflow-hidden shadow-sm shrink-0">${avatar}</div>
+                        <div><p class="font-bold text-slate-800 text-sm">${st.name}</p><p class="text-[10px] text-slate-500 font-medium uppercase tracking-wide mt-0.5">${st.id} • ${st.course}</p></div>
                     </div>
-                    <div class="text-right"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Due</p><p class="${dues > 0 ? 'text-rose-500' : 'text-emerald-500'} font-black text-sm">₹${dues}</p></div>
+                    <div class="text-right shrink-0"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Due</p><p class="${dues > 0 ? 'text-rose-500' : 'text-emerald-500'} font-black text-sm">₹${dues}</p></div>
                 `;
                 listEl.appendChild(card);
             });
