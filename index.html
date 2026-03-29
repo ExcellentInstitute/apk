@@ -493,25 +493,9 @@
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let sessionPassword = ""; 
 
-        window.onload = async function() {
+        window.onload = function() {
             setDefaultDates();
-            const savedPass = sessionStorage.getItem('erp_session_pass');
-            if(savedPass) {
-                sessionPassword = savedPass;
-                try {
-                    const response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(savedPass));
-                    const data = await response.json();
-                    if(!data.error && data.stats) {
-                        appData = data;
-                        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-                    } else loadLocalBackup();
-                } catch(e) { loadLocalBackup(); }
-                
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('app-screen').classList.remove('hidden');
-                document.getElementById('app-screen').classList.add('flex');
-                refreshAllUI();
-            }
+            // Session memory removed for maximum security!
         };
 
         function setDefaultDates() {
