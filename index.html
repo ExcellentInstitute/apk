@@ -29,7 +29,7 @@
         
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-        @keyframes fadeSlideUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeSlideUp { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
         
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -729,7 +729,7 @@
             alert("Record updated successfully!");
         }
 
-        // --- TRANSACTION DELETION LOGIC ---
+        // --- INSTANT LOCAL DELETE LOGIC ---
         function deleteTransaction(txId) { openDeleteModal(txId, false); }
 
         function openDeleteModal(id = null, isStudent = true) {
@@ -767,6 +767,7 @@
 
             if(!pass) return;
 
+            // Instant Local Verification Check
             if (pass !== 'admin' && pass !== sessionPassword) {
                 errorMsg.classList.remove('hidden');
                 errorMsg.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!';
@@ -776,6 +777,7 @@
             errorMsg.classList.add('hidden');
             btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
 
+            // Fast Execution
             setTimeout(() => {
                 if(isStudent) {
                     const stId = document.getElementById('tuition-student-id').value;
@@ -807,9 +809,10 @@
                 
                 recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal();
                 btnText.innerHTML = 'Confirm Delete';
-            }, 400);
+            }, 300);
         }
 
+        // --- GENERAL LOGIC ---
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ 
