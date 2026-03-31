@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Excellent Institute - Ultimate ERP</title>
+    
+    <link rel="icon" type="image/jpeg" href="logo.jpeg">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -68,7 +71,7 @@
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-lock text-lg"></i></div>
                     <input type="password" id="password" class="form-input pl-12 py-4 text-lg bg-white/70 backdrop-blur-sm" placeholder="Password" required>
                 </div>
-                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied!</p>
+                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.</p>
                 <button type="submit" id="login-btn" class="w-full py-4 mt-8 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 shadow-xl hover:shadow-indigo-500/40 flex justify-center items-center transform hover:-translate-y-1">
                     <span id="login-btn-text">Authenticate <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i></span>
                 </button>
@@ -164,7 +167,7 @@
                             <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4 shrink-0"><h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-list-ul mr-3 text-indigo-500"></i> Recent Activity</h3></div>
                             <div class="overflow-auto w-full custom-scrollbar flex-1">
                                 <table class="w-full text-left border-collapse min-w-[500px]">
-                                    <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10"><th class="py-3 px-4 rounded-l-lg">Date</th><th class="py-3 px-4">Description</th><th class="py-3 px-4 text-center">Type</th><th class="py-3 px-4 text-right">Amount</th><th class="py-3 px-2 rounded-r-lg"></th></tr></thead>
+                                    <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10"><th class="py-3 px-4 rounded-l-lg">Date</th><th class="py-3 px-4">Description</th><th class="py-3 px-4 text-center">Type</th><th class="py-3 px-4 text-right rounded-r-lg">Amount</th></tr></thead>
                                     <tbody id="transaction-ledger" class="text-sm divide-y divide-slate-50 font-medium"></tbody>
                                 </table>
                             </div>
@@ -225,6 +228,7 @@
                             <div class="p-6 border-b border-slate-100 bg-slate-50 z-10 relative shrink-0">
                                 <h3 class="font-extrabold text-slate-800 text-lg">Student Database</h3>
                                 <p class="text-xs text-slate-500 font-medium mt-1 mb-4">Select a student to view details</p>
+                                
                                 <div class="space-y-3">
                                     <div class="relative"><i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i><input type="text" id="filter-search" oninput="renderStudentList()" placeholder="Search Name or ID..." class="w-full rounded-xl border border-slate-200 pl-9 py-2.5 text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white"></div>
                                     <div class="flex gap-2">
@@ -276,7 +280,6 @@
                                 </div>
 
                                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 flex-1 overflow-hidden min-h-[350px]">
-                                    
                                     <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md">
                                         <div class="p-4 border-b border-slate-100 bg-slate-50 shrink-0"><h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-plus-circle mr-2 text-emerald-500"></i> Record New Payment</h3></div>
                                         <form onsubmit="submitTuitionFee(event)" class="p-6 flex-1 flex flex-col justify-between overflow-y-auto custom-scrollbar">
@@ -287,9 +290,9 @@
                                                     <label class="form-label text-indigo-600">Type of Fee</label>
                                                     <select id="tuition-feetype-select" class="form-input cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required>
                                                         <option value="Course Tuition Fee">📖 Course Tuition Fee (Reduces Dues)</option>
-                                                        <option value="Admission Fee">🎟️ Admission Fee (Late Advance)</option>
-                                                        <option value="Exam / Certificate Fee">📝 Exam / Certificate Fee (Extra)</option>
-                                                        <option value="Other Fee">💡 Other Fee (Extra)</option>
+                                                        <option value="Admission Fee">🎟️ Admission Fee (Late Advance - Reduces Dues)</option>
+                                                        <option value="Exam / Certificate Fee">📝 Exam / Certificate Fee (Extra Charge)</option>
+                                                        <option value="Other Fee">💡 Other Fee (Extra Charge)</option>
                                                     </select>
                                                 </div>
                                                 <div><label class="form-label">Description / Month (Optional)</label><input type="text" id="tuition-desc" class="form-input" placeholder="e.g. March / First Sem"></div>
@@ -300,9 +303,7 @@
                                     </div>
 
                                     <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md">
-                                        <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
-                                            <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-500"></i> Payment History</h3>
-                                        </div>
+                                        <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0"><h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-500"></i> Payment History</h3></div>
                                         <div class="overflow-y-auto flex-1 custom-scrollbar p-2">
                                             <table class="w-full text-left border-collapse min-w-[300px]">
                                                 <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100"><th class="py-2 px-3">Date</th><th class="py-2 px-3">Description</th><th class="py-2 px-3 text-right">Amount</th><th class="py-2 px-2 text-center"></th></tr></thead>
@@ -369,7 +370,19 @@
                                 <h3 class="text-xl font-black text-rose-900 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-rose-500/30"><i class="fa-solid fa-minus text-xl"></i></div>Record Expense</h3>
                                 <div class="space-y-5">
                                     <div><label class="form-label text-rose-800">Payment Date</label><input type="date" id="exp-date" class="form-input bg-white" required></div>
-                                    <div><label class="form-label text-rose-800">Category</label><select id="exp-category" class="form-input bg-white cursor-pointer font-bold text-slate-700" required><option value="Electricity Bill">Electricity Bill</option><option value="Office Rent">Office Rent</option><option value="Staff Salary">Staff Salary</option><option value="Maintenance & Repair">Maintenance & Repair</option><option value="Paper & Ink Supplies">Paper & Ink Supplies</option><option value="Institute Promotion">Institute Promotion</option><option value="Miscellaneous">Miscellaneous</option></select></div>
+                                    <div>
+                                        <label class="form-label text-rose-800">Category</label>
+                                        <select id="exp-category" class="form-input bg-white cursor-pointer font-bold text-slate-700" required>
+                                            <option value="Electricity Bill">Electricity Bill</option>
+                                            <option value="Office Rent">Office Rent</option>
+                                            <option value="Staff Salary">Staff Salary</option>
+                                            <option value="Maintenance & Repair">Maintenance & Repair</option>
+                                            <option value="Paper & Ink Supplies">Paper & Ink Supplies</option>
+                                            <option value="Institute Promotion">Institute Promotion</option>
+                                            <option value="Water Can">Water Can</option>
+                                            <option value="Miscellaneous">Miscellaneous</option>
+                                        </select>
+                                    </div>
                                     <div><label class="form-label text-rose-800">Amount (₹)</label><input type="number" id="exp-amount" class="form-input text-xl text-rose-600 font-black bg-white border-rose-200 shadow-inner" placeholder="0" required></div>
                                     <div><label class="form-label text-rose-800">Description (Optional)</label><input type="text" id="exp-desc" class="form-input bg-white" placeholder="e.g. March Electricity"></div>
                                     <button type="submit" class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Deduct from Balance</button>
@@ -434,19 +447,21 @@
     <div id="delete-student-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div class="premium-card w-full max-w-md mx-4 flex flex-col transform scale-95 transition-transform duration-300 border-2 border-rose-500/30" id="delete-modal-content">
             <div class="p-6 border-b border-rose-100 bg-rose-50 rounded-t-[1.5rem]">
-                <h3 class="text-xl font-black text-rose-600 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-3 text-2xl"></i> Delete Student</h3>
+                <h3 class="text-xl font-black text-rose-600 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-3 text-2xl"></i> Delete Record</h3>
             </div>
             <div class="p-8 space-y-5 bg-white">
-                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove <span id="delete-student-name" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded"></span> and <strong class="text-rose-600">ALL their payment records</strong> from the database. The Net Balance will be recalculated. This action cannot be undone.</p>
+                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove the record and <strong class="text-rose-600">recalculate balances</strong>. This action cannot be undone.</p>
                 <div>
                     <label class="form-label text-rose-600">Enter Admin Delete Password</label>
                     <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50 text-lg tracking-widest" placeholder="••••••••" required>
                     <p id="delete-error" class="text-rose-500 text-xs font-bold mt-2 hidden"><i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!</p>
                 </div>
+                <input type="hidden" id="delete-transaction-id">
+                <input type="hidden" id="delete-student-flag">
             </div>
             <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-3">
                 <button onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-                <button id="confirm-delete-btn" onclick="confirmDeleteStudent()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center transform hover:-translate-y-1">
+                <button id="confirm-delete-btn" onclick="executeDelete()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center transform hover:-translate-y-1">
                     <span id="delete-btn-text">Confirm Delete</span>
                 </button>
             </div>
@@ -461,7 +476,6 @@
 
         window.onload = function() {
             setDefaultDates();
-            // Ultra-strict mode: Session auto-login removed for maximum security!
         };
 
         function setDefaultDates() {
@@ -502,13 +516,13 @@
                     document.getElementById('app-screen').classList.remove('hidden');
                     document.getElementById('app-screen').classList.add('flex');
                     document.getElementById('password').value = '';
-                    btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+                    btnText.innerHTML = 'Authenticate <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
                     document.getElementById('login-screen').style.opacity = '1';
                 }, 500);
 
             } catch(err) {
                 showError(errorMsg);
-                btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+                btnText.innerHTML = 'Authenticate <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
             }
         }
 
@@ -539,7 +553,6 @@
         function refreshAllUI() {
             updateDashboard(); renderStudentList(); renderLedger(); renderExpenseList(); renderJobList(); renderPrintList();
             
-            // Refresh active student if open
             const activeId = document.getElementById('tuition-student-id').value;
             if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
                 selectStudent(activeId);
@@ -642,43 +655,87 @@
             window.print();
         }
 
-        // --- TRANSACTION DELETION (NEW) ---
+        // --- TRANSACTION DELETION ---
         function deleteTransaction(txId) {
-            if(!confirm("Are you sure you want to permanently delete this transaction? This will adjust your balances.")) return;
-            
-            const pass = prompt("Enter Admin Delete Password to confirm:");
-            if (!pass) return;
+            openDeleteModal(txId, false);
+        }
 
-            document.body.style.cursor = 'wait';
+        function openDeleteModal(id = null, isStudent = true) {
+            if(isStudent) {
+                const stId = document.getElementById('tuition-student-id').value;
+                const student = appData.students.find(s => s.id === stId);
+                if(!student) return;
+                document.getElementById('delete-student-name').innerText = student.name;
+                document.getElementById('delete-student-flag').value = 'true';
+            } else {
+                document.getElementById('delete-student-name').innerText = "this transaction";
+                document.getElementById('delete-transaction-id').value = id;
+                document.getElementById('delete-student-flag').value = 'false';
+            }
+
+            document.getElementById('delete-password-input').value = '';
+            document.getElementById('delete-error').classList.add('hidden');
+
+            const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
+            modal.classList.add('opacity-0'); content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function executeDelete() {
+            const pass = document.getElementById('delete-password-input').value;
+            const errorMsg = document.getElementById('delete-error');
+            const btnText = document.getElementById('delete-btn-text');
+            const isStudent = document.getElementById('delete-student-flag').value === 'true';
+
+            if(!pass) return;
+
+            errorMsg.classList.add('hidden');
+            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
+
             fetch(GOOGLE_APP_URL + "?action=verifyDelete&pass=" + encodeURIComponent(pass))
                 .then(res => res.json())
                 .then(data => {
-                    document.body.style.cursor = 'default';
-                    if(data.error) { alert("Incorrect Delete Password!"); return; }
-                    
-                    const txIndex = appData.transactions.findIndex(t => t.id === txId);
-                    if(txIndex === -1) return;
-                    const tx = appData.transactions[txIndex];
-                    
-                    // If it was a tuition/admission fee, revert student's paid fee
-                    if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
-                        appData.students.forEach(student => {
-                            if (tx.title.includes(student.name)) {
-                                student.paidFee -= tx.amount;
-                                if(student.paidFee < 0) student.paidFee = 0;
-                            }
-                        });
-                    }
+                    if(data.error) throw new Error("Invalid Password");
 
-                    // Remove transaction
-                    appData.transactions.splice(txIndex, 1);
+                    if(isStudent) {
+                        const stId = document.getElementById('tuition-student-id').value;
+                        let student = appData.students.find(s => s.id === stId);
+                        if(student) {
+                            appData.students = appData.students.filter(s => s.id !== stId);
+                            appData.transactions = appData.transactions.filter(tx => !tx.title.includes(student.name));
+                            document.getElementById('tuition-placeholder').classList.remove('hidden');
+                            document.getElementById('tuition-active').classList.add('hidden');
+                            alert(`${student.name} has been completely deleted.`);
+                        }
+                    } else {
+                        const txId = document.getElementById('delete-transaction-id').value;
+                        const txIndex = appData.transactions.findIndex(t => t.id === txId);
+                        if(txIndex !== -1) {
+                            const tx = appData.transactions[txIndex];
+                            if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
+                                appData.students.forEach(student => {
+                                    if (tx.title.includes(student.name)) {
+                                        student.paidFee -= tx.amount;
+                                        if(student.paidFee < 0) student.paidFee = 0;
+                                    }
+                                });
+                            }
+                            appData.transactions.splice(txIndex, 1);
+                            alert("Transaction deleted successfully.");
+                        }
+                    }
                     
-                    recalculateStats(); saveDatabase(); refreshAllUI();
-                    alert("Transaction successfully deleted and balances updated.");
+                    recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal();
                 })
                 .catch(err => {
-                    document.body.style.cursor = 'default';
-                    alert("Network error verifying password.");
+                    errorMsg.classList.remove('hidden');
+                    btnText.innerHTML = 'Confirm Delete';
                 });
         }
 
@@ -720,7 +777,6 @@
             });
         }
 
-        // --- EDIT MODAL LOGIC ---
         function openEditModal() {
             const stId = document.getElementById('tuition-student-id').value;
             const student = appData.students.find(s => s.id === stId);
@@ -776,63 +832,6 @@
 
         function finalizeEdit(student) {
             closeEditModal(); saveDatabase(); renderStudentList(); selectStudent(student.id); alert("Profile updated successfully!");
-        }
-
-        // --- DELETE MODAL LOGIC ---
-        function openDeleteModal() {
-            const stId = document.getElementById('tuition-student-id').value;
-            const student = appData.students.find(s => s.id === stId);
-            if(!student) return;
-
-            document.getElementById('delete-student-name').innerText = student.name;
-            document.getElementById('delete-password-input').value = '';
-            document.getElementById('delete-error').classList.add('hidden');
-
-            const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
-        }
-
-        function closeDeleteModal() {
-            const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
-            modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
-
-        function confirmDeleteStudent() {
-            const pass = document.getElementById('delete-password-input').value;
-            const errorMsg = document.getElementById('delete-error');
-            const btnText = document.getElementById('delete-btn-text');
-            const stId = document.getElementById('tuition-student-id').value;
-
-            if(!pass) return;
-
-            errorMsg.classList.add('hidden');
-            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
-
-            fetch(GOOGLE_APP_URL + "?action=verifyDelete&pass=" + encodeURIComponent(pass))
-                .then(res => res.json())
-                .then(data => {
-                    if(data.error) throw new Error("Invalid Password");
-
-                    let student = appData.students.find(s => s.id === stId);
-                    if(student) {
-                        appData.students = appData.students.filter(s => s.id !== stId);
-                        appData.transactions = appData.transactions.filter(tx => !tx.title.includes(student.name));
-                        
-                        recalculateStats(); saveDatabase(); refreshAllUI();
-                        
-                        closeDeleteModal();
-                        document.getElementById('tuition-placeholder').classList.remove('hidden');
-                        document.getElementById('tuition-active').classList.add('hidden');
-                        
-                        alert(`${student.name} has been completely deleted.`);
-                    }
-                })
-                .catch(err => {
-                    errorMsg.classList.remove('hidden');
-                    btnText.innerHTML = 'Confirm Delete';
-                });
         }
 
         function submitTuitionFee(e) {
@@ -1017,9 +1016,9 @@
             });
         }
 
-        function renderList(containerId, filterKeyword, iconClass, colorClass, emptyMsg) {
+        function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorClass, emptyMsg) {
             const listEl = document.getElementById(containerId); listEl.innerHTML = '';
-            const items = appData.transactions.filter(t => t.title.includes(filterKeyword));
+            const items = appData.transactions.filter(itemsFilterFn);
             if(items.length === 0) { listEl.innerHTML = `<div class="text-center text-slate-400 mt-10"><i class="${iconClass} text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">${emptyMsg}</p></div>`; return; }
             items.forEach(tx => {
                 const isInc = tx.type === 'income';
@@ -1027,7 +1026,7 @@
                     <div class="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3">
                         <div class="flex items-center space-x-4">
                             <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100"><i class="${iconClass}"></i></div>
-                            <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(filterKeyword + ': ', '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
+                            <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                         </div>
                         <div class="flex items-center gap-4">
                             <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
@@ -1038,9 +1037,9 @@
             });
         }
 
-        function renderExpenseList() { renderList('expense-list', 'expense', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
-        function renderJobList() { renderList('job-list', 'Job Desk', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
-        function renderPrintList() { renderList('print-list', 'Print Desk', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
+        function renderExpenseList() { renderList('expense-list', t => t.type === 'expense', '', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
+        function renderJobList() { renderList('job-list', t => t.title.includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
+        function renderPrintList() { renderList('print-list', t => t.title.includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
         function switchTab(tabId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
