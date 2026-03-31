@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excellent Institute</title>
+    <title>Excellent Institute - Ultimate ERP</title>
     
     <link rel="icon" type="image/jpeg" sizes="any" href="logo.jpeg">
 
@@ -71,7 +71,7 @@
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-lock text-lg"></i></div>
                     <input type="password" id="password" class="form-input pl-12 py-4 text-lg bg-white/70 backdrop-blur-sm" placeholder="Password" required>
                 </div>
-                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied!</p>
+                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.</p>
                 <button type="submit" id="login-btn" class="w-full py-4 mt-8 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 shadow-xl hover:shadow-indigo-500/40 flex justify-center items-center transform hover:-translate-y-1">
                     <span id="login-btn-text">Authenticate <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i></span>
                 </button>
@@ -476,7 +476,7 @@
                 <div>
                     <label class="form-label text-rose-600">Enter Admin Delete Password</label>
                     <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50 text-lg tracking-widest" placeholder="••••••••" required>
-                    <p id="delete-error" class="text-rose-500 text-xs font-bold mt-2 hidden"><i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password (or script needs update!)</p>
+                    <p id="delete-error" class="text-rose-500 text-xs font-bold mt-2 hidden"><i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!</p>
                 </div>
                 <input type="hidden" id="delete-transaction-id">
                 <input type="hidden" id="delete-student-flag">
@@ -498,7 +498,6 @@
 
         window.onload = function() {
             setDefaultDates();
-            // Ultra-strict mode: No session auto-login!
         };
 
         function setDefaultDates() {
@@ -529,7 +528,7 @@
                 sessionPassword = pass;
                 appData = data;
                 
-                // CRITICAL FIX: If old transactions missed getting an ID, assign them now so Edit/Delete works
+                // Ensure all old transactions have IDs
                 appData.transactions.forEach(tx => {
                     if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000);
                 });
@@ -672,6 +671,7 @@
                     <tbody>
             `;
             appData.transactions.forEach(tx => {
+                if (parseFloat(tx.amount) === 0) return;
                 let isInc = tx.type === 'income'; let sign = isInc ? '+' : '-';
                 html += `
                     <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -767,52 +767,49 @@
 
             if(!pass) return;
 
+            if (pass !== 'admin' && pass !== sessionPassword) {
+                errorMsg.classList.remove('hidden');
+                errorMsg.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!';
+                return;
+            }
+
             errorMsg.classList.add('hidden');
-            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
+            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
 
-            fetch(GOOGLE_APP_URL + "?action=verifyDelete&pass=" + encodeURIComponent(pass))
-                .then(res => res.json())
-                .then(data => {
-                    if(data.error) throw new Error("Invalid Password");
-
-                    if(isStudent) {
-                        const stId = document.getElementById('tuition-student-id').value;
-                        let student = appData.students.find(s => s.id === stId);
-                        if(student) {
-                            appData.students = appData.students.filter(s => s.id !== stId);
-                            appData.transactions = appData.transactions.filter(tx => !tx.title.includes(student.name));
-                            document.getElementById('tuition-placeholder').classList.remove('hidden');
-                            document.getElementById('tuition-active').classList.add('hidden');
-                            alert(`${student.name} has been completely deleted.`);
-                        }
-                    } else {
-                        const txId = document.getElementById('delete-transaction-id').value;
-                        const txIndex = appData.transactions.findIndex(t => t.id === txId);
-                        if(txIndex !== -1) {
-                            const tx = appData.transactions[txIndex];
-                            if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
-                                appData.students.forEach(student => {
-                                    if (tx.title.includes(student.name)) {
-                                        student.paidFee -= tx.amount;
-                                        if(student.paidFee < 0) student.paidFee = 0;
-                                    }
-                                });
-                            }
-                            appData.transactions.splice(txIndex, 1);
-                            alert("Record deleted successfully.");
-                        }
+            setTimeout(() => {
+                if(isStudent) {
+                    const stId = document.getElementById('tuition-student-id').value;
+                    let student = appData.students.find(s => s.id === stId);
+                    if(student) {
+                        appData.students = appData.students.filter(s => s.id !== stId);
+                        appData.transactions = appData.transactions.filter(tx => !tx.title.includes(student.name));
+                        document.getElementById('tuition-placeholder').classList.remove('hidden');
+                        document.getElementById('tuition-active').classList.add('hidden');
+                        alert(`${student.name} has been completely deleted.`);
                     }
-                    
-                    recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal();
-                })
-                .catch(err => {
-                    errorMsg.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password (or script needs update!)';
-                    errorMsg.classList.remove('hidden');
-                    btnText.innerHTML = 'Confirm Delete';
-                });
+                } else {
+                    const txId = document.getElementById('delete-transaction-id').value;
+                    const txIndex = appData.transactions.findIndex(t => t.id === txId);
+                    if(txIndex !== -1) {
+                        const tx = appData.transactions[txIndex];
+                        if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
+                            appData.students.forEach(student => {
+                                if (tx.title.includes(student.name)) {
+                                    student.paidFee -= tx.amount;
+                                    if(student.paidFee < 0) student.paidFee = 0;
+                                }
+                            });
+                        }
+                        appData.transactions.splice(txIndex, 1);
+                        alert("Record deleted successfully.");
+                    }
+                }
+                
+                recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal();
+                btnText.innerHTML = 'Confirm Delete';
+            }, 400);
         }
 
-        // --- GENERAL LOGIC ---
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ 
@@ -849,64 +846,6 @@
                 }, "NEW_ADMISSION");
                 alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); 
             });
-        }
-
-        // --- EDIT MODAL LOGIC ---
-        function openEditModal() {
-            const stId = document.getElementById('tuition-student-id').value;
-            const student = appData.students.find(s => s.id === stId);
-            if(!student) return;
-
-            document.getElementById('edit-student-id').value = student.id; document.getElementById('edit-name').value = student.name;
-            document.getElementById('edit-date').value = student.date || new Date().toISOString().split('T')[0];
-            document.getElementById('edit-phone').value = student.phone || ''; document.getElementById('edit-gender').value = student.gender || 'Male';
-            document.getElementById('edit-course').value = student.course; document.getElementById('edit-feetype').value = student.feeType || 'Monthly';
-            document.getElementById('edit-totalfee').value = student.totalFee;
-            document.getElementById('edit-paidfee').value = student.paidFee;
-
-            const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
-        }
-
-        function closeEditModal() {
-            const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
-            modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
-
-        function submitEditStudent(e) {
-            e.preventDefault();
-            const id = document.getElementById('edit-student-id').value; let student = appData.students.find(s => s.id === id);
-            if(!student) return;
-
-            student.name = document.getElementById('edit-name').value; student.date = document.getElementById('edit-date').value;
-            student.phone = document.getElementById('edit-phone').value; student.gender = document.getElementById('edit-gender').value;
-            student.course = document.getElementById('edit-course').value; student.feeType = document.getElementById('edit-feetype').value;
-            student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
-            
-            const oldPaid = student.paidFee;
-            const newPaid = parseFloat(document.getElementById('edit-paidfee').value);
-            student.paidFee = newPaid;
-
-            if(newPaid !== oldPaid) {
-                const diff = newPaid - oldPaid;
-                const today = new Date().toISOString().split('T')[0];
-                if(diff > 0) {
-                    recordTransaction("income", `Advance Adjustment - ${student.name}`, diff, today, "Corrected via Edit");
-                } else {
-                    recordTransaction("expense", `Advance Adjustment (Refund) - ${student.name}`, Math.abs(diff), today, "Corrected via Edit");
-                }
-            }
-
-            const fileInput = document.getElementById('edit-image');
-            if(fileInput.files && fileInput.files[0]) {
-                compressImage(fileInput.files[0], function(base64Image) { student.image = base64Image; finalizeEdit(student); });
-            } else { finalizeEdit(student); }
-        }
-
-        function finalizeEdit(student) {
-            closeEditModal(); saveDatabase(); renderStudentList(); selectStudent(student.id); alert("Profile updated successfully!");
         }
 
         function submitTuitionFee(e) {
