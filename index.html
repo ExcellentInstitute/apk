@@ -472,7 +472,7 @@
                 <h3 class="text-xl font-black text-rose-600 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-3 text-2xl"></i> Delete Record</h3>
             </div>
             <div class="p-8 space-y-5 bg-white">
-                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove the record and <strong class="text-rose-600">recalculate balances</strong>. This action cannot be undone.</p>
+                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove <span id="delete-student-name" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded"></span> and <strong class="text-rose-600">recalculate balances</strong>. This action cannot be undone.</p>
                 <div>
                     <label class="form-label text-rose-600">Enter Admin Delete Password</label>
                     <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50 text-lg tracking-widest" placeholder="••••••••" required>
@@ -494,7 +494,6 @@
         const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
-        let sessionPassword = ""; 
 
         window.onload = function() {
             setDefaultDates();
@@ -525,7 +524,6 @@
                 
                 if(data.error) throw new Error("Invalid Password");
 
-                sessionPassword = pass;
                 appData = data;
                 
                 // Ensure all old transactions have IDs
@@ -576,7 +574,7 @@
 
         function saveDatabase() {
             localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-            const payload = { password: sessionPassword, data: appData };
+            const payload = { password: "excellent@9658", data: appData };
             fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
             .catch(error => console.log("Cloud sync failed.", error));
         }
@@ -729,7 +727,7 @@
             alert("Record updated successfully!");
         }
 
-        // --- INSTANT LOCAL DELETE LOGIC ---
+        // --- LOCAL DELETE LOGIC (INSTANT) ---
         function deleteTransaction(txId) { openDeleteModal(txId, false); }
 
         function openDeleteModal(id = null, isStudent = true) {
@@ -767,8 +765,8 @@
 
             if(!pass) return;
 
-            // Instant Local Verification Check
-            if (pass !== 'admin' && pass !== sessionPassword) {
+            // Instant Local Verification Check (Bypasses Google Server delays)
+            if (pass !== 'admin') {
                 errorMsg.classList.remove('hidden');
                 errorMsg.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!';
                 return;
@@ -777,7 +775,6 @@
             errorMsg.classList.add('hidden');
             btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
 
-            // Fast Execution
             setTimeout(() => {
                 if(isStudent) {
                     const stId = document.getElementById('tuition-student-id').value;
@@ -849,6 +846,64 @@
                 }, "NEW_ADMISSION");
                 alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); 
             });
+        }
+
+        // --- EDIT MODAL LOGIC ---
+        function openEditModal() {
+            const stId = document.getElementById('tuition-student-id').value;
+            const student = appData.students.find(s => s.id === stId);
+            if(!student) return;
+
+            document.getElementById('edit-student-id').value = student.id; document.getElementById('edit-name').value = student.name;
+            document.getElementById('edit-date').value = student.date || new Date().toISOString().split('T')[0];
+            document.getElementById('edit-phone').value = student.phone || ''; document.getElementById('edit-gender').value = student.gender || 'Male';
+            document.getElementById('edit-course').value = student.course; document.getElementById('edit-feetype').value = student.feeType || 'Monthly';
+            document.getElementById('edit-totalfee').value = student.totalFee;
+            document.getElementById('edit-paidfee').value = student.paidFee;
+
+            const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
+            modal.classList.add('opacity-0'); content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function submitEditStudent(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-student-id').value; let student = appData.students.find(s => s.id === id);
+            if(!student) return;
+
+            student.name = document.getElementById('edit-name').value; student.date = document.getElementById('edit-date').value;
+            student.phone = document.getElementById('edit-phone').value; student.gender = document.getElementById('edit-gender').value;
+            student.course = document.getElementById('edit-course').value; student.feeType = document.getElementById('edit-feetype').value;
+            student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
+            
+            const oldPaid = student.paidFee;
+            const newPaid = parseFloat(document.getElementById('edit-paidfee').value);
+            student.paidFee = newPaid;
+
+            if(newPaid !== oldPaid) {
+                const diff = newPaid - oldPaid;
+                const today = new Date().toISOString().split('T')[0];
+                if(diff > 0) {
+                    recordTransaction("income", `Advance Adjustment - ${student.name}`, diff, today, "Corrected via Edit");
+                } else {
+                    recordTransaction("expense", `Advance Adjustment (Refund) - ${student.name}`, Math.abs(diff), today, "Corrected via Edit");
+                }
+            }
+
+            const fileInput = document.getElementById('edit-image');
+            if(fileInput.files && fileInput.files[0]) {
+                compressImage(fileInput.files[0], function(base64Image) { student.image = base64Image; finalizeEdit(student); });
+            } else { finalizeEdit(student); }
+        }
+
+        function finalizeEdit(student) {
+            closeEditModal(); saveDatabase(); renderStudentList(); selectStudent(student.id); alert("Profile updated successfully!");
         }
 
         function submitTuitionFee(e) {
