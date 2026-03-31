@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excellent Institute</title>
+    <title>Excellent Institute - Ultimate ERP</title>
     
-    <link rel="icon" type="image/jpeg" href="logo.jpeg">
+    <link rel="icon" type="image/jpeg" sizes="any" href="logo.jpeg">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,7 +42,7 @@
         #comprehensive-print-view { display: none; }
         @media print {
             body { background: white !important; overflow: visible !important; height: auto !important; }
-            #login-screen, #app-screen, #edit-student-modal, #delete-student-modal { display: none !important; }
+            #login-screen, #app-screen, #edit-student-modal, #delete-student-modal, #edit-transaction-modal { display: none !important; }
             #comprehensive-print-view { display: block !important; width: 100%; color: black !important; padding: 10px; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             @page { margin: 1.5cm; }
@@ -71,7 +71,7 @@
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-lock text-lg"></i></div>
                     <input type="password" id="password" class="form-input pl-12 py-4 text-lg bg-white/70 backdrop-blur-sm" placeholder="Password" required>
                 </div>
-                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.</p>
+                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied!</p>
                 <button type="submit" id="login-btn" class="w-full py-4 mt-8 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 shadow-xl hover:shadow-indigo-500/40 flex justify-center items-center transform hover:-translate-y-1">
                     <span id="login-btn-text">Authenticate <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i></span>
                 </button>
@@ -166,8 +166,8 @@
                         <div class="lg:col-span-2 premium-card p-6 md:p-8 flex flex-col h-[500px]">
                             <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4 shrink-0"><h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-list-ul mr-3 text-indigo-500"></i> Recent Activity</h3></div>
                             <div class="overflow-auto w-full custom-scrollbar flex-1">
-                                <table class="w-full text-left border-collapse min-w-[500px]">
-                                    <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10"><th class="py-3 px-4 rounded-l-lg">Date</th><th class="py-3 px-4">Description</th><th class="py-3 px-4 text-center">Type</th><th class="py-3 px-4 text-right rounded-r-lg">Amount</th></tr></thead>
+                                <table class="w-full text-left border-collapse min-w-[600px]">
+                                    <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10"><th class="py-3 px-4 rounded-l-lg">Date</th><th class="py-3 px-4">Description</th><th class="py-3 px-4 text-center">Type</th><th class="py-3 px-4 text-right">Amount</th><th class="py-3 px-2 rounded-r-lg"></th></tr></thead>
                                     <tbody id="transaction-ledger" class="text-sm divide-y divide-slate-50 font-medium"></tbody>
                                 </table>
                             </div>
@@ -227,7 +227,7 @@
                         <div class="lg:col-span-4 premium-card flex flex-col h-[500px] lg:h-[800px] overflow-hidden bg-white">
                             <div class="p-6 border-b border-slate-100 bg-slate-50 z-10 relative shrink-0">
                                 <h3 class="font-extrabold text-slate-800 text-lg">Student Database</h3>
-                                <p class="text-xs text-slate-500 font-medium mt-1 mb-4">Select a student to view details</p>
+                                <p class="text-xs text-slate-500 font-medium mt-1 mb-4">Select a student to manage fees</p>
                                 
                                 <div class="space-y-3">
                                     <div class="relative"><i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i><input type="text" id="filter-search" oninput="renderStudentList()" placeholder="Search Name or ID..." class="w-full rounded-xl border border-slate-200 pl-9 py-2.5 text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white"></div>
@@ -438,8 +438,30 @@
                 </form>
             </div>
             <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-3">
-                <button onclick="closeEditModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+                <button type="button" onclick="closeEditModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
                 <button onclick="submitEditStudent(event)" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-transaction-modal" class="hidden fixed inset-0 z-[115] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="premium-card w-full max-w-lg mx-4 flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
+                <h3 class="text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-pen-to-square mr-3 text-indigo-600"></i> Edit Record</h3>
+                <button onclick="closeEditTransactionModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-8 bg-white">
+                <form id="edit-transaction-form" onsubmit="submitEditTransaction(event)" class="space-y-5">
+                    <input type="hidden" id="edit-tx-id">
+                    <div><label class="form-label">Date</label><input type="date" id="edit-tx-date" class="form-input" required></div>
+                    <div><label class="form-label">Title / Category</label><input type="text" id="edit-tx-title" class="form-input" required></div>
+                    <div><label class="form-label text-indigo-700">Amount (₹)</label><input type="number" id="edit-tx-amount" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required></div>
+                    <div><label class="form-label">Description (Optional)</label><input type="text" id="edit-tx-desc" class="form-input"></div>
+                    <div class="pt-4 flex justify-end space-x-3">
+                        <button type="button" onclick="closeEditTransactionModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+                        <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1">Update Record</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -460,7 +482,7 @@
                 <input type="hidden" id="delete-student-flag">
             </div>
             <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-3">
-                <button onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+                <button type="button" onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
                 <button id="confirm-delete-btn" onclick="executeDelete()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center transform hover:-translate-y-1">
                     <span id="delete-btn-text">Confirm Delete</span>
                 </button>
@@ -655,7 +677,49 @@
             window.print();
         }
 
-        // --- TRANSACTION DELETION ---
+        // --- TRANSACTION EDIT LOGIC ---
+        function openEditTransactionModal(txId) {
+            const tx = appData.transactions.find(t => t.id === txId);
+            if(!tx) return;
+
+            if(tx.title.includes("Tuition Fee") || tx.title.includes("Admission") || tx.title.includes("Advance")) {
+                alert("To protect accounting integrity, please edit student payments directly from their profile in the Student Database.");
+                return;
+            }
+
+            document.getElementById('edit-tx-id').value = tx.id;
+            document.getElementById('edit-tx-date').value = tx.date;
+            document.getElementById('edit-tx-title').value = tx.title;
+            document.getElementById('edit-tx-amount').value = tx.amount;
+            document.getElementById('edit-tx-desc').value = tx.description || '';
+
+            const modal = document.getElementById('edit-transaction-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+        }
+
+        function closeEditTransactionModal() {
+            const modal = document.getElementById('edit-transaction-modal');
+            modal.classList.add('opacity-0'); modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function submitEditTransaction(e) {
+            e.preventDefault();
+            const txId = document.getElementById('edit-tx-id').value;
+            const tx = appData.transactions.find(t => t.id === txId);
+            if(!tx) return;
+
+            tx.date = document.getElementById('edit-tx-date').value;
+            tx.title = document.getElementById('edit-tx-title').value;
+            tx.amount = parseFloat(document.getElementById('edit-tx-amount').value);
+            tx.description = document.getElementById('edit-tx-desc').value;
+
+            recalculateStats(); saveDatabase(); refreshAllUI(); closeEditTransactionModal();
+            alert("Record updated successfully!");
+        }
+
+        // --- TRANSACTION DELETION LOGIC ---
         function deleteTransaction(txId) {
             openDeleteModal(txId, false);
         }
@@ -668,7 +732,7 @@
                 document.getElementById('delete-student-name').innerText = student.name;
                 document.getElementById('delete-student-flag').value = 'true';
             } else {
-                document.getElementById('delete-student-name').innerText = "this transaction";
+                document.getElementById('delete-student-name').innerText = "this record";
                 document.getElementById('delete-transaction-id').value = id;
                 document.getElementById('delete-student-flag').value = 'false';
             }
@@ -727,7 +791,7 @@
                                 });
                             }
                             appData.transactions.splice(txIndex, 1);
-                            alert("Transaction deleted successfully.");
+                            alert("Record deleted successfully.");
                         }
                     }
                     
@@ -739,6 +803,7 @@
                 });
         }
 
+        // --- GENERAL LOGIC ---
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ 
@@ -1010,7 +1075,9 @@
                         <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title}</td>
                         <td class="py-4 px-4 text-center">${badge}</td>
                         <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
-                        <td class="py-4 px-2 text-center"><button onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Transaction"><i class="fa-solid fa-trash"></i></button></td>
+                        <td class="py-4 px-2 text-center">
+                            <button onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-1" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
+                        </td>
                     </tr>
                 `;
             });
@@ -1023,14 +1090,17 @@
             items.forEach(tx => {
                 const isInc = tx.type === 'income';
                 listEl.innerHTML += `
-                    <div class="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
                         <div class="flex items-center space-x-4">
-                            <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100"><i class="${iconClass}"></i></div>
+                            <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
                             <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                         </div>
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
                             <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
-                            <button onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
+                            <div class="flex space-x-1">
+                                <button onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-2" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
+                            </div>
                         </div>
                     </div>
                 `;
