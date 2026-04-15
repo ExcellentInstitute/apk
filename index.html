@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; overflow: hidden; }
@@ -102,7 +103,11 @@
                 <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Services & Forms</p><div onclick="switchTab('job')" id="nav-job" class="nav-btn"><i class="fa-solid fa-briefcase w-8 text-lg"></i> <span>Job Applications</span></div><div onclick="switchTab('print')" id="nav-print" class="nav-btn"><i class="fa-solid fa-print w-8 text-lg"></i> <span>Print & Xerox Desk</span></div>
                 <a href="Admission_form.pdf" target="_blank" class="nav-btn mt-2 bg-slate-800/50 hover:bg-slate-800"><i class="fa-solid fa-file-pdf w-8 text-lg text-rose-400"></i> <span class="text-sm">Admission PDF</span></a>
                 <a href="Terms&conditions.pdf" target="_blank" class="nav-btn bg-slate-800/50 hover:bg-slate-800"><i class="fa-solid fa-file-contract w-8 text-lg text-emerald-400"></i> <span class="text-sm">Terms PDF</span></a></div>
-                <div class="mb-2"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Finance</p><div onclick="switchTab('expenditure')" id="nav-expenditure" class="nav-btn"><i class="fa-solid fa-wallet w-8 text-lg"></i> <span>Expenditures</span></div></div>
+                <div class="mb-2">
+                    <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Finance</p>
+                    <div onclick="switchTab('expenditure')" id="nav-expenditure" class="nav-btn"><i class="fa-solid fa-wallet w-8 text-lg"></i> <span>Expenditures</span></div>
+                    <div onclick="switchTab('analytics')" id="nav-analytics" class="nav-btn"><i class="fa-solid fa-chart-line w-8 text-lg"></i> <span>P&L Analytics</span></div>
+                </div>
             </nav>
             
             <div class="p-5 bg-slate-950 border-t border-slate-800 shrink-0">
@@ -184,6 +189,48 @@
                                     <label class="w-full py-4 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold rounded-2xl shadow-sm border border-blue-200 transition-all flex flex-col items-center justify-center group cursor-pointer"><i class="fa-solid fa-upload text-2xl mb-1 group-hover:scale-110 transition-transform"></i><span>Restore Data from File</span><input type="file" accept=".json" class="hidden" onchange="importDatabaseBackup(event)"></label>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-analytics" class="view-section max-w-7xl mx-auto">
+                    <div class="premium-card p-6 md:p-8 mb-6 bg-white flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 class="text-2xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-chart-line mr-3 text-indigo-600"></i> Profit & Loss Analytics</h3>
+                            <p class="text-sm text-slate-500 font-medium mt-1">Track your financial growth and performance over time.</p>
+                        </div>
+                        <div class="flex gap-3 w-full sm:w-auto">
+                            <select id="analytics-period" onchange="renderAnalytics()" class="form-input py-2.5 cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200">
+                                <option value="month">Monthly View</option>
+                                <option value="year">Yearly View</option>
+                            </select>
+                            <select id="analytics-chart-type" onchange="renderAnalytics()" class="form-input py-2.5 cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200">
+                                <option value="bar">Bar Chart</option>
+                                <option value="line">Line Chart</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="premium-card p-6 md:p-8 mb-6 bg-white h-[450px] relative shadow-md">
+                        <canvas id="analyticsChartCanvas"></canvas>
+                    </div>
+
+                    <div class="premium-card overflow-hidden bg-white shadow-sm">
+                        <div class="p-6 border-b border-slate-100 bg-slate-50 flex items-center">
+                            <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-table mr-2 text-indigo-500"></i> Detailed P&L Breakdown</h3>
+                        </div>
+                        <div class="overflow-x-auto custom-scrollbar p-2">
+                            <table class="w-full text-left border-collapse min-w-[600px]">
+                                <thead>
+                                    <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-200 bg-white sticky top-0">
+                                        <th class="py-4 px-5">Period</th>
+                                        <th class="py-4 px-5">Total Income</th>
+                                        <th class="py-4 px-5">Total Expense</th>
+                                        <th class="py-4 px-5 text-right">Net Profit / Loss</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analytics-table-body" class="text-sm"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -494,6 +541,8 @@
         const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
+        let sessionPassword = ""; 
+        let analyticsChart = null;
 
         window.onload = function() {
             setDefaultDates();
@@ -530,6 +579,7 @@
                 
                 if(data.error) throw new Error("Invalid Password");
 
+                sessionPassword = pass;
                 appData = data;
                 
                 appData.transactions.forEach(tx => {
@@ -586,6 +636,7 @@
 
         function refreshAllUI() {
             updateDashboard(); renderStudentList(); renderLedger(); renderExpenseList(); renderJobList(); renderPrintList();
+            renderAnalytics();
             
             const activeId = document.getElementById('tuition-student-id').value;
             if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
@@ -690,6 +741,98 @@
             window.print();
         }
 
+        // --- P&L ANALYTICS ---
+        function renderAnalytics() {
+            const periodType = document.getElementById('analytics-period').value;
+            const chartType = document.getElementById('analytics-chart-type').value;
+
+            const grouped = {};
+            appData.transactions.forEach(tx => {
+                if(parseFloat(tx.amount) === 0) return;
+                
+                const dateParts = tx.date.split('-');
+                if(dateParts.length !== 3) return;
+                
+                const year = dateParts[0];
+                const month = dateParts[1];
+                
+                let key = '';
+                let sortVal = 0;
+                
+                if (periodType === 'month') {
+                    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    key = `${monthNames[parseInt(month)-1]} ${year}`;
+                    sortVal = parseInt(year) * 100 + parseInt(month);
+                } else {
+                    key = `${year}`;
+                    sortVal = parseInt(year);
+                }
+
+                if(!grouped[key]) grouped[key] = { income: 0, expense: 0, label: key, sortVal: sortVal };
+                
+                if(tx.type === 'income') grouped[key].income += parseFloat(tx.amount);
+                else if(tx.type === 'expense') grouped[key].expense += parseFloat(tx.amount);
+            });
+
+            const sortedKeys = Object.keys(grouped).sort((a,b) => grouped[a].sortVal - grouped[b].sortVal);
+            const incomes = sortedKeys.map(k => grouped[k].income);
+            const expenses = sortedKeys.map(k => grouped[k].expense);
+            const profits = sortedKeys.map(k => grouped[k].income - grouped[k].expense);
+
+            renderAnalyticsTable(sortedKeys, grouped);
+
+            const ctx = document.getElementById('analyticsChartCanvas').getContext('2d');
+            if(analyticsChart) analyticsChart.destroy();
+
+            analyticsChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: sortedKeys,
+                    datasets: [
+                        { label: 'Income (₹)', data: incomes, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: '#10b981', borderWidth: 1, borderRadius: 4 },
+                        { label: 'Expense (₹)', data: expenses, backgroundColor: 'rgba(244, 63, 94, 0.8)', borderColor: '#f43f5e', borderWidth: 1, borderRadius: 4 },
+                        { label: 'Net Profit', data: profits, backgroundColor: 'rgba(99, 102, 241, 1)', borderColor: '#6366f1', borderWidth: 3, type: 'line', fill: false, tension: 0.3, pointBackgroundColor: '#fff' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { tooltip: { padding: 12, titleFont: { size: 14 }, bodyFont: { size: 13 } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(226, 232, 240, 0.6)' }, ticks: { callback: function(value) { return '₹' + value; } } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderAnalyticsTable(keys, grouped) {
+            const tbody = document.getElementById('analytics-table-body');
+            tbody.innerHTML = '';
+            
+            if(keys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-400 font-bold">No financial data available for analysis.</td></tr>';
+                return;
+            }
+
+            [...keys].reverse().forEach(k => {
+                const data = grouped[k];
+                const profit = data.income - data.expense;
+                const profitClass = profit >= 0 ? 'text-emerald-600' : 'text-rose-600';
+                const profitSign = profit >= 0 ? '+' : '';
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="py-4 px-5 font-bold text-slate-700">${k}</td>
+                        <td class="py-4 px-5 text-emerald-600 font-bold">₹${data.income.toLocaleString('en-IN')}</td>
+                        <td class="py-4 px-5 text-rose-600 font-bold">₹${data.expense.toLocaleString('en-IN')}</td>
+                        <td class="py-4 px-5 ${profitClass} font-black text-right">${profitSign}₹${profit.toLocaleString('en-IN')}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- TRANSACTION EDIT LOGIC ---
         function openEditTransactionModal(txId) {
             const tx = appData.transactions.find(t => t.id === txId);
             if(!tx) return;
@@ -733,6 +876,7 @@
             alert("Record updated successfully!");
         }
 
+        // --- LOCAL DELETE LOGIC (INSTANT) ---
         function deleteTransaction(txId) { openDeleteModal(txId, false); }
 
         function openDeleteModal(id = null, isStudent = true) {
@@ -848,7 +992,7 @@
             const totalFee = document.getElementById('reg-totalfee').value; const paid = document.getElementById('reg-paid').value;
             const fileInput = document.getElementById('reg-image');
 
-            compressImage(fileInput.files[0], function(base64Image) {
+            const finishReg = function(base64Image) {
                 const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image);
                 generateExcelBill({
                     "Receipt Date": date, "Student ID": stId, "Student Name": name, "Gender": gender, "Fee Structure": feeType,
@@ -859,7 +1003,13 @@
                 sendWhatsAppUpdate(`🟢 *NEW ADMISSION*\n*Name:* ${name}\n*Course:* ${course}\n*Total Fee:* ₹${totalFee}\n*Advance Paid:* ₹${paid}\n*Due:* ₹${parseFloat(totalFee) - parseFloat(paid)}\n*Date:* ${date}`);
                 
                 alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); 
-            });
+            };
+
+            if(fileInput.files && fileInput.files[0]) {
+                compressImage(fileInput.files[0], finishReg);
+            } else {
+                finishReg(null);
+            }
         }
 
         function openEditModal() {
@@ -882,7 +1032,10 @@
         function closeEditModal() {
             const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
             modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
+            setTimeout(() => { 
+                modal.classList.add('hidden'); 
+                document.getElementById('edit-image').value = '';
+            }, 300);
         }
 
         function submitEditStudent(e) {
@@ -1151,12 +1304,13 @@
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${tabId}`).classList.add('active');
             document.getElementById(`nav-${tabId}`).classList.add('active');
-            const titles = { 'dashboard': 'System Dashboard', 'registration': 'New Admission', 'tuition': 'Student Database', 'job': 'Job Applications', 'print': 'Print & Copy Desk', 'expenditure': 'Expenditures' };
+            const titles = { 'dashboard': 'System Dashboard', 'registration': 'New Admission', 'tuition': 'Student Database', 'job': 'Job Applications', 'print': 'Print & Copy Desk', 'expenditure': 'Expenditures', 'analytics': 'Profit & Loss Analytics' };
             document.getElementById('page-title').innerText = titles[tabId];
             if(window.innerWidth < 768) {
                 const sidebar = document.getElementById('sidebar');
                 if(!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
             }
+            if(tabId === 'analytics') renderAnalytics();
         }
     </script>
 </body>
