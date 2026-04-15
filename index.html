@@ -219,11 +219,40 @@
 
                     <div id="assumption-panel" class="hidden premium-card p-6 md:p-8 mb-6 bg-indigo-50/50 border border-indigo-100 shadow-inner">
                         <h4 class="font-bold text-indigo-900 mb-4 flex items-center"><i class="fa-solid fa-plus-circle mr-2 text-indigo-600 text-lg"></i> Add Projected Data</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                            <div><label class="form-label text-indigo-800">Type</label><select id="assumed-type" class="form-input border-indigo-200 bg-white"><option value="income">Assumed Income</option><option value="expense">Assumed Expense</option></select></div>
-                            <div><label class="form-label text-indigo-800">Amount (₹)</label><input type="number" id="assumed-amount" class="form-input border-indigo-200 bg-white font-bold" placeholder="0"></div>
-                            <div><label class="form-label text-indigo-800">Month/Year (e.g. 2026-05)</label><input type="month" id="assumed-date" class="form-input border-indigo-200 bg-white font-medium"></div>
-                            <div class="md:col-span-2"><button type="button" onclick="addAssumption()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all transform hover:-translate-y-1">Add to Projection</button></div>
+                        <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+                            <div class="md:col-span-1">
+                                <label class="form-label text-indigo-800">Type</label>
+                                <select id="assumed-type" class="form-input border-indigo-200 bg-white cursor-pointer font-bold" onchange="toggleAssumedCategory()">
+                                    <option value="expense">Expense</option>
+                                    <option value="income">Income</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="form-label text-indigo-800">Category</label>
+                                <select id="assumed-category" class="form-input border-indigo-200 bg-white cursor-pointer font-medium" onchange="toggleCustomAssumedCategory()">
+                                    <option value="Electricity Bill">Electricity Bill</option>
+                                    <option value="Office Rent">Office Rent</option>
+                                    <option value="Staff Salary">Staff Salary</option>
+                                    <option value="Maintenance & Repair">Maintenance & Repair</option>
+                                    <option value="Paper & Ink Supplies">Paper & Ink Supplies</option>
+                                    <option value="Institute Promotion">Institute Promotion</option>
+                                    <option value="Water Can">Water Can</option>
+                                    <option value="Miscellaneous">Miscellaneous</option>
+                                    <option value="Custom">➕ Add Custom Category...</option>
+                                </select>
+                                <input type="text" id="assumed-custom-category" class="form-input border-indigo-200 bg-white mt-2 hidden" placeholder="Enter custom type...">
+                            </div>
+                            <div class="md:col-span-1">
+                                <label class="form-label text-indigo-800">Amount (₹)</label>
+                                <input type="number" id="assumed-amount" class="form-input border-indigo-200 bg-white font-black text-indigo-700" placeholder="0">
+                            </div>
+                            <div class="md:col-span-1">
+                                <label class="form-label text-indigo-800">Month/Year</label>
+                                <input type="month" id="assumed-date" class="form-input border-indigo-200 bg-white font-medium cursor-pointer">
+                            </div>
+                            <div class="md:col-span-1">
+                                <button type="button" onclick="addAssumption()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all transform hover:-translate-y-1">Add</button>
+                            </div>
                         </div>
                         <div id="assumed-list-container" class="mt-6 pt-4 border-t border-indigo-200 hidden">
                              <h5 class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3">Active Assumptions Applied to Chart</h5>
@@ -241,10 +270,13 @@
                             <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-table mr-2 text-indigo-500"></i> Detailed P&L Breakdown</h3>
                         </div>
                         <div class="overflow-x-auto custom-scrollbar p-2">
-                            <table class="w-full text-left border-collapse min-w-[600px]">
+                            <table class="w-full text-left border-collapse min-w-[700px]">
                                 <thead>
                                     <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-200 bg-white sticky top-0">
-                                        <th class="py-4 px-5">Period</th><th class="py-4 px-5">Total Income</th><th class="py-4 px-5">Total Expense</th><th class="py-4 px-5 text-right">Net Profit / Loss</th>
+                                        <th class="py-4 px-5">Period</th>
+                                        <th class="py-4 px-5">Actual (In / Out)</th>
+                                        <th class="py-4 px-5">Assumed Adjustments</th>
+                                        <th class="py-4 px-5 text-right">Projected Net Profit</th>
                                     </tr>
                                 </thead>
                                 <tbody id="analytics-table-body" class="text-sm"></tbody>
@@ -467,6 +499,94 @@
         </main>
     </div>
 
+    <div id="edit-student-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="premium-card w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl" id="edit-modal-content">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
+                <h3 class="text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-user-pen mr-3 text-indigo-600"></i> Edit Profile Details</h3>
+                <button type="button" onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
+                <form id="edit-student-form" class="space-y-6">
+                    <input type="hidden" id="edit-student-id">
+                    
+                    <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div><label class="form-label text-indigo-800">Total Course Fee (₹)</label><input type="number" id="edit-totalfee" class="form-input font-black text-indigo-700 bg-white border-indigo-200" required></div>
+                            <div>
+                                <label class="form-label text-emerald-800">Total Paid / Advance (₹)</label>
+                                <input type="number" id="edit-paidfee" class="form-input font-black text-emerald-700 bg-white border-emerald-200" required>
+                                <p class="text-[10px] text-slate-500 mt-2"><i class="fa-solid fa-circle-info"></i> Modifying this will auto-correct the Net Balance.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label class="form-label">Full Name</label><input type="text" id="edit-name" class="form-input" required></div>
+                        <div><label class="form-label">Admission Date</label><input type="date" id="edit-date" class="form-input" required></div>
+                        <div><label class="form-label">Mobile Number</label><input type="tel" id="edit-phone" class="form-input"></div>
+                        <div><label class="form-label">Gender</label><select id="edit-gender" class="form-input font-medium"><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                        <div><label class="form-label">Course</label><input type="text" id="edit-course" class="form-input" required></div>
+                        <div><label class="form-label">Fee Structure</label><select id="edit-feetype" class="form-input font-medium"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
+                        <div class="md:col-span-2">
+                            <label class="form-label">Update Photo (Leave blank to keep current)</label>
+                            <input type="file" id="edit-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl" onchange="openCropModal(event, 'edit')">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-3">
+                <button type="button" onclick="closeEditModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+                <button type="button" onclick="submitEditStudent(event)" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-transaction-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="premium-card w-full max-w-lg mx-4 flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
+                <h3 class="text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-pen-to-square mr-3 text-indigo-600"></i> Edit Record</h3>
+                <button type="button" onclick="closeEditTransactionModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-8 bg-white">
+                <form id="edit-transaction-form" onsubmit="submitEditTransaction(event)" class="space-y-5">
+                    <input type="hidden" id="edit-tx-id">
+                    <div><label class="form-label">Date</label><input type="date" id="edit-tx-date" class="form-input" required></div>
+                    <div><label class="form-label">Title / Category</label><input type="text" id="edit-tx-title" class="form-input" required></div>
+                    <div><label class="form-label text-indigo-700">Amount (₹)</label><input type="number" id="edit-tx-amount" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required></div>
+                    <div><label class="form-label">Description (Optional)</label><input type="text" id="edit-tx-desc" class="form-input"></div>
+                    <div class="pt-4 flex justify-end space-x-3">
+                        <button type="button" onclick="closeEditTransactionModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+                        <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1">Update Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-student-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="premium-card w-full max-w-md mx-4 flex flex-col transform scale-95 transition-transform duration-300 border-2 border-rose-500/30" id="delete-modal-content">
+            <div class="p-6 border-b border-rose-100 bg-rose-50 rounded-t-[1.5rem]">
+                <h3 class="text-xl font-black text-rose-600 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-3 text-2xl"></i> Delete Record</h3>
+            </div>
+            <div class="p-8 space-y-5 bg-white">
+                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove <span id="delete-student-name" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded"></span> and <strong class="text-rose-600">recalculate balances</strong>. This action cannot be undone.</p>
+                <div>
+                    <label class="form-label text-rose-600">Enter Admin Delete Password</label>
+                    <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50 text-lg tracking-widest" placeholder="••••••••" required>
+                    <p id="delete-error" class="text-rose-500 text-xs font-bold mt-2 hidden"><i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!</p>
+                </div>
+                <input type="hidden" id="delete-transaction-id">
+                <input type="hidden" id="delete-student-flag">
+            </div>
+            <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-3">
+                <button type="button" onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+                <button type="button" id="confirm-delete-btn" onclick="executeDelete()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center transform hover:-translate-y-1">
+                    <span id="delete-btn-text">Confirm Delete</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="crop-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div class="premium-card w-full max-w-lg mx-4 flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl overflow-hidden" id="crop-modal-content">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
@@ -488,7 +608,6 @@
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let sessionPassword = ""; 
-        
         let cropper = null;
         let currentCropTarget = null;
         let croppedImages = { reg: null, edit: null };
@@ -506,8 +625,12 @@
             ['reg-date', 'tuition-date', 'job-date', 'print-date', 'exp-date'].forEach(id => {
                 if(document.getElementById(id)) document.getElementById(id).value = today;
             });
+            if(document.getElementById('assumed-date')) {
+                document.getElementById('assumed-date').value = today.substring(0,7);
+            }
         }
 
+        // --- WHATSAPP HELPER ---
         function sendWhatsAppUpdate(message) {
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
@@ -640,24 +763,6 @@
             }
         }
 
-        function compressImage(file, callback) {
-            if(!file) return callback(null);
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-                    const MAX_SIZE = 200; let width = img.width, height = img.height;
-                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
-                    else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
-                    canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
-                    callback(canvas.toDataURL('image/jpeg', 0.8));
-                }
-                img.src = e.target.result;
-            }
-            reader.readAsDataURL(file);
-        }
-
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('-translate-x-full');
             const overlay = document.getElementById('sidebar-overlay');
@@ -754,18 +859,41 @@
             renderAnalytics();
         }
 
+        function toggleAssumedCategory() {
+            const type = document.getElementById('assumed-type').value;
+            const catSelect = document.getElementById('assumed-category');
+            if (type === 'income') {
+                catSelect.innerHTML = '<option value="Course Tuition Fee">Course Tuition Fee</option><option value="Admission Fee">Admission Fee</option><option value="Print Desk">Print Desk</option><option value="Job Desk">Job Desk</option><option value="Custom">➕ Add Custom Category...</option>';
+            } else {
+                catSelect.innerHTML = '<option value="Electricity Bill">Electricity Bill</option><option value="Office Rent">Office Rent</option><option value="Staff Salary">Staff Salary</option><option value="Maintenance & Repair">Maintenance & Repair</option><option value="Paper & Ink Supplies">Paper & Ink Supplies</option><option value="Institute Promotion">Institute Promotion</option><option value="Water Can">Water Can</option><option value="Miscellaneous">Miscellaneous</option><option value="Custom">➕ Add Custom Category...</option>';
+            }
+            toggleCustomAssumedCategory();
+        }
+
+        function toggleCustomAssumedCategory() {
+            const val = document.getElementById('assumed-category').value;
+            const customInput = document.getElementById('assumed-custom-category');
+            if (val === 'Custom') customInput.classList.remove('hidden');
+            else customInput.classList.add('hidden');
+        }
+
         function addAssumption() {
             const type = document.getElementById('assumed-type').value;
+            let cat = document.getElementById('assumed-category').value;
+            if (cat === 'Custom') {
+                cat = document.getElementById('assumed-custom-category').value || 'Custom Record';
+            }
             const amt = parseFloat(document.getElementById('assumed-amount').value);
             const dateStr = document.getElementById('assumed-date').value; 
             if(!amt || !dateStr) return alert('Please enter both amount and a Month/Year.');
             
             assumptionsData.push({
                 id: 'ASSUM_' + Date.now(), type: type, amount: amt,
-                date: dateStr + '-01', title: `[Assumed] ${type.toUpperCase()}`
+                date: dateStr + '-01', title: `[Assumed] ${cat}`
             });
             
             document.getElementById('assumed-amount').value = '';
+            document.getElementById('assumed-custom-category').value = '';
             renderAssumedList();
             renderAnalytics();
         }
@@ -779,7 +907,7 @@
                 assumptionsData.forEach(a => {
                     const sign = a.type === 'income' ? '+' : '-';
                     const color = a.type === 'income' ? 'text-emerald-600' : 'text-rose-600';
-                    list.innerHTML += `<li class="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100 shadow-sm"><span class="font-bold text-slate-700">${a.date.substring(0,7)} <span class="text-[10px] text-slate-400 ml-1 uppercase">(${a.type})</span></span> <span class="font-black ${color}">${sign}₹${a.amount}</span></li>`;
+                    list.innerHTML += `<li class="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100 shadow-sm"><span class="font-bold text-slate-700">${a.date.substring(0,7)} <span class="text-[10px] text-slate-400 ml-1 truncate">(${a.title})</span></span> <span class="font-black ${color}">${sign}₹${a.amount}</span></li>`;
                 });
             } else {
                 container.classList.add('hidden');
@@ -796,39 +924,54 @@
             const periodType = document.getElementById('analytics-period').value;
             const chartType = document.getElementById('analytics-chart-type').value;
 
-            let sourceData = appData.transactions;
-            if(assumptionMode && assumptionsData.length > 0) {
-                sourceData = [...appData.transactions, ...assumptionsData];
-            }
-
             const grouped = {};
-            sourceData.forEach(tx => {
+            
+            appData.transactions.forEach(tx => {
                 if(parseFloat(tx.amount) === 0) return;
                 const dateParts = tx.date.split('-');
                 if(dateParts.length < 2) return;
-                
-                const year = dateParts[0];
-                const month = dateParts[1];
+                const year = dateParts[0]; const month = dateParts[1];
                 let key = ''; let sortVal = 0;
                 
                 if (periodType === 'month') {
                     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                    key = `${monthNames[parseInt(month)-1]} ${year}`;
-                    sortVal = parseInt(year) * 100 + parseInt(month);
+                    key = `${monthNames[parseInt(month)-1]} ${year}`; sortVal = parseInt(year) * 100 + parseInt(month);
                 } else {
-                    key = `${year}`;
-                    sortVal = parseInt(year);
+                    key = `${year}`; sortVal = parseInt(year);
                 }
 
-                if(!grouped[key]) grouped[key] = { income: 0, expense: 0, label: key, sortVal: sortVal };
-                if(tx.type === 'income') grouped[key].income += parseFloat(tx.amount);
-                else if(tx.type === 'expense') grouped[key].expense += parseFloat(tx.amount);
+                if(!grouped[key]) grouped[key] = { actualInc: 0, actualExp: 0, assumInc: 0, assumExp: 0, label: key, sortVal: sortVal };
+                if(tx.type === 'income') grouped[key].actualInc += parseFloat(tx.amount);
+                else if(tx.type === 'expense') grouped[key].actualExp += parseFloat(tx.amount);
             });
 
+            if(assumptionMode && assumptionsData.length > 0) {
+                assumptionsData.forEach(tx => {
+                    if(parseFloat(tx.amount) === 0) return;
+                    const dateParts = tx.date.split('-');
+                    const year = dateParts[0]; const month = dateParts[1];
+                    let key = ''; let sortVal = 0;
+                    
+                    if (periodType === 'month') {
+                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                        key = `${monthNames[parseInt(month)-1]} ${year}`; sortVal = parseInt(year) * 100 + parseInt(month);
+                    } else {
+                        key = `${year}`; sortVal = parseInt(year);
+                    }
+
+                    if(!grouped[key]) grouped[key] = { actualInc: 0, actualExp: 0, assumInc: 0, assumExp: 0, label: key, sortVal: sortVal };
+                    if(tx.type === 'income') grouped[key].assumInc += parseFloat(tx.amount);
+                    else if(tx.type === 'expense') grouped[key].assumExp += parseFloat(tx.amount);
+                });
+            }
+
             const sortedKeys = Object.keys(grouped).sort((a,b) => grouped[a].sortVal - grouped[b].sortVal);
-            const incomes = sortedKeys.map(k => grouped[k].income);
-            const expenses = sortedKeys.map(k => grouped[k].expense);
-            const profits = sortedKeys.map(k => grouped[k].income - grouped[k].expense);
+            
+            const actualIncomes = sortedKeys.map(k => grouped[k].actualInc);
+            const assumIncomes = sortedKeys.map(k => grouped[k].assumInc);
+            const actualExpenses = sortedKeys.map(k => grouped[k].actualExp);
+            const assumExpenses = sortedKeys.map(k => grouped[k].assumExp);
+            const profits = sortedKeys.map(k => (grouped[k].actualInc + grouped[k].assumInc) - (grouped[k].actualExp + grouped[k].assumExp));
 
             renderAnalyticsTable(sortedKeys, grouped);
 
@@ -837,7 +980,7 @@
 
             if(chartType === 'pie') {
                 let totalInc = 0, totalExp = 0;
-                sortedKeys.forEach(k => { totalInc += grouped[k].income; totalExp += grouped[k].expense; });
+                sortedKeys.forEach(k => { totalInc += grouped[k].actualInc + grouped[k].assumInc; totalExp += grouped[k].actualExp + grouped[k].assumExp; });
                 
                 analyticsChart = new Chart(ctx, {
                     type: 'doughnut',
@@ -847,8 +990,7 @@
                             data: [totalInc, totalExp],
                             backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(244, 63, 94, 0.8)'],
                             borderColor: ['#10b981', '#f43f5e'],
-                            borderWidth: 2,
-                            hoverOffset: 10
+                            borderWidth: 2, hoverOffset: 10
                         }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: {font: {family: 'Plus Jakarta Sans', weight: 'bold'}} } }, cutout: '60%' }
@@ -858,7 +1000,7 @@
                 const borders = profits.map(p => p >= 0 ? '#10b981' : '#f43f5e');
                 analyticsChart = new Chart(ctx, {
                     type: 'bar',
-                    data: { labels: sortedKeys, datasets: [{ label: 'Net Profit / Loss (₹)', data: profits, backgroundColor: colors, borderColor: borders, borderWidth: 2, borderRadius: 6 }] },
+                    data: { labels: sortedKeys, datasets: [{ label: 'Projected Net Profit (₹)', data: profits, backgroundColor: colors, borderColor: borders, borderWidth: 2, borderRadius: 6 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(226, 232, 240, 0.6)' } }, x: { grid: { display: false } } } }
                 });
             } else {
@@ -867,8 +1009,10 @@
                     data: {
                         labels: sortedKeys,
                         datasets: [
-                            { label: 'Income (₹)', data: incomes, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: '#10b981', borderWidth: 2, borderRadius: 6 },
-                            { label: 'Expense (₹)', data: expenses, backgroundColor: 'rgba(244, 63, 94, 0.8)', borderColor: '#f43f5e', borderWidth: 2, borderRadius: 6 },
+                            { label: 'Actual Income', data: actualIncomes, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: '#10b981', borderWidth: 2, stack: 'Stack 0', borderRadius: 4 },
+                            { label: 'Assumed Income', data: assumIncomes, backgroundColor: 'rgba(16, 185, 129, 0.3)', borderColor: '#10b981', borderWidth: 2, borderDash: [5, 5], stack: 'Stack 0', borderRadius: 4 },
+                            { label: 'Actual Expense', data: actualExpenses, backgroundColor: 'rgba(244, 63, 94, 0.8)', borderColor: '#f43f5e', borderWidth: 2, stack: 'Stack 1', borderRadius: 4 },
+                            { label: 'Assumed Expense', data: assumExpenses, backgroundColor: 'rgba(244, 63, 94, 0.3)', borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], stack: 'Stack 1', borderRadius: 4 },
                             { label: 'Net Profit', data: profits, backgroundColor: 'rgba(99, 102, 241, 1)', borderColor: '#6366f1', borderWidth: 3, type: 'line', fill: false, tension: 0.4, pointBackgroundColor: '#fff', pointRadius: 4 }
                         ]
                     },
@@ -886,15 +1030,24 @@
             }
             [...keys].reverse().forEach(k => {
                 const data = grouped[k];
-                const profit = data.income - data.expense;
-                const profitClass = profit >= 0 ? 'text-emerald-600' : 'text-rose-600';
-                const profitSign = profit >= 0 ? '+' : '';
+                const actualNet = data.actualInc - data.actualExp;
+                const assumNet = data.assumInc - data.assumExp;
+                const finalNet = actualNet + assumNet;
+
+                const finalClass = finalNet >= 0 ? 'text-emerald-600' : 'text-rose-600';
+                const finalSign = finalNet >= 0 ? '+' : '';
+
+                let assumHtml = `<span class="text-slate-300">-</span>`;
+                if (data.assumInc > 0 || data.assumExp > 0) {
+                    assumHtml = `<span class="text-emerald-500">+₹${data.assumInc.toLocaleString('en-IN')}</span> / <span class="text-rose-500">-₹${data.assumExp.toLocaleString('en-IN')}</span>`;
+                }
+
                 tbody.innerHTML += `
                     <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         <td class="py-4 px-5 font-bold text-slate-700">${k}</td>
-                        <td class="py-4 px-5 text-emerald-600 font-bold">₹${data.income.toLocaleString('en-IN')}</td>
-                        <td class="py-4 px-5 text-rose-600 font-bold">₹${data.expense.toLocaleString('en-IN')}</td>
-                        <td class="py-4 px-5 ${profitClass} font-black text-right">${profitSign}₹${profit.toLocaleString('en-IN')}</td>
+                        <td class="py-4 px-5 text-slate-600 font-medium whitespace-nowrap"><span class="text-emerald-600">₹${data.actualInc.toLocaleString('en-IN')}</span> / <span class="text-rose-600">₹${data.actualExp.toLocaleString('en-IN')}</span></td>
+                        <td class="py-4 px-5 font-bold whitespace-nowrap bg-indigo-50/30">${assumHtml}</td>
+                        <td class="py-4 px-5 ${finalClass} font-black text-right bg-slate-50">${finalSign}₹${finalNet.toLocaleString('en-IN')}</td>
                     </tr>
                 `;
             });
@@ -982,7 +1135,7 @@
 
             if(!pass) return;
 
-            // Instant Local Verification Check
+            // Instant Local Verification Check (Bypasses Google Server delays)
             if (pass !== 'admin') {
                 errorMsg.classList.remove('hidden');
                 errorMsg.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!';
