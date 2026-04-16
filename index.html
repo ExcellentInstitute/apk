@@ -569,7 +569,7 @@
                 <h3 class="text-xl font-black text-rose-600 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-3 text-2xl"></i> Delete Record</h3>
             </div>
             <div class="p-8 space-y-5 bg-white">
-                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove <span id="delete-student-name" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded"></span> and <strong class="text-rose-600">recalculate balances</strong>. This action cannot be undone.</p>
+                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove the record and <strong class="text-rose-600">recalculate balances</strong>. This action cannot be undone.</p>
                 <div>
                     <label class="form-label text-rose-600">Enter Admin Delete Password</label>
                     <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50 text-lg tracking-widest" placeholder="••••••••" required>
@@ -998,10 +998,44 @@
             } else if (chartType === 'net-bar') {
                 const colors = profits.map(p => p >= 0 ? 'rgba(16, 185, 129, 0.8)' : 'rgba(244, 63, 94, 0.8)');
                 const borders = profits.map(p => p >= 0 ? '#10b981' : '#f43f5e');
+                
+                // DEVIATION BAR - Income positive, Expenses Negative
+                const negActualExp = actualExpenses.map(v => -v);
+                const negAssumExp = assumExpenses.map(v => -v);
+
                 analyticsChart = new Chart(ctx, {
                     type: 'bar',
-                    data: { labels: sortedKeys, datasets: [{ label: 'Projected Net Profit (₹)', data: profits, backgroundColor: colors, borderColor: borders, borderWidth: 2, borderRadius: 6 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(226, 232, 240, 0.6)' } }, x: { grid: { display: false } } } }
+                    data: { 
+                        labels: sortedKeys, 
+                        datasets: [
+                            { label: 'Actual Income', data: actualIncomes, backgroundColor: 'rgba(16, 185, 129, 0.8)', stack: 'Stack 0' },
+                            { label: 'Assumed Income', data: assumIncomes, backgroundColor: 'rgba(16, 185, 129, 0.3)', stack: 'Stack 0' },
+                            { label: 'Actual Expense', data: negActualExp, backgroundColor: 'rgba(244, 63, 94, 0.8)', stack: 'Stack 0' },
+                            { label: 'Assumed Expense', data: negAssumExp, backgroundColor: 'rgba(244, 63, 94, 0.3)', stack: 'Stack 0' },
+                            { label: 'Net Profit', data: profits, borderColor: '#6366f1', backgroundColor: '#6366f1', type: 'line', fill: false, tension: 0.3, borderWidth: 3 }
+                        ] 
+                    },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        plugins: { tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': ₹' + Math.abs(context.raw).toLocaleString('en-IN'); } } } }, 
+                        scales: { y: { grid: { color: 'rgba(226, 232, 240, 0.6)' }, ticks: { callback: function(value) { return '₹' + value; } } }, x: { grid: { display: false } } } 
+                    }
+                });
+            } else if (chartType === 'line') {
+                const totalIncomes = sortedKeys.map((k, i) => actualIncomes[i] + assumIncomes[i]);
+                const totalExpenses = sortedKeys.map((k, i) => actualExpenses[i] + assumExpenses[i]);
+                
+                analyticsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: sortedKeys,
+                        datasets: [
+                            { label: 'Total Income', data: totalIncomes, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4, borderWidth: 3 },
+                            { label: 'Total Expense', data: totalExpenses, borderColor: '#f43f5e', backgroundColor: 'rgba(244, 63, 94, 0.1)', fill: true, tension: 0.4, borderWidth: 3 },
+                            { label: 'Net Profit', data: profits, borderColor: '#6366f1', backgroundColor: 'transparent', fill: false, tension: 0.4, borderWidth: 3, borderDash: [5, 5] }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { tooltip: { padding: 12, titleFont: { size: 14 }, bodyFont: { size: 13 } } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(226, 232, 240, 0.6)' } }, x: { grid: { display: false } } } }
                 });
             } else {
                 analyticsChart = new Chart(ctx, {
@@ -1009,11 +1043,10 @@
                     data: {
                         labels: sortedKeys,
                         datasets: [
-                            { label: 'Actual Income', data: actualIncomes, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: '#10b981', borderWidth: 2, stack: 'Stack 0', borderRadius: 4 },
-                            { label: 'Assumed Income', data: assumIncomes, backgroundColor: 'rgba(16, 185, 129, 0.3)', borderColor: '#10b981', borderWidth: 2, borderDash: [5, 5], stack: 'Stack 0', borderRadius: 4 },
-                            { label: 'Actual Expense', data: actualExpenses, backgroundColor: 'rgba(244, 63, 94, 0.8)', borderColor: '#f43f5e', borderWidth: 2, stack: 'Stack 1', borderRadius: 4 },
-                            { label: 'Assumed Expense', data: assumExpenses, backgroundColor: 'rgba(244, 63, 94, 0.3)', borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], stack: 'Stack 1', borderRadius: 4 },
-                            { label: 'Net Profit', data: profits, backgroundColor: 'rgba(99, 102, 241, 1)', borderColor: '#6366f1', borderWidth: 3, type: 'line', fill: false, tension: 0.4, pointBackgroundColor: '#fff', pointRadius: 4 }
+                            { label: 'Actual Income', data: actualIncomes, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderColor: '#10b981', borderWidth: 2, stack: 'Inc', borderRadius: 4 },
+                            { label: 'Assumed Income', data: assumIncomes, backgroundColor: 'rgba(16, 185, 129, 0.3)', borderColor: '#10b981', borderWidth: 2, borderDash: [5, 5], stack: 'Inc', borderRadius: 4 },
+                            { label: 'Actual Expense', data: actualExpenses, backgroundColor: 'rgba(244, 63, 94, 0.8)', borderColor: '#f43f5e', borderWidth: 2, stack: 'Exp', borderRadius: 4 },
+                            { label: 'Assumed Expense', data: assumExpenses, backgroundColor: 'rgba(244, 63, 94, 0.3)', borderColor: '#f43f5e', borderWidth: 2, borderDash: [5, 5], stack: 'Exp', borderRadius: 4 },
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { tooltip: { padding: 12, titleFont: { size: 14 }, bodyFont: { size: 13 } } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(226, 232, 240, 0.6)' } }, x: { grid: { display: false } } } }
