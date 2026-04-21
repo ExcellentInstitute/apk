@@ -624,7 +624,8 @@
     </div>
 
     <script>
-        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbyJv6ATZCozBt-tjlxiNxIfFkEnD4w7HNUy88uUh_EWVUoIZzbrjRInCcah8458Szy8/exec";
+        // 🚨 REPLACE THIS WITH YOUR NEW SCRIPT LINK 🚨
+        const GOOGLE_APP_URL = "PASTE_YOUR_LINK_HERE";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let sessionPassword = ""; 
@@ -801,6 +802,12 @@
                 return; 
             }
 
+            if (!GOOGLE_APP_URL || GOOGLE_APP_URL === "PASTE_YOUR_LINK_HERE") {
+                errorMsg.innerHTML = '<i class="fa-solid fa-link mr-2"></i>Error: Please paste your new Google App URL into the HTML code (Line 777).';
+                showError(errorMsg); 
+                return; 
+            }
+
             errorMsg.classList.add('hidden');
             btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
             
@@ -841,7 +848,7 @@
 
             } catch(err) {
                 if(err.message !== "Invalid Password") {
-                    errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Please check internet or Script Link.';
+                    errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Please update Google Apps Script.';
                 }
                 showError(errorMsg);
                 btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
@@ -855,7 +862,6 @@
 
         function logout() { location.reload(); }
 
-        // --- DATA LOGIC ---
         function recalculateStats() {
             appData.stats.income = 0;
             appData.stats.expense = 0;
@@ -993,7 +999,6 @@
             window.print();
         }
 
-        // --- P&L ANALYTICS LOGIC ---
         function toggleAssumptionMode() {
             assumptionMode = !assumptionMode;
             const panel = document.getElementById('assumption-panel');
@@ -1236,7 +1241,6 @@
             });
         }
 
-        // --- TRANSACTIONS EDIT/DELETE ---
         function openEditTransactionModal(txId) {
             const tx = appData.transactions.find(t => t.id === txId);
             if(!tx) return;
@@ -1358,7 +1362,6 @@
             }, 300);
         }
 
-        // --- ADD STUDENT / RECORD LOGIC ---
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ 
@@ -1494,6 +1497,166 @@
             recordTransaction("expense", category, amount, date, desc);
             e.target.reset(); setDefaultDates();
         }
+
+        function updateDashboard() {
+            const format = (num) => `₹${num.toLocaleString('en-IN')}`;
+            document.getElementById('dash-income').innerText = format(appData.stats.income);
+            document.getElementById('dash-expense').innerText = format(appData.stats.expense);
+            document.getElementById('dash-balance').innerText = format(appData.stats.balance);
+            document.getElementById('header-balance').innerText = format(appData.stats.balance);
+        }
+
+        function renderStudentList() {
+            const listEl = document.getElementById('student-list');
+            const searchQ = document.getElementById('filter-search') ? document.getElementById('filter-search').value.toLowerCase() : '';
+            const dueF = document.getElementById('filter-due') ? document.getElementById('filter-due').value : 'all';
+            const courseF = document.getElementById('filter-course') ? document.getElementById('filter-course').value : 'all';
+
+            listEl.innerHTML = '';
+            if(appData.students.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-folder-open text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No students yet</p></div>'; return;
+            }
+
+            const courseSelect = document.getElementById('filter-course');
+            if (courseSelect) {
+                const currentVal = courseSelect.value;
+                const uniqueCourses = [...new Set(appData.students.map(s => s.course))];
+                let optionsHtml = '<option value="all">All Batches</option>';
+                uniqueCourses.forEach(c => { optionsHtml += `<option value="${c}">${c}</option>`; });
+                courseSelect.innerHTML = optionsHtml;
+                courseSelect.value = uniqueCourses.includes(currentVal) ? currentVal : 'all';
+            }
+
+            const filteredStudents = appData.students.filter(st => {
+                const dues = st.totalFee - st.paidFee;
+                const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
+                const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
+                const matchCourse = courseF === 'all' || st.course === courseF;
+                return matchSearch && matchDue && matchCourse;
+            });
+
+            if(filteredStudents.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10 text-sm font-bold"><i class="fa-solid fa-magnifying-glass text-3xl mb-3 block text-slate-300"></i>No matches found</div>'; return;
+            }
+
+            filteredStudents.forEach(st => {
+                const dues = st.totalFee - st.paidFee;
+                const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
+                const card = document.createElement('div');
+                card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
+                card.onclick = () => selectStudent(st.id);
+                card.innerHTML = `
+                    <div class="flex items-center space-x-4 overflow-hidden">
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors overflow-hidden shadow-inner shrink-0">${avatar}</div>
+                        <div class="truncate">
+                            <p class="font-extrabold text-slate-800 text-sm truncate">${st.name}</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-0.5 truncate">${st.id} • ${st.course}</p>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0 ml-2">
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Due</p>
+                        <p class="${dues > 0 ? 'text-rose-500' : 'text-emerald-500'} font-black text-sm drop-shadow-sm">₹${dues}</p>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function renderMiniLedger(studentName) {
+            const miniLedger = document.getElementById('student-mini-ledger');
+            miniLedger.innerHTML = '';
+            const stTx = appData.transactions.filter(t => t.title.includes(studentName));
+            if(stTx.length === 0) {
+                miniLedger.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs text-slate-400 font-bold">No payment history found.</td></tr>';
+                return;
+            }
+            stTx.forEach(tx => {
+                const isInc = tx.type === 'income';
+                miniLedger.innerHTML += `
+                    <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
+                        <td class="py-3 px-3 text-slate-500 font-bold">${tx.date}</td>
+                        <td class="py-3 px-3 text-slate-800 font-bold max-w-[120px] truncate" title="${tx.title}">${tx.title.replace(` - ${studentName}`, '')}</td>
+                        <td class="py-3 px-3 text-right font-black ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount}</td>
+                        <td class="py-3 px-2 text-center"><button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Payment"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function selectStudent(id) {
+            const student = appData.students.find(s => s.id === id);
+            if(!student) return;
+            document.getElementById('tuition-placeholder').classList.add('hidden');
+            document.getElementById('tuition-active').classList.remove('hidden');
+            document.getElementById('active-student-name').innerText = student.name;
+            document.getElementById('active-student-course').innerText = student.course;
+            document.getElementById('active-student-gender').innerText = student.gender || "N/A";
+            document.getElementById('active-student-feetype').innerText = student.feeType || "Monthly";
+            document.getElementById('tuition-student-id').value = student.id;
+            document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : student.name.charAt(0);
+            
+            document.getElementById('active-student-date').innerText = student.date || "-";
+            document.getElementById('active-student-phone').innerText = student.phone || "-";
+            document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
+            document.getElementById('active-student-paidfee').innerText = `₹${student.paidFee}`;
+
+            const dues = student.totalFee - student.paidFee;
+            const dueEl = document.getElementById('active-student-dues');
+            dueEl.innerText = `₹${dues}`;
+            dueEl.className = dues <= 0 ? "text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md" : "text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md";
+            if(dues <= 0) dueEl.innerText = "Cleared";
+
+            renderMiniLedger(student.name);
+            
+            if(window.innerWidth < 1024) document.getElementById('tuition-active').scrollIntoView({behavior: 'smooth'});
+        }
+
+        function renderLedger() {
+            const tbody = document.getElementById('transaction-ledger'); tbody.innerHTML = '';
+            if(appData.transactions.length === 0) return;
+            appData.transactions.slice(0, 15).forEach(tx => {
+                const isInc = tx.type === 'income';
+                const badge = isInc ? `<span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">IN</span>` : `<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">OUT</span>`;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
+                        <td class="py-4 px-4 text-slate-500 text-xs font-bold whitespace-nowrap">${tx.date}</td>
+                        <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title}</td>
+                        <td class="py-4 px-4 text-center">${badge}</td>
+                        <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
+                        <td class="py-4 px-2 text-center">
+                            <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-1" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorClass, emptyMsg) {
+            const listEl = document.getElementById(containerId); listEl.innerHTML = '';
+            const items = appData.transactions.filter(itemsFilterFn);
+            if(items.length === 0) { listEl.innerHTML = `<div class="text-center text-slate-400 mt-10"><i class="${iconClass} text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">${emptyMsg}</p></div>`; return; }
+            items.forEach(tx => {
+                const isInc = tx.type === 'income';
+                listEl.innerHTML += `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
+                            <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
+                        </div>
+                        <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
+                            <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
+                            <div class="flex space-x-1">
+                                <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-2" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
+                                <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        function renderExpenseList() { renderList('expense-list', t => t.type === 'expense', '', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
+        function renderJobList() { renderList('job-list', t => t.title.includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
+        function renderPrintList() { renderList('print-list', t => t.title.includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
     </script>
 </body>
 </html>
