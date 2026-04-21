@@ -74,7 +74,7 @@
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-lock text-lg"></i></div>
                     <input type="password" id="password" class="form-input pl-12 py-4 text-lg bg-white/70 backdrop-blur-sm" placeholder="Password" required>
                 </div>
-                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.</p>
+                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied!</p>
                 <button type="submit" id="login-btn" class="w-full py-4 mt-8 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 shadow-xl hover:shadow-indigo-500/40 flex justify-center items-center transform hover:-translate-y-1">
                     <span id="login-btn-text">Authenticate <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i></span>
                 </button>
@@ -515,7 +515,7 @@
                             <div>
                                 <label class="form-label text-emerald-800">Total Paid / Advance (₹)</label>
                                 <input type="number" id="edit-paidfee" class="form-input font-black text-emerald-700 bg-white border-emerald-200" required>
-                                <p class="text-[10px] text-slate-500 mt-2"><i class="fa-solid fa-circle-info"></i> Safely corrects original transactions without duplicate entries.</p>
+                                <p class="text-[10px] text-slate-500 mt-2"><i class="fa-solid fa-circle-info"></i> Modifying this will auto-correct the Net Balance.</p>
                             </div>
                         </div>
                     </div>
@@ -634,14 +634,62 @@
             window.open(url, '_blank');
         }
 
+        // --- CROPPER LOGIC ---
+        function openCropModal(event, target) {
+            const file = event.target.files[0];
+            if (!file) return;
+            currentCropTarget = target;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const image = document.getElementById('image-to-crop');
+                image.src = e.target.result;
+                image.classList.remove('hidden');
+                
+                const modal = document.getElementById('crop-modal');
+                const content = document.getElementById('crop-modal-content');
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(image, { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function closeCropModal() {
+            const modal = document.getElementById('crop-modal');
+            const content = document.getElementById('crop-modal-content');
+            modal.classList.add('opacity-0'); content.classList.add('scale-95');
+            setTimeout(() => { 
+                modal.classList.add('hidden'); 
+                if(cropper) { cropper.destroy(); cropper = null; }
+                document.getElementById('image-to-crop').src = '';
+                if(!croppedImages[currentCropTarget]) {
+                    document.getElementById(currentCropTarget === 'reg' ? 'reg-image' : 'edit-image').value = '';
+                }
+            }, 300);
+        }
+
+        function confirmCrop() {
+            if (!cropper) return;
+            const canvas = cropper.getCroppedCanvas({ width: 400, height: 400 });
+            croppedImages[currentCropTarget] = canvas.toDataURL('image/jpeg', 0.8);
+            closeCropModal();
+        }
+
+        // --- LOGIN LOGIC ---
         async function handleLogin(e) {
             e.preventDefault();
-            const user = document.getElementById('username').value;
+            const user = document.getElementById('username').value.toLowerCase().trim();
             const pass = document.getElementById('password').value;
             const errorMsg = document.getElementById('login-error');
             const btnText = document.getElementById('login-btn-text');
 
-            if (user !== 'excellent') { showError(errorMsg); return; }
+            if (user !== 'excellent') { 
+                errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Username.';
+                showError(errorMsg); 
+                return; 
+            }
 
             errorMsg.classList.add('hidden');
             btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
@@ -649,7 +697,11 @@
             try {
                 const response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
                 const data = await response.json();
-                if(data.error) throw new Error("Invalid Password");
+                
+                if(data.error) {
+                    errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.';
+                    throw new Error("Invalid Password");
+                }
 
                 sessionPassword = pass;
                 appData = data;
@@ -677,6 +729,9 @@
                 }, 500);
 
             } catch(err) {
+                if(err.message !== "Invalid Password") {
+                    errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Check your internet or Script Link.';
+                }
                 showError(errorMsg);
                 btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
             }
@@ -689,6 +744,7 @@
 
         function logout() { location.reload(); }
 
+        // --- DATA LOGIC ---
         function recalculateStats() {
             appData.stats.income = 0;
             appData.stats.expense = 0;
@@ -701,7 +757,7 @@
 
         function saveDatabase() {
             localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-            const payload = { password: "excellent@9658", data: appData };
+            const payload = { password: sessionPassword, data: appData };
             fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
             .catch(error => console.log("Cloud sync failed.", error));
         }
@@ -1013,7 +1069,10 @@
                         <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title}</td>
                         <td class="py-4 px-4 text-center">${badge}</td>
                         <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
-                        <td class="py-4 px-2 text-center"><button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-1" title="Edit Record"><i class="fa-solid fa-pen"></i></button></td>
+                        <td class="py-4 px-2 text-center">
+                            <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-1" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1 ml-1" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
+                        </td>
                     </tr>
                 `;
             });
