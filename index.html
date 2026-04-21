@@ -625,7 +625,7 @@
 
     <script>
         // 🚨 REPLACE THIS WITH YOUR NEW SCRIPT LINK 🚨
-        const GOOGLE_APP_URL = "PASTE_YOUR_LINK_HERE";
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbyJv6ATZCozBt-tjlxiNxIfFkEnD4w7HNUy88uUh_EWVUoIZzbrjRInCcah8458Szy8/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let sessionPassword = ""; 
@@ -802,7 +802,7 @@
                 return; 
             }
 
-            if (!GOOGLE_APP_URL || GOOGLE_APP_URL === "PASTE_YOUR_LINK_HERE") {
+            if (!GOOGLE_APP_URL || GOOGLE_APP_URL === "https://script.google.com/macros/s/AKfycbyJv6ATZCozBt-tjlxiNxIfFkEnD4w7HNUy88uUh_EWVUoIZzbrjRInCcah8458Szy8/exec") {
                 errorMsg.innerHTML = '<i class="fa-solid fa-link mr-2"></i>Error: Please paste your new Google App URL into the HTML code (Line 777).';
                 showError(errorMsg); 
                 return; 
