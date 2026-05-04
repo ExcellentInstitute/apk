@@ -5,20 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Excellent Institute</title>
     
-    <!-- Tab Bar Icon (Favicon) -->
     <link rel="icon" type="image/jpeg" sizes="any" href="logo.jpeg">
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS (For Excel) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Chart.js for P&L Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Cropper.js for Image Cropping -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     
@@ -631,7 +624,7 @@
     </div>
 
     <script>
-        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbyJv6ATZCozBt-tjlxiNxIfFkEnD4w7HNUy88uUh_EWVUoIZzbrjRInCcah8458Szy8/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let sessionPassword = ""; 
@@ -645,6 +638,10 @@
         window.onload = function() {
             setDefaultDates();
         };
+
+        function sendWhatsAppUpdate(message) {
+            // WhatsApp updates paused as requested. No new tabs will open.
+        }
 
         function setDefaultDates() {
             const today = new Date().toISOString().split('T')[0];
@@ -732,12 +729,6 @@
                 eyeIcon.classList.remove('fa-eye-slash');
                 eyeIcon.classList.add('fa-eye');
             }
-        }
-
-        function sendWhatsAppUpdate(message) {
-            // WhatsApp updates paused
-            // const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            // window.open(url, '_blank');
         }
 
         // --- CROPPER LOGIC ---
