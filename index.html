@@ -728,9 +728,8 @@
         }
 
         function sendWhatsAppUpdate(message) {
-            // WhatsApp updates paused as requested
-            // const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            // window.open(url, '_blank');
+            // WhatsApp updates temporarily paused
+            return;
         }
 
         // --- CROPPER LOGIC ---
@@ -1249,7 +1248,6 @@
 
             const finishReg = function(base64Image) {
                 const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image);
-                sendWhatsAppUpdate(`🟢 *NEW ADMISSION*\n*Name:* ${name}\n*Course:* ${course}\n*Total Fee:* ₹${totalFee}\n*Advance Paid:* ₹${paid}\n*Due:* ₹${parseFloat(totalFee) - parseFloat(paid)}\n*Date:* ${date}`);
                 alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
             };
 
@@ -1389,9 +1387,6 @@
                     targetTx.amount = parseFloat(targetTx.amount) + diff;
                     if(targetTx.amount < 0) targetTx.amount = 0;
                 }
-                sendWhatsAppUpdate(`✏️ *PROFILE EDITED*\n*Student:* ${student.name} profile was corrected.\n*New Total Paid:* ₹${newPaid}`);
-            } else if (oldName !== newName) {
-                sendWhatsAppUpdate(`✏️ *PROFILE EDITED*\n*Student:* ${student.name} profile details were updated.`);
             }
 
             const fileInput = document.getElementById('edit-image');
@@ -1416,7 +1411,6 @@
                 if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
                 const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
                 recordTransaction("income", `${finalDesc} - ${student.name}`, amount, date);
-                sendWhatsAppUpdate(`🟢 *FEE RECEIVED*\n*Student:* ${student.name}\n*Type:* ${feeCategory}\n*Amount:* ₹${amount}\n*Due:* ₹${student.totalFee - student.paidFee}\n*Date:* ${date}`);
                 alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
             }
         }
@@ -1426,7 +1420,6 @@
             const date = document.getElementById('job-date').value; const name = document.getElementById('job-name').value;
             const post = document.getElementById('job-post').value; const amount = document.getElementById('job-amount').value;
             recordTransaction("income", `Job Desk: ${name}`, amount, date, post);
-            sendWhatsAppUpdate(`🟢 *JOB DESK*\n*Applicant:* ${name}\n*Applied Post:* ${post}\n*Amount:* ₹${amount}\n*Date:* ${date}`);
             e.target.reset(); setDefaultDates();
         }
 
@@ -1435,7 +1428,6 @@
             const date = document.getElementById('print-date').value; const service = document.getElementById('print-service').value;
             const desc = document.getElementById('print-desc').value; const amount = document.getElementById('print-amount').value;
             recordTransaction("income", `Print Desk: ${service}`, amount, date, desc);
-            sendWhatsAppUpdate(`🟢 *PRINT DESK*\n*Service:* ${service}\n*Amount:* ₹${amount}\n*Date:* ${date}`);
             e.target.reset(); setDefaultDates();
         }
 
@@ -1445,7 +1437,6 @@
             const amount = document.getElementById('exp-amount').value; const desc = document.getElementById('exp-desc').value;
             if(parseFloat(amount) > appData.stats.balance && !confirm("Expense is greater than balance. Proceed?")) return;
             recordTransaction("expense", category, amount, date, desc);
-            sendWhatsAppUpdate(`🔴 *EXPENDITURE*\n*Category:* ${category}\n*Amount:* ₹${amount}\n*Description:* ${desc || "N/A"}\n*Date:* ${date}`);
             e.target.reset(); setDefaultDates();
         }
 
@@ -1507,12 +1498,10 @@
             document.getElementById('edit-tx-title').value = tx.title; document.getElementById('edit-tx-amount').value = tx.amount;
             document.getElementById('edit-tx-desc').value = tx.description || '';
             const modal = document.getElementById('edit-transaction-modal');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
+            modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
         }
         function closeEditTransactionModal() {
-            const modal = document.getElementById('edit-transaction-modal');
-            modal.classList.add('opacity-0'); modal.querySelector('div').classList.add('scale-95');
+            const modal = document.getElementById('edit-transaction-modal'); modal.classList.add('opacity-0'); modal.querySelector('div').classList.add('scale-95');
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
         function submitEditTransaction(e) {
@@ -1540,8 +1529,7 @@
         }
         function closeDeleteModal() {
             const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
-            modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
+            modal.classList.add('opacity-0'); content.classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300);
         }
         function executeDelete() {
             const pass = document.getElementById('delete-password-input').value;
