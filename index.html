@@ -624,8 +624,8 @@
     </div>
 
     <script>
-        const AUTH_APP_URL = "PASTE_AUTH_LINK_HERE";
-        const DATA_APP_URL = "PASTE_DATA_LINK_HERE";
+        const AUTH_APP_URL = "https://script.google.com/macros/s/AKfycby3_BBxE4dSyCypR8buqx7UHjgLjyfss8NNphKVmeNNpn0A1ukFSlmQqKs1Hx1W6wpmoQ/exec";
+        const DATA_APP_URL = "https://script.google.com/macros/s/AKfycby4tYYcEbUteojJCJ0K_STOaz7GCdvggUWyjUgrRMg6ztNgNpZnkdtFfC6y47BzUp2S/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let cropper = null;
@@ -1365,7 +1365,7 @@
                             <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                         </div>
                         <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
-                            <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'textemerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
+                            <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
                             <div class="flex space-x-1">
                                 <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-2" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
                                 <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
