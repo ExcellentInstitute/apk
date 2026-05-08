@@ -373,12 +373,12 @@
                                         <div class="flex items-center space-x-5 relative z-10">
                                             <div class="w-20 h-20 md:w-24 md:h-24 bg-slate-800 text-white rounded-2xl flex items-center justify-center text-3xl font-bold shrink-0 overflow-hidden border-2 border-slate-600 shadow-xl" id="active-student-avatar"></div>
                                             <div class="text-left">
-                                               <div class="flex items-center gap-3 mb-1">
-                                                   <h2 class="text-2xl md:text-3xl font-black tracking-tight leading-none" id="active-student-name">Name</h2>
-                                                    <button type="button" onclick="shareStudentWA()" class="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition-all" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp text-xs"></i></button>
+                                                <div class="flex items-center gap-3 mb-1">
+                                                    <h2 class="text-2xl md:text-3xl font-black tracking-tight leading-none" id="active-student-name">Name</h2>
+                                                    <a id="wa-student-btn" href="#" target="_blank" class="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition-all" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp text-xs"></i></a>
                                                     <button type="button" onclick="openEditModal()" class="w-8 h-8 rounded-full bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white flex items-center justify-center transition-all" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
                                                     <button type="button" onclick="openDeleteModal(null, true)" class="w-8 h-8 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition-all" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
-                                               </div>
+                                                </div>
                                                 <div class="flex items-center space-x-2 mt-2 opacity-80"><i class="fa-solid fa-book text-xs"></i><p class="text-sm font-medium" id="active-student-course">Course</p><span class="text-slate-500">•</span><p class="text-xs" id="active-student-gender">Gender</p></div>
                                                 <span class="inline-block px-3 py-1 mt-3 text-[10px] bg-white/10 text-white rounded-lg font-bold uppercase tracking-wider border border-white/10" id="active-student-feetype">Monthly</span>
                                             </div>
@@ -416,7 +416,7 @@
                                                 <div><label class="form-label">Description / Month (Optional)</label><input type="text" id="tuition-desc" class="form-input" placeholder="e.g. March / First Sem"></div>
                                                 <div><label class="form-label text-emerald-700">Amount Received (₹)</label><input type="number" id="tuition-amount" class="form-input text-xl font-black text-emerald-600 bg-emerald-50 border-emerald-200 shadow-inner" placeholder="0" required></div>
                                             </div>
-                                            <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-all flex justify-center items-center text-sm cursor-pointer transform hover:-translate-y-1"><i class="fa-solid fa-receipt mr-2"></i> Save & Print</button>
+                                            <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-all flex justify-center items-center text-sm cursor-pointer transform hover:-translate-y-1"><i class="fa-solid fa-receipt mr-2"></i> Save Payment</button>
                                         </form>
                                     </div>
 
@@ -640,24 +640,6 @@
             setDefaultDates();
         };
 
-        function shareTransactionWA(txId) {
-            const tx = appData.transactions.find(t => t.id === txId);
-            if(!tx) return;
-            const isInc = tx.type === 'income';
-            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}%0A*Title:* ${tx.title}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
-            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
-            window.open(`https://wa.me/?text=${msg}`, '_blank');
-        }
-
-        function shareStudentWA() {
-            const stId = document.getElementById('tuition-student-id').value;
-            const student = appData.students.find(s => s.id === stId);
-            if(!student) return;
-            const dues = student.totalFee - student.paidFee;
-            const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${student.paidFee}%0A*Due:* ₹${dues}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
-            window.open(`https://wa.me/?text=${msg}`, '_blank');
-        }
-
         function setDefaultDates() {
             const today = new Date().toISOString().split('T')[0];
             ['reg-date', 'tuition-date', 'job-date', 'print-date', 'exp-date'].forEach(id => {
@@ -676,12 +658,18 @@
             appData.students.forEach(st => {
                 const dues = st.totalFee - st.paidFee;
                 if (dues > 0 && st.date) {
-                    const regDate = new Date(st.date);
-                    const diffTime = Math.abs(today - regDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const stTx = appData.transactions.filter(t => t.type === 'income' && (t.title.includes(`[${st.id}]`) || (t.title.includes(st.name) && !t.title.includes('[STU'))));
+                    let lastPaymentDate = new Date(st.date);
+                    if (stTx.length > 0) {
+                        stTx.sort((a,b) => new Date(b.date) - new Date(a.date));
+                        lastPaymentDate = new Date(stTx[0].date);
+                    }
+                    
+                    const diffTime = Math.abs(today - lastPaymentDate);
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     
                     if (diffDays >= 30) {
-                        dueStudents.push({ ...st, daysOverdue: diffDays - 30 });
+                        dueStudents.push({ ...st, idleDays: diffDays });
                     }
                 }
             });
@@ -700,7 +688,7 @@
                     list.innerHTML += `
                         <div class="p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer rounded-xl" onclick="closeNotificationsIfOpen(); switchTab('tuition'); setTimeout(()=>selectStudent('${st.id}'), 100);">
                             <p class="text-sm font-bold text-slate-800">${st.name}</p>
-                            <p class="text-xs text-rose-500 font-bold mt-1">₹${st.totalFee - st.paidFee} Due <span class="text-slate-400 font-medium text-[10px] ml-1">(${st.daysOverdue} days past 1st month)</span></p>
+                            <p class="text-xs text-rose-500 font-bold mt-1">₹${st.totalFee - st.paidFee} Due <span class="text-slate-400 font-medium text-[10px] ml-1">(${st.idleDays} days since last payment)</span></p>
                         </div>
                     `;
                 });
@@ -714,7 +702,7 @@
         function toggleNotifications() {
             const drop = document.getElementById('notif-dropdown');
             if (drop.classList.contains('hidden')) {
-                checkDuesNotifications(); // Refresh on open
+                checkDuesNotifications(); 
                 drop.classList.remove('hidden');
                 setTimeout(() => { drop.classList.remove('scale-95', 'opacity-0'); }, 10);
             } else {
@@ -724,7 +712,7 @@
         }
 
         function closeNotificationsIfOpen(e) {
-            if(e && e.target.closest && e.target.closest('.fa-bell')) return; // Ignore clicks on bell itself
+            if(e && e.target.closest && e.target.closest('.fa-bell')) return; 
             const drop = document.getElementById('notif-dropdown');
             if (!drop.classList.contains('hidden')) {
                 drop.classList.add('scale-95', 'opacity-0');
@@ -747,8 +735,6 @@
         }
 
         function sendWhatsAppUpdate(message) {
-            //const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            //window.open(url, '_blank');
             return;
         }
 
@@ -799,7 +785,7 @@
         async function handleLogin(e) {
             e.preventDefault();
             const user = document.getElementById('username').value.toLowerCase().trim();
-            const pass = document.getElementById('password').value.trim(); // FIX: Trim trailing spaces
+            const pass = document.getElementById('password').value.trim(); 
             const errorMsg = document.getElementById('login-error');
             const btnText = document.getElementById('login-btn-text');
 
@@ -875,7 +861,7 @@
 
         function saveDatabase() {
             localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-            const payload = { password: sessionPassword, data: appData }; // FIX: Use valid session password to save
+            const payload = { password: sessionPassword, data: appData }; 
             fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
             .catch(error => console.log("Cloud sync failed.", error));
         }
@@ -949,7 +935,6 @@
         }
 
         function generateExcelBill(transactionDetails, billTitle) {
-            // Auto-download permanently disabled
             return;
         }
 
@@ -979,7 +964,7 @@
                 html += `
                     <tr style="border-bottom: 1px solid #e2e8f0;">
                         <td style="padding: 8px 5px; color: #475569;">${tx.date}</td>
-                        <td style="padding: 8px 5px;"><strong>${tx.title}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
+                        <td style="padding: 8px 5px;"><strong>${tx.title.replace(/ \[STU.*\]/, '')}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
                         <td style="padding: 8px 5px; font-weight: bold; color: ${isInc ? '#059669' : '#e11d48'}">${isInc ? 'INCOME' : 'EXPENSE'}</td>
                         <td style="padding: 8px 5px; text-align: right; font-weight: bold;">${sign}₹${tx.amount.toLocaleString('en-IN')}</td>
                     </tr>
@@ -1147,7 +1132,6 @@
                 const colors = profits.map(p => p >= 0 ? 'rgba(16, 185, 129, 0.8)' : 'rgba(244, 63, 94, 0.8)');
                 const borders = profits.map(p => p >= 0 ? '#10b981' : '#f43f5e');
                 
-                // DEVIATION BAR - Income positive, Expenses Negative
                 const negActualExp = actualExpenses.map(v => -v);
                 const negAssumExp = assumExpenses.map(v => -v);
 
@@ -1238,10 +1222,8 @@
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 });
-            // Injects unique ID into the ledger title
             recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
             renderStudentList(); saveDatabase(); return id;
-        }
         }
 
         function recordTransaction(type, title, amount, dateStr, desc = "") {
@@ -1260,18 +1242,173 @@
 
             const finishReg = function(base64Image) {
                 const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image);
-                generateExcelBill({
-                    "Receipt Date": date, "Student ID": stId, "Student Name": name, "Gender": gender, "Fee Structure": feeType,
-                    "Course Name": course, "Total Course Fee": `₹ ${totalFee}`, "Advance Paid": `₹ ${paid}`, 
-                    "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
-                }, "NEW_ADMISSION");
-                
-                sendWhatsAppUpdate(`🟢 *NEW ADMISSION*\n*Name:* ${name}\n*Course:* ${course}\n*Total Fee:* ₹${totalFee}\n*Advance Paid:* ₹${paid}\n*Due:* ₹${parseFloat(totalFee) - parseFloat(paid)}\n*Date:* ${date}`);
                 alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
             };
 
             if(croppedImages.reg) { finishReg(croppedImages.reg); } else { compressImage(fileInput.files[0], finishReg); }
         }
+
+        function renderStudentList() {
+            const listEl = document.getElementById('student-list');
+            const searchQ = document.getElementById('filter-search') ? document.getElementById('filter-search').value.toLowerCase() : '';
+            const dueF = document.getElementById('filter-due') ? document.getElementById('filter-due').value : 'all';
+            const courseF = document.getElementById('filter-course') ? document.getElementById('filter-course').value : 'all';
+
+            listEl.innerHTML = '';
+            if(appData.students.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-folder-open text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No students yet</p></div>'; return;
+            }
+
+            const courseSelect = document.getElementById('filter-course');
+            if (courseSelect) {
+                const currentVal = courseSelect.value;
+                const uniqueCourses = [...new Set(appData.students.map(s => s.course))];
+                let optionsHtml = '<option value="all">All Batches</option>';
+                uniqueCourses.forEach(c => { optionsHtml += `<option value="${c}">${c}</option>`; });
+                courseSelect.innerHTML = optionsHtml; courseSelect.value = uniqueCourses.includes(currentVal) ? currentVal : 'all';
+            }
+
+            const filteredStudents = appData.students.filter(st => {
+                const dues = st.totalFee - st.paidFee;
+                const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
+                const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
+                const matchCourse = courseF === 'all' || st.course === courseF;
+                return matchSearch && matchDue && matchCourse;
+            });
+
+            if(filteredStudents.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10 text-sm font-bold"><i class="fa-solid fa-magnifying-glass text-3xl mb-3 block text-slate-300"></i>No matches found</div>'; return;
+            }
+
+            filteredStudents.forEach(st => {
+                const dues = st.totalFee - st.paidFee;
+                const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
+                const card = document.createElement('div');
+                card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
+                card.onclick = () => selectStudent(st.id);
+                card.innerHTML = `
+                    <div class="flex items-center space-x-4 overflow-hidden">
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors overflow-hidden shadow-inner shrink-0">${avatar}</div>
+                        <div class="truncate"><p class="font-extrabold text-slate-800 text-sm truncate">${st.name}</p><p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-0.5 truncate">${st.id} • ${st.course}</p></div>
+                    </div>
+                    <div class="text-right shrink-0 ml-2"><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Due</p><p class="${dues > 0 ? 'text-rose-500' : 'text-emerald-500'} font-black text-sm drop-shadow-sm">₹${dues}</p></div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function renderMiniLedger(student) {
+            const miniLedger = document.getElementById('student-mini-ledger');
+            miniLedger.innerHTML = '';
+            
+            const stTx = appData.transactions.filter(t => t.title.includes(`[${student.id}]`) || (t.title.includes(student.name) && !t.title.includes('[STU')));
+            
+            if(stTx.length === 0) {
+                miniLedger.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs text-slate-400 font-bold">No payment history found.</td></tr>'; return;
+            }
+            stTx.forEach(tx => {
+                const isInc = tx.type === 'income';
+                const cleanTitle = tx.title.replace(` - ${student.name}`, '').replace(` [${student.id}]`, '');
+                miniLedger.innerHTML += `
+                    <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
+                        <td class="py-3 px-3 text-slate-500 font-bold">${tx.date}</td>
+                        <td class="py-3 px-3 text-slate-800 font-bold max-w-[120px] truncate" title="${tx.title}">${cleanTitle}</td>
+                        <td class="py-3 px-3 text-right font-black ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount}</td>
+                        <td class="py-3 px-2 text-center">
+                            <a href="https://wa.me/?text=${encodeURIComponent(`${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${cleanTitle}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}${tx.description && tx.description !== "N/A" && tx.description !== "-" ? `\n*Details:* ${tx.description}` : ''}`)}" target="_blank" class="text-emerald-400 hover:text-emerald-600 transition-colors p-1" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                            <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Payment"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function selectStudent(id) {
+            const student = appData.students.find(s => s.id === id);
+            if(!student) return;
+            document.getElementById('tuition-placeholder').classList.add('hidden');
+            document.getElementById('tuition-active').classList.remove('hidden');
+            document.getElementById('active-student-name').innerText = student.name;
+            document.getElementById('active-student-course').innerText = student.course;
+            document.getElementById('active-student-gender').innerText = student.gender || "N/A";
+            document.getElementById('active-student-feetype').innerText = student.feeType || "Monthly";
+            document.getElementById('tuition-student-id').value = student.id;
+            document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : student.name.charAt(0);
+            document.getElementById('active-student-date').innerText = student.date || "-";
+            document.getElementById('active-student-phone').innerText = student.phone || "-";
+            document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
+            document.getElementById('active-student-paidfee').innerText = `₹${student.paidFee}`;
+
+            const dues = student.totalFee - student.paidFee;
+            const dueEl = document.getElementById('active-student-dues');
+            dueEl.innerText = `₹${dues}`;
+            dueEl.className = dues <= 0 ? "text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md" : "text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md";
+            if(dues <= 0) dueEl.innerText = "Cleared";
+
+            const waMsg = encodeURIComponent(`🎓 *STUDENT UPDATE*\n*Name:* ${student.name}\n*Course:* ${student.course}\n*Total Fee:* ₹${student.totalFee}\n*Total Paid:* ₹${student.paidFee}\n*Due:* ₹${dues}\n*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`);
+            document.getElementById('wa-student-btn').href = `https://wa.me/?text=${waMsg}`;
+
+            renderMiniLedger(student);
+            if(window.innerWidth < 1024) document.getElementById('tuition-active').scrollIntoView({behavior: 'smooth'});
+        }
+
+        function updateDashboard() {
+            const format = (num) => `₹${num.toLocaleString('en-IN')}`;
+            document.getElementById('dash-income').innerText = format(appData.stats.income);
+            document.getElementById('dash-expense').innerText = format(appData.stats.expense);
+            document.getElementById('dash-balance').innerText = format(appData.stats.balance);
+            document.getElementById('header-balance').innerText = format(appData.stats.balance);
+        }
+
+        function renderLedger() {
+            const tbody = document.getElementById('transaction-ledger'); tbody.innerHTML = '';
+            if(appData.transactions.length === 0) return;
+            appData.transactions.slice(0, 15).forEach(tx => {
+                const isInc = tx.type === 'income';
+                const badge = isInc ? `<span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">IN</span>` : `<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">OUT</span>`;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
+                        <td class="py-4 px-4 text-slate-500 text-xs font-bold whitespace-nowrap">${tx.date}</td>
+                        <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title.replace(/ \[STU.*\]/, '')}</td>
+                        <td class="py-4 px-4 text-center">${badge}</td>
+                        <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
+                        <td class="py-4 px-2 text-center">
+                            <a href="https://wa.me/?text=${encodeURIComponent(`${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title.replace(/ \[STU.*\]/, '')}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}${tx.description && tx.description !== "N/A" && tx.description !== "-" ? `\n*Details:* ${tx.description}` : ''}`)}" target="_blank" class="text-emerald-400 hover:text-emerald-600 transition-colors p-1 mr-1" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                            <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-1" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1 ml-1" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorClass, emptyMsg) {
+            const listEl = document.getElementById(containerId); listEl.innerHTML = '';
+            const items = appData.transactions.filter(itemsFilterFn);
+            if(items.length === 0) { listEl.innerHTML = `<div class="text-center text-slate-400 mt-10"><i class="${iconClass} text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">${emptyMsg}</p></div>`; return; }
+            items.forEach(tx => {
+                const isInc = tx.type === 'income';
+                listEl.innerHTML += `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
+                            <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
+                        </div>
+                        <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
+                            <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
+                            <div class="flex space-x-1">
+                                <a href="https://wa.me/?text=${encodeURIComponent(`${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title.replace(titleReplace, '').replace(/ \[STU.*\]/, '')}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}${tx.description && tx.description !== "N/A" && tx.description !== "-" ? `\n*Details:* ${tx.description}` : ''}`)}" target="_blank" class="text-emerald-400 hover:text-emerald-600 transition-colors p-2" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                                <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-2" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
+                                <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        function renderExpenseList() { renderList('expense-list', t => t.type === 'expense', '', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
+        function renderJobList() { renderList('job-list', t => t.title.includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
+        function renderPrintList() { renderList('print-list', t => t.title.includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
         function openEditModal() {
             const stId = document.getElementById('tuition-student-id').value;
@@ -1338,10 +1475,48 @@
                 compressImage(fileInput.files[0], function(base64Image) { student.image = base64Image; finalizeEdit(student); });
             } else { finalizeEdit(student); }
         }
-        
+
         function finalizeEdit(student) { closeEditModal(); recalculateStats(); saveDatabase(); refreshAllUI(); alert("Profile updated successfully!"); }
 
-        // --- TRANSACTIONS EDIT/DELETE ---
+        function submitTuitionFee(e) {
+            e.preventDefault();
+            const stId = document.getElementById('tuition-student-id').value; const date = document.getElementById('tuition-date').value;
+            const feeCategory = document.getElementById('tuition-feetype-select').value; const desc = document.getElementById('tuition-desc').value;
+            const amount = parseFloat(document.getElementById('tuition-amount').value);
+            let student = appData.students.find(s => s.id === stId);
+            if(student) {
+                if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
+                const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
+                recordTransaction("income", `${finalDesc} - ${student.name} [${student.id}]`, amount, date);
+                alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
+            }
+        }
+
+        function submitJobApp(e) {
+            e.preventDefault();
+            const date = document.getElementById('job-date').value; const name = document.getElementById('job-name').value;
+            const post = document.getElementById('job-post').value; const amount = document.getElementById('job-amount').value;
+            recordTransaction("income", `Job Desk: ${name}`, amount, date, post);
+            e.target.reset(); setDefaultDates();
+        }
+
+        function submitPrintIncome(e) {
+            e.preventDefault();
+            const date = document.getElementById('print-date').value; const service = document.getElementById('print-service').value;
+            const desc = document.getElementById('print-desc').value; const amount = document.getElementById('print-amount').value;
+            recordTransaction("income", `Print Desk: ${service}`, amount, date, desc);
+            e.target.reset(); setDefaultDates();
+        }
+
+        function submitExpense(e) {
+            e.preventDefault();
+            const date = document.getElementById('exp-date').value; const category = document.getElementById('exp-category').value;
+            const amount = document.getElementById('exp-amount').value; const desc = document.getElementById('exp-desc').value;
+            if(parseFloat(amount) > appData.stats.balance && !confirm("Expense is greater than balance. Proceed?")) return;
+            recordTransaction("expense", category, amount, date, desc);
+            e.target.reset(); setDefaultDates();
+        }
+
         function openEditTransactionModal(txId) {
             const tx = appData.transactions.find(t => t.id === txId);
             if(!tx) return;
@@ -1366,7 +1541,6 @@
             if(!tx) return;
             tx.date = document.getElementById('edit-tx-date').value; tx.title = document.getElementById('edit-tx-title').value;
             tx.amount = parseFloat(document.getElementById('edit-tx-amount').value); tx.description = document.getElementById('edit-tx-desc').value;
-            sendWhatsAppUpdate(`✏️ *RECORD EDITED*\n*Updated Transaction:* ${tx.title}\n*New Amount:* ₹${tx.amount}\n*Date:* ${tx.date}`);
             recalculateStats(); saveDatabase(); refreshAllUI(); closeEditTransactionModal(); alert("Record updated successfully!");
         }
 
@@ -1407,229 +1581,28 @@
                     const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
                     if(student) {
                         appData.students = appData.students.filter(s => s.id !== stId);
-                        appData.transactions = appData.transactions.filter(tx => !tx.title.includes(student.name));
+                        appData.transactions = appData.transactions.filter(tx => !(tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
                         document.getElementById('tuition-placeholder').classList.remove('hidden'); document.getElementById('tuition-active').classList.add('hidden');
-                        sendWhatsAppUpdate(`⚠️ *RECORD DELETED*\n*Student:* ${student.name} profile and all associated payments were permanently deleted.`);
-                        alert(`${student.name} has been completely deleted.`);
+                        alert(`${student.name} deleted.`);
                     }
                 } else {
                     const txId = document.getElementById('delete-transaction-id').value; const txIndex = appData.transactions.findIndex(t => t.id === txId);
                     if(txIndex !== -1) {
                         const tx = appData.transactions[txIndex];
                         if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
-                            appData.students.forEach(student => { if (tx.title.includes(student.name)) { student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; } });
+                            appData.students.forEach(student => { 
+                                if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))) { 
+                                    student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
+                                } 
+                            });
                         }
-                        const txTitle = tx.title; const txAmt = tx.amount;
                         appData.transactions.splice(txIndex, 1);
-                        sendWhatsAppUpdate(`⚠️ *RECORD DELETED*\n*Transaction:* ${txTitle}\n*Amount:* ₹${txAmt} was permanently deleted.`);
                         alert("Record deleted successfully.");
                     }
                 }
                 recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal(); btnText.innerHTML = 'Confirm Delete';
             }, 300);
         }
-
-        // --- SUBMISSIONS ---
-        function submitTuitionFee(e) {
-            e.preventDefault();
-            const stId = document.getElementById('tuition-student-id').value; const date = document.getElementById('tuition-date').value;
-            const feeCategory = document.getElementById('tuition-feetype-select').value; const desc = document.getElementById('tuition-desc').value;
-            const amount = parseFloat(document.getElementById('tuition-amount').value);
-            let student = appData.students.find(s => s.id === stId);
-            if(student) {
-                if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
-                const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
-                // Injects unique ID into the ledger title
-                recordTransaction("income", `${finalDesc} - ${student.name} [${student.id}]`, amount, date);
-                alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
-            }
-        }
-
-        function submitJobApp(e) {
-            e.preventDefault();
-            const date = document.getElementById('job-date').value; const name = document.getElementById('job-name').value;
-            const post = document.getElementById('job-post').value; const amount = document.getElementById('job-amount').value;
-            recordTransaction("income", `Job Desk: ${name}`, amount, date, post);
-            generateExcelBill({"Date": date, "Applicant Name": name, "Applied For": post, "Amount Received": `₹ ${amount}`}, "JOB_APPLICATION");
-            sendWhatsAppUpdate(`🟢 *JOB DESK INCOME*\n*Applicant:* ${name}\n*Applied Post:* ${post}\n*Amount:* ₹${amount}\n*Date:* ${date}`);
-            e.target.reset(); setDefaultDates();
-        }
-
-        function submitPrintIncome(e) {
-            e.preventDefault();
-            const date = document.getElementById('print-date').value; const service = document.getElementById('print-service').value;
-            const desc = document.getElementById('print-desc').value; const amount = document.getElementById('print-amount').value;
-            recordTransaction("income", `Print Desk: ${service}`, amount, date, desc);
-            generateExcelBill({"Date": date, "Service": service, "Details": desc || "Walk-in", "Amount": `₹ ${amount}`}, "PRINT_SERVICES");
-            sendWhatsAppUpdate(`🟢 *PRINT DESK INCOME*\n*Service:* ${service}\n*Details:* ${desc || "Walk-in"}\n*Amount:* ₹${amount}\n*Date:* ${date}`);
-            e.target.reset(); setDefaultDates();
-        }
-
-        function submitExpense(e) {
-            e.preventDefault();
-            const date = document.getElementById('exp-date').value; const category = document.getElementById('exp-category').value;
-            const amount = document.getElementById('exp-amount').value; const desc = document.getElementById('exp-desc').value;
-            if(parseFloat(amount) > appData.stats.balance && !confirm("Expense is greater than balance. Proceed?")) return;
-            recordTransaction("expense", category, amount, date, desc);
-            generateExcelBill({"Date": date, "Expense Category": category, "Description": desc || "N/A", "Amount Deducted": `₹ ${amount}`}, "EXPENDITURE_VOUCHER");
-            sendWhatsAppUpdate(`🔴 *NEW EXPENDITURE*\n*Category:* ${category}\n*Amount:* ₹${amount}\n*Description:* ${desc || "N/A"}\n*Date:* ${date}`);
-            e.target.reset(); setDefaultDates();
-        }
-
-        // --- RENDERERS ---
-        function updateDashboard() {
-            const format = (num) => `₹${num.toLocaleString('en-IN')}`;
-            document.getElementById('dash-income').innerText = format(appData.stats.income);
-            document.getElementById('dash-expense').innerText = format(appData.stats.expense);
-            document.getElementById('dash-balance').innerText = format(appData.stats.balance);
-            document.getElementById('header-balance').innerText = format(appData.stats.balance);
-        }
-
-        function renderStudentList() {
-            const listEl = document.getElementById('student-list');
-            const searchQ = document.getElementById('filter-search') ? document.getElementById('filter-search').value.toLowerCase() : '';
-            const dueF = document.getElementById('filter-due') ? document.getElementById('filter-due').value : 'all';
-            const courseF = document.getElementById('filter-course') ? document.getElementById('filter-course').value : 'all';
-
-            listEl.innerHTML = '';
-            if(appData.students.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-folder-open text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No students yet</p></div>'; return;
-            }
-
-            const courseSelect = document.getElementById('filter-course');
-            if (courseSelect) {
-                const currentVal = courseSelect.value;
-                const uniqueCourses = [...new Set(appData.students.map(s => s.course))];
-                let optionsHtml = '<option value="all">All Batches</option>';
-                uniqueCourses.forEach(c => { optionsHtml += `<option value="${c}">${c}</option>`; });
-                courseSelect.innerHTML = optionsHtml; courseSelect.value = uniqueCourses.includes(currentVal) ? currentVal : 'all';
-            }
-
-            const filteredStudents = appData.students.filter(st => {
-                const dues = st.totalFee - st.paidFee;
-                const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
-                const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
-                const matchCourse = courseF === 'all' || st.course === courseF;
-                return matchSearch && matchDue && matchCourse;
-            });
-
-            if(filteredStudents.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-slate-400 mt-10 text-sm font-bold"><i class="fa-solid fa-magnifying-glass text-3xl mb-3 block text-slate-300"></i>No matches found</div>'; return;
-            }
-
-            filteredStudents.forEach(st => {
-                const dues = st.totalFee - st.paidFee;
-                const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
-                const card = document.createElement('div');
-                card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
-                card.onclick = () => selectStudent(st.id);
-                card.innerHTML = `
-                    <div class="flex items-center space-x-4 overflow-hidden">
-                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors overflow-hidden shadow-inner shrink-0">${avatar}</div>
-                        <div class="truncate"><p class="font-extrabold text-slate-800 text-sm truncate">${st.name}</p><p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-0.5 truncate">${st.id} • ${st.course}</p></div>
-                    </div>
-                    <div class="text-right shrink-0 ml-2"><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Due</p><p class="${dues > 0 ? 'text-rose-500' : 'text-emerald-500'} font-black text-sm drop-shadow-sm">₹${dues}</p></div>
-                `;
-                listEl.appendChild(card);
-            });
-        }
-
-        function renderMiniLedger(studentName) {
-            const miniLedger = document.getElementById('student-mini-ledger');
-            miniLedger.innerHTML = '';
-            const stTx = appData.transactions.filter(t => t.title.includes(studentName));
-            if(stTx.length === 0) {
-                miniLedger.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs text-slate-400 font-bold">No payment history found.</td></tr>'; return;
-            }
-            stTx.forEach(tx => {
-                const isInc = tx.type === 'income';
-                miniLedger.innerHTML += `
-                    <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
-                        <td class="py-3 px-3 text-slate-500 font-bold">${tx.date}</td>
-                        <td class="py-3 px-3 text-slate-800 font-bold max-w-[120px] truncate" title="${tx.title}">${tx.title.replace(` - ${studentName}`, '')}</td>
-                        <td class="py-3 px-3 text-right font-black ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount}</td>
-                        <td class="py-3 px-2 text-center"><button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Payment"><i class="fa-solid fa-trash"></i></button></td>
-                    </tr>
-                `;
-            });
-        }
-
-        function selectStudent(id) {
-            const student = appData.students.find(s => s.id === id);
-            if(!student) return;
-            document.getElementById('tuition-placeholder').classList.add('hidden');
-            document.getElementById('tuition-active').classList.remove('hidden');
-            document.getElementById('active-student-name').innerText = student.name;
-            document.getElementById('active-student-course').innerText = student.course;
-            document.getElementById('active-student-gender').innerText = student.gender || "N/A";
-            document.getElementById('active-student-feetype').innerText = student.feeType || "Monthly";
-            document.getElementById('tuition-student-id').value = student.id;
-            document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : student.name.charAt(0);
-            document.getElementById('active-student-date').innerText = student.date || "-";
-            document.getElementById('active-student-phone').innerText = student.phone || "-";
-            document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
-            document.getElementById('active-student-paidfee').innerText = `₹${student.paidFee}`;
-
-            const dues = student.totalFee - student.paidFee;
-            const dueEl = document.getElementById('active-student-dues');
-            dueEl.innerText = `₹${dues}`;
-            dueEl.className = dues <= 0 ? "text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md" : "text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md";
-            if(dues <= 0) dueEl.innerText = "Cleared";
-
-            // Passes the full student data, not just the name
-            renderMiniLedger(student);
-            if(window.innerWidth < 1024) document.getElementById('tuition-active').scrollIntoView({behavior: 'smooth'});
-        }
-
-        function renderLedger() {
-            const tbody = document.getElementById('transaction-ledger'); tbody.innerHTML = '';
-            if(appData.transactions.length === 0) return;
-            appData.transactions.slice(0, 15).forEach(tx => {
-                const isInc = tx.type === 'income';
-                const badge = isInc ? `<span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">IN</span>` : `<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">OUT</span>`;
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
-                        <td class="py-4 px-4 text-slate-500 text-xs font-bold whitespace-nowrap">${tx.date}</td>
-                        <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title}</td>
-                        <td class="py-4 px-4 text-center">${badge}</td>
-                        <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
-                        <td class="py-4 px-2 text-center">
-                            <button type="button" onclick="shareTransactionWA('${tx.id}')" class="text-emerald-400 hover:text-emerald-600 transition-colors p-1" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
-                            <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-1 ml-1" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
-                            <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1 ml-1" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorClass, emptyMsg) {
-            const listEl = document.getElementById(containerId); listEl.innerHTML = '';
-            const items = appData.transactions.filter(itemsFilterFn);
-            if(items.length === 0) { listEl.innerHTML = `<div class="text-center text-slate-400 mt-10"><i class="${iconClass} text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">${emptyMsg}</p></div>`; return; }
-            items.forEach(tx => {
-                const isInc = tx.type === 'income';
-                listEl.innerHTML += `
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
-                            <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
-                        </div>
-                        <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
-                            <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
-                            <div class="flex space-x-1">
-                                <button type="button" onclick="shareTransactionWA('${tx.id}')" class="text-emerald-400 hover:text-emerald-600 transition-colors p-2" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
-                                <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-2" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
-                                <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        function renderExpenseList() { renderList('expense-list', t => t.type === 'expense', '', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
-        function renderJobList() { renderList('job-list', t => t.title.includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
-        function renderPrintList() { renderList('print-list', t => t.title.includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
     </script>
 </body>
 </html>
