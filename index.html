@@ -374,10 +374,10 @@
                                             <div class="w-20 h-20 md:w-24 md:h-24 bg-slate-800 text-white rounded-2xl flex items-center justify-center text-3xl font-bold shrink-0 overflow-hidden border-2 border-slate-600 shadow-xl" id="active-student-avatar"></div>
                                             <div class="text-left">
                                                 <div class="flex items-center gap-3 mb-1">
-                                                   <h2 class="text-2xl md:text-3xl font-black tracking-tight leading-none" id="active-student-name">Name</h2>
-                                                   <button type="button" onclick="shareStudentWA()" class="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition-all" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp text-xs"></i></button>
-                                                   <button type="button" onclick="openEditModal()" class="w-8 h-8 rounded-full bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white flex items-center justify-center transition-all" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
-                                                   <button type="button" onclick="openDeleteModal(null, true)" class="w-8 h-8 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition-all" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
+                                                    <h2 class="text-2xl md:text-3xl font-black tracking-tight leading-none" id="active-student-name">Name</h2>
+                                                    <button type="button" onclick="openEditModal()" class="w-8 h-8 rounded-full bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white flex items-center justify-center transition-all" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
+                                                    <button type="button" onclick="openDeleteModal(null, true)" class="w-8 h-8 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition-all" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
+                                                </div>
                                                 <div class="flex items-center space-x-2 mt-2 opacity-80"><i class="fa-solid fa-book text-xs"></i><p class="text-sm font-medium" id="active-student-course">Course</p><span class="text-slate-500">•</span><p class="text-xs" id="active-student-gender">Gender</p></div>
                                                 <span class="inline-block px-3 py-1 mt-3 text-[10px] bg-white/10 text-white rounded-lg font-bold uppercase tracking-wider border border-white/10" id="active-student-feetype">Monthly</span>
                                             </div>
@@ -624,7 +624,7 @@
     </div>
 
     <script>
-        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let sessionPassword = ""; 
@@ -638,24 +638,6 @@
         window.onload = function() {
             setDefaultDates();
         };
-        
-        function shareTransactionWA(txId) {
-            const tx = appData.transactions.find(t => t.id === txId);
-            if(!tx) return;
-            const isInc = tx.type === 'income';
-            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
-            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `\n*Details:* ${tx.description}`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-        }
-
-        function shareStudentWA() {
-            const stId = document.getElementById('tuition-student-id').value;
-            const student = appData.students.find(s => s.id === stId);
-            if(!student) return;
-            const dues = student.totalFee - student.paidFee;
-            const msg = `🎓 *STUDENT UPDATE*\n*Name:* ${student.name}\n*Course:* ${student.course}\n*Total Fee:* ₹${student.totalFee}\n*Total Paid:* ₹${student.paidFee}\n*Due:* ₹${dues}\n*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-        }
 
         function setDefaultDates() {
             const today = new Date().toISOString().split('T')[0];
@@ -746,9 +728,8 @@
         }
 
         function sendWhatsAppUpdate(message) {
-            //const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            //window.open(url, '_blank');
-            return;
+            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
         }
 
         // --- CROPPER LOGIC ---
@@ -947,7 +928,7 @@
             reader.readAsDataURL(file);
         }
 
-        //function generateExcelBill(transactionDetails, billTitle) {
+        function generateExcelBill(transactionDetails, billTitle) {
             const now = new Date();
             let wsData = [
                 ["EXCELLENT INSTITUTE"], ["TEACHERS COLONY, SURADA, DIST - GANJAM, ODISHA - 761108"], [""],
@@ -959,8 +940,8 @@
             const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(wsData);
             ws['!cols'] = [{ wch: 30 }, { wch: 35 }];
             XLSX.utils.book_append_sheet(wb, ws, "Receipt");
-            //XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
-        //}
+            XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
+        }
 
         function generateComprehensivePrint() {
             let printDiv = document.getElementById('comprehensive-print-view');
@@ -1612,24 +1593,26 @@
             });
         }
 
-        function renderLedger() {
-            const tbody = document.getElementById('transaction-ledger'); tbody.innerHTML = '';
-            if(appData.transactions.length === 0) return;
-            appData.transactions.slice(0, 15).forEach(tx => {
+        function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorClass, emptyMsg) {
+            const listEl = document.getElementById(containerId); listEl.innerHTML = '';
+            const items = appData.transactions.filter(itemsFilterFn);
+            if(items.length === 0) { listEl.innerHTML = `<div class="text-center text-slate-400 mt-10"><i class="${iconClass} text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">${emptyMsg}</p></div>`; return; }
+            items.forEach(tx => {
                 const isInc = tx.type === 'income';
-                const badge = isInc ? `<span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">IN</span>` : `<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-lg text-[10px] font-black tracking-widest shadow-sm">OUT</span>`;
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
-                        <td class="py-4 px-4 text-slate-500 text-xs font-bold whitespace-nowrap">${tx.date}</td>
-                        <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title}</td>
-                        <td class="py-4 px-4 text-center">${badge}</td>
-                        <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
-                        <td class="py-4 px-2 text-center">
-                            <button type="button" onclick="shareTransactionWA('${tx.id}')" class="text-emerald-400 hover:text-emerald-600 transition-colors p-1 mr-1" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
-                            <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-1" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
-                            <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1 ml-1" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
+                listEl.innerHTML += `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
+                            <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
+                        </div>
+                        <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
+                            <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
+                            <div class="flex space-x-1">
+                                <button type="button" onclick="openEditTransactionModal('${tx.id}')" class="text-indigo-300 hover:text-indigo-600 transition-colors p-2" title="Edit Record"><i class="fa-solid fa-pen"></i></button>
+                                <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2" title="Delete Record"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
                 `;
             });
         }
