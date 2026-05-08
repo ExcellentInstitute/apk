@@ -628,6 +628,7 @@
         const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
+        let sessionPassword = ""; 
         let cropper = null;
         let currentCropTarget = null;
         let croppedImages = { reg: null, edit: null };
@@ -800,7 +801,7 @@
         async function handleLogin(e) {
             e.preventDefault();
             const user = document.getElementById('username').value.toLowerCase().trim();
-            const pass = document.getElementById('password').value.trim();
+            const pass = document.getElementById('password').value.trim(); 
             const errorMsg = document.getElementById('login-error');
             const btnText = document.getElementById('login-btn-text');
 
@@ -822,6 +823,7 @@
                     throw new Error("Invalid Password");
                 }
 
+                sessionPassword = pass;
                 appData = data;
                 
                 appData.transactions.forEach(tx => {
@@ -874,9 +876,17 @@
 
         function saveDatabase() {
             localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-            const payload = { data: appData }; 
+            const payload = { password: sessionPassword, data: appData }; 
             fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
             .catch(error => console.log("Cloud sync failed.", error));
+        }
+
+        function updateDashboard() {
+            const format = (num) => `₹${num.toLocaleString('en-IN')}`;
+            document.getElementById('dash-income').innerText = format(appData.stats.income);
+            document.getElementById('dash-expense').innerText = format(appData.stats.expense);
+            document.getElementById('dash-balance').innerText = format(appData.stats.balance);
+            document.getElementById('header-balance').innerText = format(appData.stats.balance);
         }
 
         function refreshAllUI() {
@@ -1241,14 +1251,6 @@
             });
         }
 
-        function updateDashboard() {
-            const format = (num) => `₹${num.toLocaleString('en-IN')}`;
-            document.getElementById('dash-income').innerText = format(appData.stats.income);
-            document.getElementById('dash-expense').innerText = format(appData.stats.expense);
-            document.getElementById('dash-balance').innerText = format(appData.stats.balance);
-            document.getElementById('header-balance').innerText = format(appData.stats.balance);
-        }
-
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 });
@@ -1272,12 +1274,6 @@
 
             const finishReg = function(base64Image) {
                 const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image);
-                generateExcelBill({
-                    "Receipt Date": date, "Student ID": stId, "Student Name": name, "Gender": gender, "Fee Structure": feeType,
-                    "Course Name": course, "Total Course Fee": `₹ ${totalFee}`, "Advance Paid": `₹ ${paid}`, 
-                    "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
-                }, "NEW_ADMISSION");
-                
                 alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
             };
 
@@ -1429,11 +1425,6 @@
                 if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
                 const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
                 recordTransaction("income", `${finalDesc} - ${student.name}`, amount, date);
-                generateExcelBill({
-                    "Receipt Date": date, "Student ID": student.id, "Student Name": student.name, "Course Name": student.course, 
-                    "Fee Type Paid": feeCategory, "Description": desc || "N/A", "Amount Paid": `₹ ${amount}`,
-                    "Remaining Course Due": `₹ ${student.totalFee - student.paidFee}`
-                }, feeCategory.toUpperCase().replace(/\s+/g, '_'));
                 alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
             }
         }
@@ -1443,7 +1434,6 @@
             const date = document.getElementById('job-date').value; const name = document.getElementById('job-name').value;
             const post = document.getElementById('job-post').value; const amount = document.getElementById('job-amount').value;
             recordTransaction("income", `Job Desk: ${name}`, amount, date, post);
-            generateExcelBill({"Date": date, "Applicant Name": name, "Applied For": post, "Amount Received": `₹ ${amount}`}, "JOB_APPLICATION");
             e.target.reset(); setDefaultDates();
         }
 
@@ -1452,7 +1442,6 @@
             const date = document.getElementById('print-date').value; const service = document.getElementById('print-service').value;
             const desc = document.getElementById('print-desc').value; const amount = document.getElementById('print-amount').value;
             recordTransaction("income", `Print Desk: ${service}`, amount, date, desc);
-            generateExcelBill({"Date": date, "Service": service, "Details": desc || "Walk-in", "Amount": `₹ ${amount}`}, "PRINT_SERVICES");
             e.target.reset(); setDefaultDates();
         }
 
@@ -1462,7 +1451,6 @@
             const amount = document.getElementById('exp-amount').value; const desc = document.getElementById('exp-desc').value;
             if(parseFloat(amount) > appData.stats.balance && !confirm("Expense is greater than balance. Proceed?")) return;
             recordTransaction("expense", category, amount, date, desc);
-            generateExcelBill({"Date": date, "Expense Category": category, "Description": desc || "N/A", "Amount Deducted": `₹ ${amount}`}, "EXPENDITURE_VOUCHER");
             e.target.reset(); setDefaultDates();
         }
 
@@ -1480,7 +1468,10 @@
                         <td class="py-3 px-3 text-slate-500 font-bold">${tx.date}</td>
                         <td class="py-3 px-3 text-slate-800 font-bold max-w-[120px] truncate" title="${tx.title}">${tx.title.replace(` - ${studentName}`, '')}</td>
                         <td class="py-3 px-3 text-right font-black ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount}</td>
-                        <td class="py-3 px-2 text-center"><button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Payment"><i class="fa-solid fa-trash"></i></button></td>
+                        <td class="py-3 px-2 text-center">
+                            <button type="button" onclick="shareTransactionWA('${tx.id}')" class="text-emerald-400 hover:text-emerald-600 transition-colors p-1" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
+                            <button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Payment"><i class="fa-solid fa-trash"></i></button>
+                        </td>
                     </tr>
                 `;
             });
@@ -1582,18 +1573,29 @@
             modal.classList.add('opacity-0'); content.classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
-        function executeDelete() {
+        async function executeDelete() {
             const pass = document.getElementById('delete-password-input').value;
             const errorMsg = document.getElementById('delete-error');
             const btnText = document.getElementById('delete-btn-text');
             const isStudent = document.getElementById('delete-student-flag').value === 'true';
 
             if(!pass) return;
-            if (pass !== 'admin') { errorMsg.classList.remove('hidden'); return; }
 
-            errorMsg.classList.add('hidden'); btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
+            errorMsg.classList.add('hidden'); btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
 
-            setTimeout(() => {
+            try {
+                const authResponse = await fetch(GOOGLE_APP_URL + "?action=verifyDelete&pass=" + encodeURIComponent(pass));
+                const authData = await authResponse.json();
+                
+                if(authData.error) {
+                    errorMsg.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!';
+                    errorMsg.classList.remove('hidden');
+                    btnText.innerHTML = 'Confirm Delete';
+                    return;
+                }
+
+                btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
+
                 if(isStudent) {
                     const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
                     if(student) {
@@ -1613,7 +1615,11 @@
                     }
                 }
                 recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal(); btnText.innerHTML = 'Confirm Delete';
-            }, 300);
+            } catch(err) {
+                errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-1"></i> Connection Error';
+                errorMsg.classList.remove('hidden');
+                btnText.innerHTML = 'Confirm Delete';
+            }
         }
     </script>
 </body>
