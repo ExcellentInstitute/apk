@@ -640,6 +640,24 @@
             setDefaultDates();
         };
 
+        function shareTransactionWA(txId) {
+            const tx = appData.transactions.find(t => t.id === txId);
+            if(!tx) return;
+            const isInc = tx.type === 'income';
+            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
+            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `\n*Details:* ${tx.description}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function shareStudentWA() {
+            const stId = document.getElementById('tuition-student-id').value;
+            const student = appData.students.find(s => s.id === stId);
+            if(!student) return;
+            const dues = student.totalFee - student.paidFee;
+            const msg = `🎓 *STUDENT UPDATE*\n*Name:* ${student.name}\n*Course:* ${student.course}\n*Total Fee:* ₹${student.totalFee}\n*Total Paid:* ₹${student.paidFee}\n*Due:* ₹${dues}\n*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
         function setDefaultDates() {
             const today = new Date().toISOString().split('T')[0];
             ['reg-date', 'tuition-date', 'job-date', 'print-date', 'exp-date'].forEach(id => {
@@ -729,8 +747,9 @@
         }
 
         function sendWhatsAppUpdate(message) {
-            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
+            //const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            //window.open(url, '_blank');
+            return;
         }
 
         // --- CROPPER LOGIC ---
@@ -941,7 +960,7 @@
             const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(wsData);
             ws['!cols'] = [{ wch: 30 }, { wch: 35 }];
             XLSX.utils.book_append_sheet(wb, ws, "Receipt");
-            XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
+            //XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
         }
 
         function generateComprehensivePrint() {
