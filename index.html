@@ -644,9 +644,9 @@
             const tx = appData.transactions.find(t => t.id === txId);
             if(!tx) return;
             const isInc = tx.type === 'income';
-            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
-            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `\n*Details:* ${tx.description}`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}%0A*Title:* ${tx.title}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
+            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
+            window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
 
         function shareStudentWA() {
@@ -654,8 +654,8 @@
             const student = appData.students.find(s => s.id === stId);
             if(!student) return;
             const dues = student.totalFee - student.paidFee;
-            const msg = `🎓 *STUDENT UPDATE*\n*Name:* ${student.name}\n*Course:* ${student.course}\n*Total Fee:* ₹${student.totalFee}\n*Total Paid:* ₹${student.paidFee}\n*Due:* ₹${dues}\n*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+            const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${student.paidFee}%0A*Due:* ₹${dues}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+            window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
 
         function setDefaultDates() {
@@ -949,18 +949,8 @@
         }
 
         function generateExcelBill(transactionDetails, billTitle) {
-            const now = new Date();
-            let wsData = [
-                ["EXCELLENT INSTITUTE"], ["TEACHERS COLONY, SURADA, DIST - GANJAM, ODISHA - 761108"], [""],
-                [`RECEIPT: ${billTitle}`], ["Printed Time:", now.toLocaleTimeString('en-IN')], ["--------------------------------------------------"],
-                ["DETAILS", "VALUE"]
-            ];
-            for (const [key, value] of Object.entries(transactionDetails)) wsData.push([key, value]);
-            wsData.push(["--------------------------------------------------"], ["System Generated Receipt. Verified by Admin."]);
-            const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(wsData);
-            ws['!cols'] = [{ wch: 30 }, { wch: 35 }];
-            XLSX.utils.book_append_sheet(wb, ws, "Receipt");
-            //XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
+            // Auto-download permanently disabled
+            return;
         }
 
         function generateComprehensivePrint() {
@@ -1248,8 +1238,10 @@
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 });
-            recordTransaction("income", `Admission Fee - ${name}`, parseFloat(paidNow), dateStr);
+            // Injects unique ID into the ledger title
+            recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
             renderStudentList(); saveDatabase(); return id;
+        }
         }
 
         function recordTransaction(type, title, amount, dateStr, desc = "") {
@@ -1320,8 +1312,12 @@
             
             if (oldName !== newName) {
                 appData.transactions.forEach(tx => {
-                    if (tx.title.includes(oldName)) { tx.title = tx.title.replace(oldName, newName); }
-                    if (tx.description && tx.description.includes(oldName)) { tx.description = tx.description.replace(oldName, newName); }
+                    if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(oldName) && !tx.title.includes('[STU'))) { 
+                        tx.title = tx.title.replace(oldName, newName); 
+                    }
+                    if (tx.description && (tx.title.includes(`[${student.id}]`) || tx.description.includes(oldName))) { 
+                        tx.description = tx.description.replace(oldName, newName); 
+                    }
                 });
             }
 
@@ -1330,12 +1326,9 @@
             student.paidFee = newPaid;
 
             if(newPaid !== oldPaid) {
-                const diff = newPaid - oldPaid; const today = new Date().toISOString().split('T')[0];
-                let targetTx = appData.transactions.find(tx => tx.title.includes(student.name) && tx.type === 'income');
+                const diff = newPaid - oldPaid;
+                let targetTx = appData.transactions.find(tx => tx.type === 'income' && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
                 if (targetTx) { targetTx.amount = parseFloat(targetTx.amount) + diff; if(targetTx.amount < 0) targetTx.amount = 0; }
-                sendWhatsAppUpdate(`✏️ *PROFILE EDITED*\n*Student:* ${student.name} profile was corrected.\n*New Total Paid:* ₹${newPaid}`);
-            } else if (oldName !== newName) {
-                sendWhatsAppUpdate(`✏️ *PROFILE EDITED*\n*Student:* ${student.name} profile details were updated.`);
             }
 
             const fileInput = document.getElementById('edit-image');
@@ -1345,7 +1338,7 @@
                 compressImage(fileInput.files[0], function(base64Image) { student.image = base64Image; finalizeEdit(student); });
             } else { finalizeEdit(student); }
         }
-
+        
         function finalizeEdit(student) { closeEditModal(); recalculateStats(); saveDatabase(); refreshAllUI(); alert("Profile updated successfully!"); }
 
         // --- TRANSACTIONS EDIT/DELETE ---
@@ -1446,13 +1439,8 @@
             if(student) {
                 if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
                 const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
-                recordTransaction("income", `${finalDesc} - ${student.name}`, amount, date);
-                generateExcelBill({
-                    "Receipt Date": date, "Student ID": student.id, "Student Name": student.name, "Course Name": student.course, 
-                    "Fee Type Paid": feeCategory, "Description": desc || "N/A", "Amount Paid": `₹ ${amount}`,
-                    "Remaining Course Due": `₹ ${student.totalFee - student.paidFee}`
-                }, feeCategory.toUpperCase().replace(/\s+/g, '_'));
-                sendWhatsAppUpdate(`🟢 *FEE RECEIVED*\n*Student:* ${student.name}\n*Course:* ${student.course}\n*Type:* ${feeCategory}\n*Amount Paid:* ₹${amount}\n*Remaining Due:* ₹${student.totalFee - student.paidFee}\n*Date:* ${date}`);
+                // Injects unique ID into the ledger title
+                recordTransaction("income", `${finalDesc} - ${student.name} [${student.id}]`, amount, date);
                 alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
             }
         }
@@ -1588,7 +1576,8 @@
             dueEl.className = dues <= 0 ? "text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md" : "text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md";
             if(dues <= 0) dueEl.innerText = "Cleared";
 
-            renderMiniLedger(student.name);
+            // Passes the full student data, not just the name
+            renderMiniLedger(student);
             if(window.innerWidth < 1024) document.getElementById('tuition-active').scrollIntoView({behavior: 'smooth'});
         }
 
