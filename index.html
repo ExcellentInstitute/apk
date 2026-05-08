@@ -331,7 +331,7 @@
                                     <div><label class="form-label text-emerald-700">Fee Structure</label><select id="reg-feetype" class="form-input bg-white border-emerald-200 cursor-pointer" required><option value="Monthly">Monthly Payment</option><option value="One-Time">One-Time Payment</option></select></div>
                                     <div><label class="form-label text-emerald-700">Total Course Fee (₹)</label><input type="number" id="reg-totalfee" class="form-input bg-white border-emerald-200 font-bold" placeholder="e.g. 15000" required></div>
                                     <div><label class="form-label text-emerald-800">Admission Fee (Advance Paid) ₹</label><input type="number" id="reg-paid" class="form-input border-emerald-400 focus:border-emerald-600 focus:ring-emerald-200 text-xl font-black text-emerald-700 bg-white shadow-inner" placeholder="0" required></div>
-                                    <div class="md:col-span-3 mt-4"><button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-2xl shadow-lg shadow-emerald-500/40 transition-all cursor-pointer transform hover:-translate-y-1">Register Student & Save <i class="fa-solid fa-floppy-disk ml-2"></i></button></div>
+                                    <div class="md:col-span-3 mt-4"><button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-2xl shadow-lg shadow-emerald-500/40 transition-all cursor-pointer transform hover:-translate-y-1">Register Student & Generate Receipt <i class="fa-solid fa-file-invoice ml-2"></i></button></div>
                                 </div>
                             </div>
                         </div>
@@ -416,7 +416,7 @@
                                                 <div><label class="form-label">Description / Month (Optional)</label><input type="text" id="tuition-desc" class="form-input" placeholder="e.g. March / First Sem"></div>
                                                 <div><label class="form-label text-emerald-700">Amount Received (₹)</label><input type="number" id="tuition-amount" class="form-input text-xl font-black text-emerald-600 bg-emerald-50 border-emerald-200 shadow-inner" placeholder="0" required></div>
                                             </div>
-                                            <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-all flex justify-center items-center text-sm cursor-pointer transform hover:-translate-y-1"><i class="fa-solid fa-floppy-disk mr-2"></i> Save Payment</button>
+                                            <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-all flex justify-center items-center text-sm cursor-pointer transform hover:-translate-y-1"><i class="fa-solid fa-receipt mr-2"></i> Save & Print</button>
                                         </form>
                                     </div>
 
@@ -749,6 +749,11 @@
             }
         }
 
+        function sendWhatsAppUpdate(message) {
+            // Auto sending disabled per request
+            return;
+        }
+
         function openCropModal(event, target) {
             const file = event.target.files[0];
             if (!file) return;
@@ -843,7 +848,7 @@
 
             } catch(err) {
                 if(err.message !== "Invalid Password") {
-                    errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Please check your links.';
+                    errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Please update Google Apps Script.';
                 }
                 showError(errorMsg);
                 btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
@@ -954,7 +959,8 @@
             const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(wsData);
             ws['!cols'] = [{ wch: 30 }, { wch: 35 }];
             XLSX.utils.book_append_sheet(wb, ws, "Receipt");
-            // AUTO DOWNLOAD DEACTIVATED PER REQUEST
+            // Auto download deactivated per request
+            // XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
         }
 
         function generateComprehensivePrint() {
