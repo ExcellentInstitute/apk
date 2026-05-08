@@ -625,10 +625,9 @@
     </div>
 
     <script>
-        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
-        let sessionPassword = ""; 
         let cropper = null;
         let currentCropTarget = null;
         let croppedImages = { reg: null, edit: null };
@@ -646,7 +645,9 @@
             const isInc = tx.type === 'income';
             const icon = isInc ? '🟢' : '🔴';
             let msg = `${icon} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
-            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `\n*Details:* ${tx.description}`;
+            if(tx.description && tx.description !== "N/A" && tx.description !== "-") {
+                msg += `\n*Details:* ${tx.description}`;
+            }
             const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
             window.open(url, '_blank');
         }
@@ -750,7 +751,7 @@
         }
 
         function sendWhatsAppUpdate(message) {
-            // Auto sending disabled per request
+            // function disabled
             return;
         }
 
@@ -799,7 +800,7 @@
         async function handleLogin(e) {
             e.preventDefault();
             const user = document.getElementById('username').value.toLowerCase().trim();
-            const pass = document.getElementById('password').value.trim(); 
+            const pass = document.getElementById('password').value.trim();
             const errorMsg = document.getElementById('login-error');
             const btnText = document.getElementById('login-btn-text');
 
@@ -821,7 +822,6 @@
                     throw new Error("Invalid Password");
                 }
 
-                sessionPassword = pass;
                 appData = data;
                 
                 appData.transactions.forEach(tx => {
@@ -874,7 +874,7 @@
 
         function saveDatabase() {
             localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-            const payload = { password: sessionPassword, data: appData }; 
+            const payload = { data: appData }; 
             fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
             .catch(error => console.log("Cloud sync failed.", error));
         }
@@ -959,7 +959,6 @@
             const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(wsData);
             ws['!cols'] = [{ wch: 30 }, { wch: 35 }];
             XLSX.utils.book_append_sheet(wb, ws, "Receipt");
-            // Auto download deactivated per request
             // XLSX.writeFile(wb, `${billTitle.replace(/\s+/g, '_')}_${now.getTime()}.xlsx`);
         }
 
@@ -1242,6 +1241,14 @@
             });
         }
 
+        function updateDashboard() {
+            const format = (num) => `₹${num.toLocaleString('en-IN')}`;
+            document.getElementById('dash-income').innerText = format(appData.stats.income);
+            document.getElementById('dash-expense').innerText = format(appData.stats.expense);
+            document.getElementById('dash-balance').innerText = format(appData.stats.balance);
+            document.getElementById('header-balance').innerText = format(appData.stats.balance);
+        }
+
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 });
@@ -1265,6 +1272,12 @@
 
             const finishReg = function(base64Image) {
                 const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image);
+                generateExcelBill({
+                    "Receipt Date": date, "Student ID": stId, "Student Name": name, "Gender": gender, "Fee Structure": feeType,
+                    "Course Name": course, "Total Course Fee": `₹ ${totalFee}`, "Advance Paid": `₹ ${paid}`, 
+                    "Pending Due": `₹ ${parseFloat(totalFee) - parseFloat(paid)}`
+                }, "NEW_ADMISSION");
+                
                 alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
             };
 
@@ -1347,18 +1360,14 @@
             const student = appData.students.find(s => s.id === stId);
             if(!student) return;
 
-            document.getElementById('edit-student-id').value = student.id; 
-            document.getElementById('edit-name').value = student.name;
+            document.getElementById('edit-student-id').value = student.id; document.getElementById('edit-name').value = student.name;
             document.getElementById('edit-date').value = student.date || new Date().toISOString().split('T')[0];
-            document.getElementById('edit-phone').value = student.phone || ''; 
-            document.getElementById('edit-gender').value = student.gender || 'Male';
-            document.getElementById('edit-course').value = student.course; 
-            document.getElementById('edit-feetype').value = student.feeType || 'Monthly';
+            document.getElementById('edit-phone').value = student.phone || ''; document.getElementById('edit-gender').value = student.gender || 'Male';
+            document.getElementById('edit-course').value = student.course; document.getElementById('edit-feetype').value = student.feeType || 'Monthly';
             document.getElementById('edit-totalfee').value = student.totalFee;
             document.getElementById('edit-paidfee').value = student.paidFee;
 
-            const modal = document.getElementById('edit-student-modal'); 
-            const content = document.getElementById('edit-modal-content');
+            const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
         }
@@ -1366,29 +1375,27 @@
         function closeEditModal() {
             const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
             modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden'); document.getElementById('edit-image').value = ''; croppedImages.edit = null; }, 300);
+            setTimeout(() => { 
+                modal.classList.add('hidden'); document.getElementById('edit-image').value = ''; croppedImages.edit = null; 
+            }, 300);
         }
 
         function submitEditStudent(e) {
             e.preventDefault();
-            const id = document.getElementById('edit-student-id').value; 
-            let student = appData.students.find(s => s.id === id);
+            const id = document.getElementById('edit-student-id').value; let student = appData.students.find(s => s.id === id);
             if(!student) return;
 
             const oldName = student.name;
             const newName = document.getElementById('edit-name').value;
-            student.name = newName; 
-            student.date = document.getElementById('edit-date').value;
-            student.phone = document.getElementById('edit-phone').value; 
-            student.gender = document.getElementById('edit-gender').value;
-            student.course = document.getElementById('edit-course').value; 
-            student.feeType = document.getElementById('edit-feetype').value;
+            student.name = newName; student.date = document.getElementById('edit-date').value;
+            student.phone = document.getElementById('edit-phone').value; student.gender = document.getElementById('edit-gender').value;
+            student.course = document.getElementById('edit-course').value; student.feeType = document.getElementById('edit-feetype').value;
             student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
             
             if (oldName !== newName) {
                 appData.transactions.forEach(tx => {
-                    if (tx.title.includes(oldName)) tx.title = tx.title.replace(oldName, newName);
-                    if (tx.description && tx.description.includes(oldName)) tx.description = tx.description.replace(oldName, newName);
+                    if (tx.title.includes(oldName)) { tx.title = tx.title.replace(oldName, newName); }
+                    if (tx.description && tx.description.includes(oldName)) { tx.description = tx.description.replace(oldName, newName); }
                 });
             }
 
@@ -1397,12 +1404,9 @@
             student.paidFee = newPaid;
 
             if(newPaid !== oldPaid) {
-                const diff = newPaid - oldPaid;
+                const diff = newPaid - oldPaid; const today = new Date().toISOString().split('T')[0];
                 let targetTx = appData.transactions.find(tx => tx.title.includes(student.name) && tx.type === 'income');
-                if (targetTx) {
-                    targetTx.amount = parseFloat(targetTx.amount) + diff;
-                    if(targetTx.amount < 0) targetTx.amount = 0;
-                }
+                if (targetTx) { targetTx.amount = parseFloat(targetTx.amount) + diff; if(targetTx.amount < 0) targetTx.amount = 0; }
             }
 
             const fileInput = document.getElementById('edit-image');
@@ -1413,9 +1417,7 @@
             } else { finalizeEdit(student); }
         }
 
-        function finalizeEdit(student) {
-            closeEditModal(); recalculateStats(); saveDatabase(); refreshAllUI(); alert("Profile updated successfully!");
-        }
+        function finalizeEdit(student) { closeEditModal(); recalculateStats(); saveDatabase(); refreshAllUI(); alert("Profile updated successfully!"); }
 
         function submitTuitionFee(e) {
             e.preventDefault();
@@ -1427,6 +1429,11 @@
                 if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
                 const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
                 recordTransaction("income", `${finalDesc} - ${student.name}`, amount, date);
+                generateExcelBill({
+                    "Receipt Date": date, "Student ID": student.id, "Student Name": student.name, "Course Name": student.course, 
+                    "Fee Type Paid": feeCategory, "Description": desc || "N/A", "Amount Paid": `₹ ${amount}`,
+                    "Remaining Course Due": `₹ ${student.totalFee - student.paidFee}`
+                }, feeCategory.toUpperCase().replace(/\s+/g, '_'));
                 alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
             }
         }
@@ -1436,6 +1443,7 @@
             const date = document.getElementById('job-date').value; const name = document.getElementById('job-name').value;
             const post = document.getElementById('job-post').value; const amount = document.getElementById('job-amount').value;
             recordTransaction("income", `Job Desk: ${name}`, amount, date, post);
+            generateExcelBill({"Date": date, "Applicant Name": name, "Applied For": post, "Amount Received": `₹ ${amount}`}, "JOB_APPLICATION");
             e.target.reset(); setDefaultDates();
         }
 
@@ -1444,6 +1452,7 @@
             const date = document.getElementById('print-date').value; const service = document.getElementById('print-service').value;
             const desc = document.getElementById('print-desc').value; const amount = document.getElementById('print-amount').value;
             recordTransaction("income", `Print Desk: ${service}`, amount, date, desc);
+            generateExcelBill({"Date": date, "Service": service, "Details": desc || "Walk-in", "Amount": `₹ ${amount}`}, "PRINT_SERVICES");
             e.target.reset(); setDefaultDates();
         }
 
@@ -1453,7 +1462,28 @@
             const amount = document.getElementById('exp-amount').value; const desc = document.getElementById('exp-desc').value;
             if(parseFloat(amount) > appData.stats.balance && !confirm("Expense is greater than balance. Proceed?")) return;
             recordTransaction("expense", category, amount, date, desc);
+            generateExcelBill({"Date": date, "Expense Category": category, "Description": desc || "N/A", "Amount Deducted": `₹ ${amount}`}, "EXPENDITURE_VOUCHER");
             e.target.reset(); setDefaultDates();
+        }
+
+        function renderMiniLedger(studentName) {
+            const miniLedger = document.getElementById('student-mini-ledger');
+            miniLedger.innerHTML = '';
+            const stTx = appData.transactions.filter(t => t.title.includes(studentName));
+            if(stTx.length === 0) {
+                miniLedger.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs text-slate-400 font-bold">No payment history found.</td></tr>'; return;
+            }
+            stTx.forEach(tx => {
+                const isInc = tx.type === 'income';
+                miniLedger.innerHTML += `
+                    <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
+                        <td class="py-3 px-3 text-slate-500 font-bold">${tx.date}</td>
+                        <td class="py-3 px-3 text-slate-800 font-bold max-w-[120px] truncate" title="${tx.title}">${tx.title.replace(` - ${studentName}`, '')}</td>
+                        <td class="py-3 px-3 text-right font-black ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount}</td>
+                        <td class="py-3 px-2 text-center"><button type="button" onclick="deleteTransaction('${tx.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Payment"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                `;
+            });
         }
 
         function renderLedger() {
@@ -1532,6 +1562,7 @@
         }
 
         function deleteTransaction(txId) { openDeleteModal(txId, false); }
+        
         function openDeleteModal(id = null, isStudent = true) {
             if(isStudent) {
                 const stId = document.getElementById('tuition-student-id').value; const student = appData.students.find(s => s.id === stId);
@@ -1545,10 +1576,12 @@
             const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
             modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
         }
+
         function closeDeleteModal() {
             const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
             modal.classList.add('opacity-0'); content.classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300);
         }
+
         function executeDelete() {
             const pass = document.getElementById('delete-password-input').value;
             const errorMsg = document.getElementById('delete-error');
