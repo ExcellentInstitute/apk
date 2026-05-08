@@ -625,7 +625,7 @@
     </div>
 
     <script>
-        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbyJv6ATZCozBt-tjlxiNxIfFkEnD4w7HNUy88uUh_EWVUoIZzbrjRInCcah8458Szy8/exec";
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbzyEm9KQasVIaOXOeycxNPYnFa2yooCLJELLKI993nUPDr7DTg4etOx0x8CFMpWNs4/exec";
         
         let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 } };
         let sessionPassword = ""; 
@@ -645,8 +645,8 @@
             if(!tx) return;
             const isInc = tx.type === 'income';
             const icon = isInc ? '🟢' : '🔴';
-            let msg = `${icon} *TRANSACTION RECORD*\\n*Date:* ${tx.date}\\n*Title:* ${tx.title}\\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
-            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `\\n*Details:* ${tx.description}`;
+            let msg = `${icon} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
+            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `\n*Details:* ${tx.description}`;
             const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
             window.open(url, '_blank');
         }
@@ -657,7 +657,7 @@
             if(!student) return;
             const dues = student.totalFee - student.paidFee;
             const status = dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️';
-            const msg = `🎓 *STUDENT UPDATE*\\n*Name:* ${student.name}\\n*Course:* ${student.course}\\n*Total Fee:* ₹${student.totalFee}\\n*Total Paid:* ₹${student.paidFee}\\n*Due:* ₹${dues}\\n*Status:* ${status}`;
+            const msg = `🎓 *STUDENT UPDATE*\n*Name:* ${student.name}\n*Course:* ${student.course}\n*Total Fee:* ₹${student.totalFee}\n*Total Paid:* ₹${student.paidFee}\n*Due:* ₹${dues}\n*Status:* ${status}`;
             const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
             window.open(url, '_blank');
         }
@@ -843,7 +843,7 @@
 
             } catch(err) {
                 if(err.message !== "Invalid Password") {
-                    errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Please update Google Apps Script.';
+                    errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Please check your links.';
                 }
                 showError(errorMsg);
                 btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
@@ -955,7 +955,6 @@
             ws['!cols'] = [{ wch: 30 }, { wch: 35 }];
             XLSX.utils.book_append_sheet(wb, ws, "Receipt");
             // AUTO DOWNLOAD DEACTIVATED PER REQUEST
-            // XLSX.writeFile(wb, `${billTitle.replace(/\\s+/g, '_')}_${now.getTime()}.xlsx`); 
         }
 
         function generateComprehensivePrint() {
@@ -1260,7 +1259,6 @@
 
             const finishReg = function(base64Image) {
                 const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image);
-                // AUTO WHATSAPP DEACTIVATED 
                 alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
             };
 
@@ -1423,7 +1421,6 @@
                 if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
                 const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
                 recordTransaction("income", `${finalDesc} - ${student.name}`, amount, date);
-                // AUTO WHATSAPP DEACTIVATED
                 alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
             }
         }
@@ -1433,7 +1430,6 @@
             const date = document.getElementById('job-date').value; const name = document.getElementById('job-name').value;
             const post = document.getElementById('job-post').value; const amount = document.getElementById('job-amount').value;
             recordTransaction("income", `Job Desk: ${name}`, amount, date, post);
-            // AUTO WHATSAPP DEACTIVATED
             e.target.reset(); setDefaultDates();
         }
 
@@ -1442,7 +1438,6 @@
             const date = document.getElementById('print-date').value; const service = document.getElementById('print-service').value;
             const desc = document.getElementById('print-desc').value; const amount = document.getElementById('print-amount').value;
             recordTransaction("income", `Print Desk: ${service}`, amount, date, desc);
-            // AUTO WHATSAPP DEACTIVATED
             e.target.reset(); setDefaultDates();
         }
 
@@ -1452,7 +1447,6 @@
             const amount = document.getElementById('exp-amount').value; const desc = document.getElementById('exp-desc').value;
             if(parseFloat(amount) > appData.stats.balance && !confirm("Expense is greater than balance. Proceed?")) return;
             recordTransaction("expense", category, amount, date, desc);
-            // AUTO WHATSAPP DEACTIVATED
             e.target.reset(); setDefaultDates();
         }
 
