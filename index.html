@@ -329,9 +329,9 @@
                                 <h3 class="text-emerald-800 font-black mb-6 flex items-center text-lg"><i class="fa-solid fa-money-check-dollar mr-3 text-2xl text-emerald-500"></i> Financial Commitment</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
                                     <div><label class="form-label text-emerald-700">Duration (Months)</label><input type="number" id="reg-duration" class="form-input bg-white border-emerald-200 font-bold" placeholder="e.g. 6" required></div>
-                                        <div><label class="form-label text-emerald-700">Fee Structure</label><select id="reg-feetype" class="form-input bg-white border-emerald-200 cursor-pointer" required><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
-                                            <div><label class="form-label text-emerald-700">Total Course Fee (₹)</label><input type="number" id="reg-totalfee" class="form-input bg-white border-emerald-200 font-bold" placeholder="e.g. 15000" required></div>
-                                        <div><label class="form-label text-emerald-800">Advance Paid (₹)</label><input type="number" id="reg-paid" class="form-input border-emerald-400 focus:border-emerald-600 focus:ring-emerald-200 text-xl font-black text-emerald-700 bg-white shadow-inner" placeholder="0" required></div>
+                                    <div><label class="form-label text-emerald-700">Fee Structure</label><select id="reg-feetype" class="form-input bg-white border-emerald-200 cursor-pointer" required><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
+                                    <div><label class="form-label text-emerald-700">Total Course Fee (₹)</label><input type="number" id="reg-totalfee" class="form-input bg-white border-emerald-200 font-bold" placeholder="e.g. 15000" required></div>
+                                    <div><label class="form-label text-emerald-800">Advance Paid (₹)</label><input type="number" id="reg-paid" class="form-input border-emerald-400 focus:border-emerald-600 focus:ring-emerald-200 text-xl font-black text-emerald-700 bg-white shadow-inner" placeholder="0" required></div>
                                     <div class="md:col-span-4 mt-4"><button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-2xl shadow-lg shadow-emerald-500/40 transition-all cursor-pointer transform hover:-translate-y-1">Register Student & Generate Receipt <i class="fa-solid fa-file-invoice ml-2"></i></button></div>
                                 </div>
                             </div>
@@ -349,8 +349,8 @@
                                         <h3 class="font-extrabold text-slate-800 text-lg">Student Database</h3>
                                         <p class="text-xs text-slate-500 font-medium mt-1">Select a student to view details</p>
                                     </div>
-                                    <div class="text-right bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm">
-                                        <p class="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest">Total Fee Collected</p>
+                                    <div onclick="showFeeBreakdown()" class="text-right bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm cursor-pointer hover:bg-emerald-50 transition-colors" title="Click to view details">
+                                        <p class="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest">Total Fee Collected <i class="fa-solid fa-circle-info ml-1"></i></p>
                                         <p class="text-base font-black text-emerald-600 leading-tight">₹<span id="total-tuition-collected">0</span></p>
                                     </div>
                                 </div>
@@ -384,7 +384,7 @@
                                             <div class="text-left">
                                                 <div class="flex items-center gap-3 mb-1">
                                                     <h2 class="text-2xl md:text-3xl font-black tracking-tight leading-none" id="active-student-name">Name</h2>
-                                                    <a id="wa-student-btn" href="#" target="_blank" class="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition-all" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp text-xs"></i></a>
+                                                    <button type="button" onclick="shareStudentWA()" class="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition-all" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp text-xs"></i></button>
                                                     <button type="button" onclick="openEditModal()" class="w-8 h-8 rounded-full bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white flex items-center justify-center transition-all" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
                                                     <button type="button" onclick="openDeleteModal(null, true)" class="w-8 h-8 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition-all" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
                                                 </div>
@@ -558,7 +558,7 @@
                         <div><label class="form-label">Course</label><input type="text" id="edit-course" class="form-input" required></div>
                         <div><label class="form-label">Course Duration (Months)</label><input type="number" id="edit-duration" class="form-input" required></div>
                         <div><label class="form-label">Fee Structure</label><select id="edit-feetype" class="form-input font-medium"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
-                    <div class="md:col-span-2">
+                        <div class="md:col-span-2">
                             <label class="form-label">Update Photo (Leave blank to keep current)</label>
                             <input type="file" id="edit-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl" onchange="openCropModal(event, 'edit')">
                         </div>
@@ -654,8 +654,8 @@
             const tx = appData.transactions.find(t => t.id === txId);
             if(!tx) return;
             const isInc = tx.type === 'income';
-            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title.replace(/ \[STU.*\]/, '')}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
-            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `\n*Details:* ${tx.description}`;
+            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}%0A*Title:* ${tx.title.replace(/ \[STU.*\]/, '')}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
+            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
             
             const link = document.createElement('a');
             link.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
@@ -670,7 +670,7 @@
             const student = appData.students.find(s => s.id === stId);
             if(!student) return;
             const dues = student.totalFee - student.paidFee;
-            const msg = `🎓 *STUDENT UPDATE*\n*Name:* ${student.name}\n*Course:* ${student.course}\n*Duration:* ${student.duration || '?'} Months\n*Total Fee:* ₹${student.totalFee}\n*Total Paid:* ₹${student.paidFee}\n*Due:* ₹${dues}\n*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+            const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${student.paidFee}%0A*Due:* ₹${dues}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
             
             const link = document.createElement('a');
             link.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
@@ -678,13 +678,6 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        }
-        
-        function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
-            const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-            appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0 });
-            recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
-            renderStudentList(); saveDatabase(); return id;
         }
 
         function setDefaultDates() {
@@ -705,37 +698,53 @@
                 const overallDues = st.totalFee - st.paidFee;
                 if (overallDues > 0 && st.date) {
                     const admissionDate = new Date(st.date);
-                    
-                    // Calculate exactly how many 30-day blocks have passed
                     const diffTime = today.getTime() - admissionDate.getTime();
                     const elapsedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    const completedMonths = Math.floor(elapsedDays / 30);
                     
-                    let expectedTotal = 0;
-                    if (completedMonths > 0) {
-                        if (st.duration && completedMonths >= st.duration) {
-                            // If they are in or past their final month, expect the FULL remaining amount
-                            expectedTotal = st.totalFee;
+                    let coveredMonths = 0;
+                    let cumulativeExpected = 0;
+                    
+                    while (true) {
+                        let nextInstallment = 500;
+                        if (st.duration && (coveredMonths + 1) >= st.duration) {
+                            nextInstallment = st.totalFee - cumulativeExpected;
+                        }
+                        if (nextInstallment <= 0) break; 
+                        
+                        if (st.paidFee >= cumulativeExpected + nextInstallment) {
+                            cumulativeExpected += nextInstallment;
+                            coveredMonths++;
                         } else {
-                            // Standard months expect 500 per month
-                            expectedTotal = Math.min(completedMonths * 500, st.totalFee);
+                            break; 
                         }
                     }
-                    
-                    // If the student has paid LESS than what is currently expected, trigger notification
-                    if (st.paidFee < expectedTotal) {
-                        const currentDueAmount = expectedTotal - st.paidFee;
-                        
-                        // Calculate how many days overdue they are based on standard 500 payments
-                        const standardMonthsCovered = Math.floor(st.paidFee / 500);
-                        const daysCovered = standardMonthsCovered * 30;
-                        const overdueDays = elapsedDays - daysCovered;
 
-                        dueStudents.push({ 
-                            ...st, 
-                            currentDue: currentDueAmount, 
-                            overdueDays: overdueDays 
-                        });
+                    const exactDueDateDays = (coveredMonths * 30) + 30; 
+                    
+                    if (elapsedDays >= exactDueDateDays) {
+                        const monthsElapsed = Math.floor(elapsedDays / 30);
+                        let expectedTotalByToday = 0;
+                        
+                        for (let i = 1; i <= monthsElapsed + 1; i++) {
+                            if (st.duration && i >= st.duration) {
+                                expectedTotalByToday = st.totalFee;
+                            } else {
+                                expectedTotalByToday += 500;
+                            }
+                        }
+                        
+                        if (expectedTotalByToday > st.totalFee) expectedTotalByToday = st.totalFee;
+                        
+                        const currentDueAmount = expectedTotalByToday - st.paidFee;
+                        const daysOverdue = elapsedDays - exactDueDateDays + 1;
+
+                        if (currentDueAmount > 0) {
+                            dueStudents.push({ 
+                                ...st, 
+                                currentDue: currentDueAmount, 
+                                overdueDays: daysOverdue 
+                            });
+                        }
                     }
                 }
             });
@@ -764,7 +773,7 @@
                 list.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm font-bold"><i class="fa-solid fa-check-circle text-3xl mb-2 text-emerald-400 block"></i>All clear! No pending dues for this month.</div>`;
             }
         }
-        
+
         function toggleNotifications() {
             const drop = document.getElementById('notif-dropdown');
             if (drop.classList.contains('hidden')) {
@@ -798,10 +807,6 @@
                 eyeIcon.classList.remove('fa-eye-slash');
                 eyeIcon.classList.add('fa-eye');
             }
-        }
-
-        function sendWhatsAppUpdate(message) {
-            return;
         }
 
         function openCropModal(event, target) {
@@ -1006,7 +1011,7 @@
         }
 
         function generateExcelBill(transactionDetails, billTitle) {
-            return;
+            return; // Disabled Auto-Download
         }
 
         function generateComprehensivePrint() {
@@ -1046,6 +1051,7 @@
             window.print();
         }
 
+        // --- P&L ANALYTICS LOGIC ---
         function toggleAssumptionMode() {
             assumptionMode = !assumptionMode;
             const panel = document.getElementById('assumption-panel');
@@ -1289,9 +1295,9 @@
         }
 
         // --- STUDENT LOGIC ---
-        function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64) {
+        function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-            appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 });
+            appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0 });
             recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
             renderStudentList(); saveDatabase(); return id;
         }
@@ -1319,8 +1325,29 @@
             if(croppedImages.reg) { finishReg(croppedImages.reg); } else { compressImage(fileInput.files[0], finishReg); }
         }
 
+        function showFeeBreakdown() {
+            let admission = 0, tuition = 0, exam = 0, other = 0;
+            appData.transactions.forEach(tx => {
+                if(tx.type === 'income' && tx.title.includes('[STU')) {
+                    const amt = parseFloat(tx.amount) || 0;
+                    if(tx.title.includes('Admission Fee')) admission += amt;
+                    else if(tx.title.includes('Course Tuition Fee')) tuition += amt;
+                    else if(tx.title.includes('Exam / Certificate Fee')) exam += amt;
+                    else if(tx.title.includes('Other Fee')) other += amt;
+                    else admission += amt;
+                }
+            });
+            const total = admission + tuition + exam + other;
+            alert(`📊 TOTAL STUDENT FEES: ₹${total.toLocaleString('en-IN')}\n\n🎟️ Admission Fees: ₹${admission.toLocaleString('en-IN')}\n📖 Course Tuitions: ₹${tuition.toLocaleString('en-IN')}\n📝 Exam/Certificates: ₹${exam.toLocaleString('en-IN')}\n💡 Other Fees: ₹${other.toLocaleString('en-IN')}`);
+        }
+
         function renderStudentList() {
-            const totalTuition = appData.students.reduce((sum, s) => sum + parseFloat(s.paidFee || 0), 0);
+            let totalTuition = 0;
+            appData.transactions.forEach(tx => {
+                if(tx.type === 'income' && tx.title.includes('[STU')) {
+                    totalTuition += parseFloat(tx.amount) || 0;
+                }
+            });
             const tuitionSpan = document.getElementById('total-tuition-collected');
             if (tuitionSpan) tuitionSpan.innerText = totalTuition.toLocaleString('en-IN');
 
@@ -1379,7 +1406,6 @@
             const stTx = appData.transactions.filter(t => t.title.includes(`[${student.id}]`) || (t.title.includes(student.name) && !t.title.includes('[STU')));
             
             if(stTx.length === 0) {
-                // BUG FIX: If history was deleted but money is paid, show a visual legacy row
                 if (student.paidFee > 0) {
                     miniLedger.innerHTML = `
                         <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
@@ -1554,6 +1580,7 @@
                 compressImage(fileInput.files[0], function(base64Image) { student.image = base64Image; finalizeEdit(student); });
             } else { finalizeEdit(student); }
         }
+
         function finalizeEdit(student) { closeEditModal(); recalculateStats(); saveDatabase(); refreshAllUI(); alert("Profile updated successfully!"); }
 
         function submitTuitionFee(e) {
