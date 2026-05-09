@@ -653,11 +653,13 @@
         function getDynamicPaidFee(student) {
             let total = 0;
             appData.transactions.forEach(tx => {
-                if (tx.type === 'income' && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))) {
-                    total += parseFloat(tx.amount) || 0;
+                if (tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+                    if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))) {
+                        total += parseFloat(tx.amount) || 0;
+                    }
                 }
             });
-            return Math.max(total, student.paidFee || 0);
+            return Math.max(total, parseFloat(student.paidFee) || 0);
         }
 
         function shareTransactionWA(txId) {
@@ -1311,11 +1313,11 @@
             appData.transactions.forEach(tx => {
                 if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
                     const amt = parseFloat(tx.amount) || 0;
-                    if(tx.title.includes('Admission')) admission += amt;
-                    else if(tx.title.includes('Tuition')) tuition += amt;
-                    else if(tx.title.includes('Exam') || tx.title.includes('Certificate')) exam += amt;
-                    else if(tx.title.includes('Other Fee')) other += amt;
-                    else admission += amt; // Fallback
+                    if(tx.title.toLowerCase().includes('admission')) admission += amt;
+                    else if(tx.title.toLowerCase().includes('tuition')) tuition += amt;
+                    else if(tx.title.toLowerCase().includes('exam') || tx.title.toLowerCase().includes('certificate')) exam += amt;
+                    else if(tx.title.toLowerCase().includes('other')) other += amt;
+                    else admission += amt; 
                 }
             });
             const total = admission + tuition + exam + other;
@@ -1325,11 +1327,13 @@
         function getDynamicPaidFee(student) {
             let total = 0;
             appData.transactions.forEach(tx => {
-                if (tx.type === 'income' && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))) {
-                    total += parseFloat(tx.amount) || 0;
+                if (tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+                    if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))) {
+                        total += parseFloat(tx.amount) || 0;
+                    }
                 }
             });
-            return Math.max(total, student.paidFee || 0);
+            return Math.max(total, parseFloat(student.paidFee) || 0);
         }
 
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
@@ -1426,7 +1430,7 @@
             const miniLedger = document.getElementById('student-mini-ledger');
             miniLedger.innerHTML = '';
             
-            const stTx = appData.transactions.filter(t => t.title.includes(`[${student.id}]`) || (t.title.includes(student.name) && !t.title.includes('[STU')));
+            const stTx = appData.transactions.filter(t => !t.title.includes('Job Desk:') && !t.title.includes('Print Desk:') && (t.title.includes(`[${student.id}]`) || (t.title.includes(student.name) && !t.title.includes('[STU'))));
             
             if(stTx.length === 0) {
                 if (student.paidFee > 0) {
@@ -1581,10 +1585,10 @@
             
             if (oldName !== newName) {
                 appData.transactions.forEach(tx => {
-                    if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(oldName) && !tx.title.includes('[STU'))) { 
+                    if (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(oldName) && !tx.title.includes('[STU')))) { 
                         tx.title = tx.title.replace(oldName, newName); 
                     }
-                    if (tx.description && (tx.title.includes(`[${student.id}]`) || tx.description.includes(oldName))) { 
+                    if (tx.description && (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || tx.description.includes(oldName)))) { 
                         tx.description = tx.description.replace(oldName, newName); 
                     }
                 });
@@ -1596,7 +1600,7 @@
 
             if(newPaid !== oldPaid) {
                 const diff = newPaid - oldPaid;
-                let targetTx = appData.transactions.find(tx => tx.type === 'income' && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
+                let targetTx = appData.transactions.find(tx => tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
                 if (targetTx) { targetTx.amount = parseFloat(targetTx.amount) + diff; if(targetTx.amount < 0) targetTx.amount = 0; }
             }
 
@@ -1713,7 +1717,7 @@
                     const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
                     if(student) {
                         appData.students = appData.students.filter(s => s.id !== stId);
-                        appData.transactions = appData.transactions.filter(tx => !(tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
+                        appData.transactions = appData.transactions.filter(tx => !(!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))));
                         document.getElementById('tuition-placeholder').classList.remove('hidden'); document.getElementById('tuition-active').classList.add('hidden');
                         alert(`${student.name} deleted.`);
                     }
@@ -1723,7 +1727,7 @@
                         const tx = appData.transactions[txIndex];
                         if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
                             appData.students.forEach(student => { 
-                                if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))) { 
+                                if (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))) { 
                                     student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
                                 } 
                             });
