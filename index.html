@@ -650,6 +650,16 @@
             setDefaultDates();
         };
 
+        function getDynamicPaidFee(student) {
+            let total = 0;
+            appData.transactions.forEach(tx => {
+                if (tx.type === 'income' && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))) {
+                    total += parseFloat(tx.amount) || 0;
+                }
+            });
+            return Math.max(total, student.paidFee || 0);
+        }
+
         function shareTransactionWA(txId) {
             const tx = appData.transactions.find(t => t.id === txId);
             if(!tx) return;
@@ -658,7 +668,7 @@
             if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
             
             const link = document.createElement('a');
-            link.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+            link.href = `https://api.whatsapp.com/send?text=${msg}`;
             link.target = '_blank';
             document.body.appendChild(link);
             link.click();
@@ -669,11 +679,12 @@
             const stId = document.getElementById('tuition-student-id').value;
             const student = appData.students.find(s => s.id === stId);
             if(!student) return;
-            const dues = student.totalFee - student.paidFee;
-            const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${student.paidFee}%0A*Due:* ₹${dues}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+            const actualPaid = getDynamicPaidFee(student);
+            const dues = student.totalFee - actualPaid;
+            const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${actualPaid}%0A*Due:* ₹${dues}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
             
             const link = document.createElement('a');
-            link.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+            link.href = `https://api.whatsapp.com/send?text=${msg}`;
             link.target = '_blank';
             document.body.appendChild(link);
             link.click();
@@ -695,7 +706,9 @@
             let dueStudents = [];
             
             appData.students.forEach(st => {
-                const overallDues = st.totalFee - st.paidFee;
+                const actualPaid = getDynamicPaidFee(st);
+                const overallDues = st.totalFee - actualPaid;
+                
                 if (overallDues > 0 && st.date) {
                     const admissionDate = new Date(st.date);
                     const diffTime = today.getTime() - admissionDate.getTime();
@@ -711,7 +724,7 @@
                         }
                         if (nextInstallment <= 0) break; 
                         
-                        if (st.paidFee >= cumulativeExpected + nextInstallment) {
+                        if (actualPaid >= cumulativeExpected + nextInstallment) {
                             cumulativeExpected += nextInstallment;
                             coveredMonths++;
                         } else {
@@ -735,7 +748,7 @@
                         
                         if (expectedTotalByToday > st.totalFee) expectedTotalByToday = st.totalFee;
                         
-                        const currentDueAmount = expectedTotalByToday - st.paidFee;
+                        const currentDueAmount = expectedTotalByToday - actualPaid;
                         const daysOverdue = elapsedDays - exactDueDateDays + 1;
 
                         if (currentDueAmount > 0) {
@@ -1011,7 +1024,7 @@
         }
 
         function generateExcelBill(transactionDetails, billTitle) {
-            return; // Disabled Auto-Download
+            return;
         }
 
         function generateComprehensivePrint() {
@@ -1051,7 +1064,6 @@
             window.print();
         }
 
-        // --- P&L ANALYTICS LOGIC ---
         function toggleAssumptionMode() {
             assumptionMode = !assumptionMode;
             const panel = document.getElementById('assumption-panel');
@@ -1294,7 +1306,32 @@
             });
         }
 
-        // --- STUDENT LOGIC ---
+        function showFeeBreakdown() {
+            let admission = 0, tuition = 0, exam = 0, other = 0;
+            appData.transactions.forEach(tx => {
+                if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+                    const amt = parseFloat(tx.amount) || 0;
+                    if(tx.title.includes('Admission')) admission += amt;
+                    else if(tx.title.includes('Tuition')) tuition += amt;
+                    else if(tx.title.includes('Exam') || tx.title.includes('Certificate')) exam += amt;
+                    else if(tx.title.includes('Other Fee')) other += amt;
+                    else admission += amt; // Fallback
+                }
+            });
+            const total = admission + tuition + exam + other;
+            alert(`📊 TOTAL STUDENT FEES: ₹${total.toLocaleString('en-IN')}\n\n🎟️ Admission Fees: ₹${admission.toLocaleString('en-IN')}\n📖 Course Tuitions: ₹${tuition.toLocaleString('en-IN')}\n📝 Exam/Certificates: ₹${exam.toLocaleString('en-IN')}\n💡 Other Fees: ₹${other.toLocaleString('en-IN')}`);
+        }
+
+        function getDynamicPaidFee(student) {
+            let total = 0;
+            appData.transactions.forEach(tx => {
+                if (tx.type === 'income' && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))) {
+                    total += parseFloat(tx.amount) || 0;
+                }
+            });
+            return Math.max(total, student.paidFee || 0);
+        }
+
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
             const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
             appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0 });
@@ -1325,26 +1362,10 @@
             if(croppedImages.reg) { finishReg(croppedImages.reg); } else { compressImage(fileInput.files[0], finishReg); }
         }
 
-        function showFeeBreakdown() {
-            let admission = 0, tuition = 0, exam = 0, other = 0;
-            appData.transactions.forEach(tx => {
-                if(tx.type === 'income' && tx.title.includes('[STU')) {
-                    const amt = parseFloat(tx.amount) || 0;
-                    if(tx.title.includes('Admission Fee')) admission += amt;
-                    else if(tx.title.includes('Course Tuition Fee')) tuition += amt;
-                    else if(tx.title.includes('Exam / Certificate Fee')) exam += amt;
-                    else if(tx.title.includes('Other Fee')) other += amt;
-                    else admission += amt;
-                }
-            });
-            const total = admission + tuition + exam + other;
-            alert(`📊 TOTAL STUDENT FEES: ₹${total.toLocaleString('en-IN')}\n\n🎟️ Admission Fees: ₹${admission.toLocaleString('en-IN')}\n📖 Course Tuitions: ₹${tuition.toLocaleString('en-IN')}\n📝 Exam/Certificates: ₹${exam.toLocaleString('en-IN')}\n💡 Other Fees: ₹${other.toLocaleString('en-IN')}`);
-        }
-
         function renderStudentList() {
             let totalTuition = 0;
             appData.transactions.forEach(tx => {
-                if(tx.type === 'income' && tx.title.includes('[STU')) {
+                if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
                     totalTuition += parseFloat(tx.amount) || 0;
                 }
             });
@@ -1371,7 +1392,8 @@
             }
 
             const filteredStudents = appData.students.filter(st => {
-                const dues = st.totalFee - st.paidFee;
+                const actualPaid = getDynamicPaidFee(st);
+                const dues = st.totalFee - actualPaid;
                 const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
                 const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
                 const matchCourse = courseF === 'all' || st.course === courseF;
@@ -1383,7 +1405,8 @@
             }
 
             filteredStudents.forEach(st => {
-                const dues = st.totalFee - st.paidFee;
+                const actualPaid = getDynamicPaidFee(st);
+                const dues = st.totalFee - actualPaid;
                 const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
                 const card = document.createElement('div');
                 card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
@@ -1441,6 +1464,9 @@
         function selectStudent(id) {
             const student = appData.students.find(s => s.id === id);
             if(!student) return;
+
+            const actualPaid = getDynamicPaidFee(student);
+
             document.getElementById('tuition-placeholder').classList.add('hidden');
             document.getElementById('tuition-active').classList.remove('hidden');
             document.getElementById('active-student-name').innerText = student.name;
@@ -1452,9 +1478,9 @@
             document.getElementById('active-student-date').innerText = student.date || "-";
             document.getElementById('active-student-phone').innerText = student.phone || "-";
             document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
-            document.getElementById('active-student-paidfee').innerText = `₹${student.paidFee}`;
+            document.getElementById('active-student-paidfee').innerText = `₹${actualPaid}`;
 
-            const dues = student.totalFee - student.paidFee;
+            const dues = student.totalFee - actualPaid;
             const dueEl = document.getElementById('active-student-dues');
             dueEl.innerText = `₹${dues}`;
             dueEl.className = dues <= 0 ? "text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md" : "text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md";
@@ -1523,7 +1549,8 @@
             document.getElementById('edit-date').value = student.date || new Date().toISOString().split('T')[0];
             document.getElementById('edit-phone').value = student.phone || ''; document.getElementById('edit-gender').value = student.gender || 'Male';
             document.getElementById('edit-course').value = student.course; document.getElementById('edit-feetype').value = student.feeType || 'Monthly';
-            document.getElementById('edit-totalfee').value = student.totalFee; document.getElementById('edit-paidfee').value = student.paidFee;
+            document.getElementById('edit-totalfee').value = student.totalFee; 
+            document.getElementById('edit-paidfee').value = getDynamicPaidFee(student);
             document.getElementById('edit-duration').value = student.duration || 0;
 
             const modal = document.getElementById('edit-student-modal'); const content = document.getElementById('edit-modal-content');
@@ -1563,7 +1590,7 @@
                 });
             }
 
-            const oldPaid = student.paidFee;
+            const oldPaid = getDynamicPaidFee(student);
             const newPaid = parseFloat(document.getElementById('edit-paidfee').value);
             student.paidFee = newPaid;
 
