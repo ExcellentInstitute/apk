@@ -654,9 +654,14 @@
             const tx = appData.transactions.find(t => t.id === txId);
             if(!tx) return;
             const isInc = tx.type === 'income';
-            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}%0A*Title:* ${tx.title.replace(/ \[STU.*\]/, '')}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
-            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
-            window.open(`https://wa.me/?text=${msg}`, '_blank');
+            let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*\n*Date:* ${tx.date}\n*Title:* ${tx.title.replace(/ \[STU.*\]/, '')}\n*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
+            if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `\n*Details:* ${tx.description}`;
+            
+            // Bypass Pop-up Blocker
+            const a = document.createElement('a');
+            a.href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            a.target = '_blank';
+            a.click();
         }
 
         function shareStudentWA() {
@@ -664,8 +669,13 @@
             const student = appData.students.find(s => s.id === stId);
             if(!student) return;
             const dues = student.totalFee - student.paidFee;
-            const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${student.paidFee}%0A*Due:* ₹${dues}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
-            window.open(`https://wa.me/?text=${msg}`, '_blank');
+            const msg = `🎓 *STUDENT UPDATE*\n*Name:* ${student.name}\n*Course:* ${student.course}\n*Duration:* ${student.duration || '?'} Months\n*Total Fee:* ₹${student.totalFee}\n*Total Paid:* ₹${student.paidFee}\n*Due:* ₹${dues}\n*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+            
+            // Bypass Pop-up Blocker
+            const a = document.createElement('a');
+            a.href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            a.target = '_blank';
+            a.click();
         }
 
         function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
@@ -691,18 +701,19 @@
             
             appData.students.forEach(st => {
                 const dues = st.totalFee - st.paidFee;
+                // Only track if they still owe money
                 if (dues > 0 && st.date) {
                     const admissionDate = new Date(st.date);
                     
-                    // Logic: 500 paid = 1 month covered. Calculate exact expected due date.
+                    // Core Logic: ₹500 pays for 1 month (30 days) from admission date
                     const monthsCovered = Math.floor(st.paidFee / 500);
                     const dueDate = new Date(admissionDate);
                     dueDate.setDate(dueDate.getDate() + (monthsCovered * 30));
                     
+                    // Check if today has passed their specific due date
                     const diffTime = today.getTime() - dueDate.getTime();
                     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     
-                    // Only trigger if today is past the calculated due date
                     if (diffDays > 0) {
                         dueStudents.push({ ...st, overdueDays: diffDays });
                     }
@@ -733,7 +744,6 @@
                 list.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm font-bold"><i class="fa-solid fa-check-circle text-3xl mb-2 text-emerald-400 block"></i>All clear! No pending dues.</div>`;
             }
         }
-
         function toggleNotifications() {
             const drop = document.getElementById('notif-dropdown');
             if (drop.classList.contains('hidden')) {
