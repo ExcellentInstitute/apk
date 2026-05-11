@@ -711,55 +711,30 @@
                 const actualPaid = getDynamicPaidFee(st);
                 const overallDues = st.totalFee - actualPaid;
                 
+                // Only evaluate students who currently owe money overall
                 if (overallDues > 0 && st.date) {
                     const admissionDate = new Date(st.date);
-                    const diffTime = today.getTime() - admissionDate.getTime();
-                    const elapsedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     
-                    let coveredMonths = 0;
-                    let cumulativeExpected = 0;
+                    // 1. Calculate how many Calendar Months have passed since admission
+                    let monthsPassed = (today.getFullYear() - admissionDate.getFullYear()) * 12 + (today.getMonth() - admissionDate.getMonth());
+                    if (monthsPassed < 0) monthsPassed = 0;
                     
-                    while (true) {
-                        let nextInstallment = 500;
-                        if (st.duration && (coveredMonths + 1) >= st.duration) {
-                            nextInstallment = st.totalFee - cumulativeExpected;
-                        }
-                        if (nextInstallment <= 0) break; 
-                        
-                        if (actualPaid >= cumulativeExpected + nextInstallment) {
-                            cumulativeExpected += nextInstallment;
-                            coveredMonths++;
-                        } else {
-                            break; 
-                        }
+                    // 2. Expected Amount: 1st month = 500, 2nd month = 1000, etc.
+                    let expectedAmount = (monthsPassed + 1) * 500;
+                    
+                    // 3. Handle Remainders / Final Month Cap (e.g. capping at 6200 or 1200)
+                    if (expectedAmount > st.totalFee) {
+                        expectedAmount = st.totalFee;
                     }
-
-                    const exactDueDateDays = (coveredMonths * 30) + 30; 
                     
-                    if (elapsedDays >= exactDueDateDays) {
-                        const monthsElapsed = Math.floor(elapsedDays / 30);
-                        let expectedTotalByToday = 0;
-                        
-                        for (let i = 1; i <= monthsElapsed + 1; i++) {
-                            if (st.duration && i >= st.duration) {
-                                expectedTotalByToday = st.totalFee;
-                            } else {
-                                expectedTotalByToday += 500;
-                            }
-                        }
-                        
-                        if (expectedTotalByToday > st.totalFee) expectedTotalByToday = st.totalFee;
-                        
-                        const currentDueAmount = expectedTotalByToday - actualPaid;
-                        const daysOverdue = elapsedDays - exactDueDateDays + 1;
-
-                        if (currentDueAmount > 0) {
-                            dueStudents.push({ 
-                                ...st, 
-                                currentDue: currentDueAmount, 
-                                overdueDays: daysOverdue 
-                            });
-                        }
+                    // 4. Check if they have a pending due for the current month
+                    const currentMonthDue = expectedAmount - actualPaid;
+                    
+                    if (currentMonthDue > 0) {
+                        dueStudents.push({ 
+                            ...st, 
+                            currentDue: currentMonthDue 
+                        });
                     }
                 }
             });
@@ -778,17 +753,16 @@
                     list.innerHTML += `
                         <div class="p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer rounded-xl" onclick="closeNotificationsIfOpen(); switchTab('tuition'); setTimeout(()=>selectStudent('${st.id}'), 100);">
                             <p class="text-sm font-bold text-slate-800">${st.name}</p>
-                            <p class="text-xs text-rose-500 font-bold mt-1">₹${st.currentDue} Pending <span class="text-slate-400 font-medium text-[10px] ml-1">(${st.overdueDays} days exceeded from due date)</span></p>
+                            <p class="text-xs text-rose-500 font-bold mt-1">₹${st.currentDue} Due for Current Month</p>
                         </div>
                     `;
                 });
             } else {
                 badge.classList.add('hidden');
                 countText.innerText = `0 Pending`;
-                list.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm font-bold"><i class="fa-solid fa-check-circle text-3xl mb-2 text-emerald-400 block"></i>All clear! No pending dues for this month.</div>`;
+                list.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm font-bold"><i class="fa-solid fa-check-circle text-3xl mb-2 text-emerald-400 block"></i>All clear! No pending dues this month.</div>`;
             }
         }
-
         function toggleNotifications() {
             const drop = document.getElementById('notif-dropdown');
             if (drop.classList.contains('hidden')) {
