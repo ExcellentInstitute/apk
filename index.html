@@ -650,18 +650,6 @@
             setDefaultDates();
         };
 
-        function getDynamicPaidFee(student) {
-            let total = 0;
-            appData.transactions.forEach(tx => {
-                if (tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
-                    if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))) {
-                        total += parseFloat(tx.amount) || 0;
-                    }
-                }
-            });
-            return Math.max(total, parseFloat(student.paidFee) || 0);
-        }
-
         function shareTransactionWA(txId) {
             const tx = appData.transactions.find(t => t.id === txId);
             if(!tx) return;
@@ -670,7 +658,7 @@
             if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
             
             const link = document.createElement('a');
-            link.href = `https://api.whatsapp.com/send?text=${msg}`;
+            link.href = `https://wa.me/?text=${msg}`;
             link.target = '_blank';
             document.body.appendChild(link);
             link.click();
@@ -686,7 +674,7 @@
             const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${actualPaid}%0A*Due:* ₹${dues}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
             
             const link = document.createElement('a');
-            link.href = `https://api.whatsapp.com/send?text=${msg}`;
+            link.href = `https://wa.me/?text=${msg}`;
             link.target = '_blank';
             document.body.appendChild(link);
             link.click();
@@ -711,23 +699,18 @@
                 const actualPaid = getDynamicPaidFee(st);
                 const overallDues = st.totalFee - actualPaid;
                 
-                // Only evaluate students who currently owe money overall
                 if (overallDues > 0 && st.date) {
                     const admissionDate = new Date(st.date);
                     
-                    // 1. Calculate how many Calendar Months have passed since admission
                     let monthsPassed = (today.getFullYear() - admissionDate.getFullYear()) * 12 + (today.getMonth() - admissionDate.getMonth());
                     if (monthsPassed < 0) monthsPassed = 0;
                     
-                    // 2. Expected Amount: 1st month = 500, 2nd month = 1000, etc.
                     let expectedAmount = (monthsPassed + 1) * 500;
                     
-                    // 3. Handle Remainders / Final Month Cap (e.g. capping at 6200 or 1200)
                     if (expectedAmount > st.totalFee) {
                         expectedAmount = st.totalFee;
                     }
                     
-                    // 4. Check if they have a pending due for the current month
                     const currentMonthDue = expectedAmount - actualPaid;
                     
                     if (currentMonthDue > 0) {
@@ -763,6 +746,7 @@
                 list.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm font-bold"><i class="fa-solid fa-check-circle text-3xl mb-2 text-emerald-400 block"></i>All clear! No pending dues this month.</div>`;
             }
         }
+
         function toggleNotifications() {
             const drop = document.getElementById('notif-dropdown');
             if (drop.classList.contains('hidden')) {
@@ -918,9 +902,20 @@
 
         function saveDatabase() {
             localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-            const payload = { password: sessionPassword, data: appData }; 
-            fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
-            .catch(error => console.log("Cloud sync failed.", error));
+            const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
+            fetch(GOOGLE_APP_URL, { 
+                method: 'POST', 
+                body: JSON.stringify(payload), 
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            })
+            .then(res => res.json())
+            .then(result => {
+                if(result.error) {
+                    console.error("Database Save Failed:", result.error);
+                    alert("Database Sync Error: " + result.error + "\n\n(Your data is saved locally, but cloud sync was rejected by the database script).");
+                }
+            })
+            .catch(error => console.log("Cloud sync connection failed.", error));
         }
 
         function updateDashboard() {
