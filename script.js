@@ -232,7 +232,7 @@ async function handleLogin(e) {
         });
         appData.students.forEach(st => {
             if(!st.id) st.id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-            if(!st.status) st.status = 'Active'; // Guarantee status property
+            if(!st.status) st.status = 'Active'; 
         });
 
         localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
@@ -294,7 +294,6 @@ function saveDatabase() {
     .catch(error => console.log("Cloud sync connection failed.", error));
 }
 
-// DASHBOARD PRIVACY TOGGLE FUNCTION
 function toggleBalanceVisibility() {
     isBalanceHidden = !isBalanceHidden;
     const btn = document.getElementById('toggle-balance-btn');
@@ -311,7 +310,6 @@ function toggleBalanceVisibility() {
 }
 
 function updateDashboard() {
-    // Respects the privacy toggle state
     const format = (num) => isBalanceHidden ? '₹ ••••••' : `₹${num.toLocaleString('en-IN')}`;
     
     document.getElementById('dash-income').innerText = format(appData.stats.income);
@@ -446,10 +444,6 @@ function compressImage(file, callback) {
         img.src = e.target.result;
     }
     reader.readAsDataURL(file);
-}
-
-function generateExcelBill(transactionDetails, billTitle) {
-    return;
 }
 
 function generateComprehensivePrint() {
@@ -1206,10 +1200,11 @@ async function executeDelete() {
 }
 
 // =========================================
-// STUDENT DOCUMENT VAULT LOGIC (FIREBASE & COMPRESSION)
+// STUDENT DOCUMENT VAULT LOGIC
+// MATCHES ANDROID APP EXACTLY
 // =========================================
 
-// Compresses document images heavily before upload. Leaves PDFs native.
+// Compresses document images (JPG/PNG) heavily before upload
 function compressDocumentImage(file, callback) {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -1230,42 +1225,86 @@ function compressDocumentImage(file, callback) {
             canvas.height = height; 
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Convert back to a file object for Firebase
             canvas.toBlob((blob) => {
                 const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
                 callback(compressedFile);
-            }, 'image/jpeg', 0.7); // 0.7 quality compresses heavily while retaining text readability
+            }, 'image/jpeg', 0.6); // 60% quality shrinks size aggressively 
         }
         img.src = e.target.result;
     }
     reader.readAsDataURL(file);
 }
 
-// Structurally optimizes PDFs using PDF-Lib
+// Dynamically injects PDF.js to physically rasterize and crush massive PDF sizes
 async function compressPDF(file, callback) {
     try {
+        const uploadLabel = document.querySelector('label[for="student-doc-upload"]');
+        const originalHTML = uploadLabel.innerHTML;
+        uploadLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Compressing...';
+        uploadLabel.classList.add('opacity-70', 'pointer-events-none');
+
+        // Dynamically load PDF.js framework
+        if (!window.pdfjsLib) {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+            document.head.appendChild(script);
+            await new Promise(resolve => script.onload = resolve);
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        }
+
         const arrayBuffer = await file.arrayBuffer();
-        // Load the PDF into memory
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        const pdf = await window.pdfjsLib.getDocument(arrayBuffer).promise;
+        const newPdfDoc = await PDFLib.PDFDocument.create();
         
-        // Re-save with object streams enabled (compresses the internal structure of the PDF)
-        const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
-        
-        const compressedBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-        let finalFile = new File([compressedBlob], file.name, {
-            type: 'application/pdf',
-            lastModified: Date.now(),
-        });
-        
-        // If structural compression somehow made it larger, fallback to the original
-        if(finalFile.size >= file.size) {
-            finalFile = file;
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            
+            // AGGRESSIVE DOWNSCALE: Limit width to 800px max
+            const unscaledViewport = page.getViewport({ scale: 1.0 });
+            const scaleFactor = Math.min(1.0, 800 / unscaledViewport.width); 
+            const viewport = page.getViewport({ scale: scaleFactor }); 
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            
+            // AGGRESSIVE COMPRESSION: Convert page to 50% quality JPEG
+            const imgData = canvas.toDataURL('image/jpeg', 0.5); 
+            
+            const img = await newPdfDoc.embedJpg(imgData);
+            const newPage = newPdfDoc.addPage([viewport.width, viewport.height]);
+            newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
         }
         
+        const pdfBytes = await newPdfDoc.save({ useObjectStreams: true });
+        const compressedBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+        let finalFile = new File([compressedBlob], file.name, { type: 'application/pdf', lastModified: Date.now() });
+        
+        // Restore UI
+        uploadLabel.innerHTML = originalHTML;
+        uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
+        
+        // Safety Fallback: If compression somehow bloated the file, use the original
+        if(finalFile.size >= file.size) { 
+            finalFile = file; 
+        }
         callback(finalFile);
+
     } catch (error) {
-        console.error("PDF Optimization failed:", error);
-        callback(file); // Fallback to original if library fails
+        console.error("PDF Rasterization failed:", error);
+        
+        const uploadLabel = document.querySelector('label[for="student-doc-upload"]');
+        if(uploadLabel) {
+            uploadLabel.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload';
+            uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
+        }
+
+        // If the browser ran out of memory, safely fallback to uploading the original file
+        alert("Heavy PDF detected. Bypassing compression to prevent browser crash.");
+        callback(file); 
     }
 }
 
@@ -1274,15 +1313,18 @@ function handleStudentFileUpload(event) {
     if (!originalFile) return;
     
     const stId = document.getElementById('tuition-student-id').value;
-    if (!stId) return;
+    const student = appData.students.find(s => s.id === stId);
+    if (!student) return;
 
     const uploadToFirebase = (fileToUpload) => {
         const storageRef = firebase.storage().ref();
         
-        // CHANGED PATH to match your strict Firebase rule: match /vault/{fileName}
-        // Safely strip special characters from file name just in case
+        // ====================================================
+        // THIS PATH EXACTLY MATCHES YOUR ANDROID APP AND FIREBASE RULES
+        // vault/{timestamp}_{safeName}
+        // ====================================================
         const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filePath = `vault/${stId}_${Date.now()}_${safeName}`;
+        const filePath = `vault/${Date.now()}_${safeName}`;
         
         const fileRef = storageRef.child(filePath);
 
@@ -1300,8 +1342,7 @@ function handleStudentFileUpload(event) {
             }, 
             (error) => {
                 console.error("Upload failed:", error);
-                // Shows the precise Firebase Error code so you know exactly what is blocking it
-                alert("File upload to Vault failed!\n\nFirebase Error: " + error.code + "\nMessage: " + error.message + "\n\nTip: Go to Firebase Console -> Storage -> Rules, and set to 'allow read, write: if true;' for testing.");
+                alert("File upload to Vault failed!\n\nFirebase Error: " + error.code + "\nMessage: " + error.message);
                 progressContainer.classList.add('hidden');
                 document.getElementById('student-doc-upload').value = '';
             }, 
@@ -1309,14 +1350,23 @@ function handleStudentFileUpload(event) {
                 uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                     progressContainer.classList.add('hidden');
                     const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                    saveFileToDatabase(fileToUpload.name, "Student Certificate", stId, downloadURL, filePath, sizeMB);
+                    
+                    // ====================================================
+                    // THIS PAYLOAD EXACTLY MATCHES YOUR ANDROID APP
+                    // target: Phone Number
+                    // folder: 'Certificates'
+                    // name: 'Certificate - Name'
+                    // ====================================================
+                    const targetVal = (student.phone && student.phone.toString().trim() !== "") ? String(student.phone).trim() : student.id;
+                    const formattedFileName = "Certificate - " + student.name;
+                    
+                    saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB);
                     document.getElementById('student-doc-upload').value = '';
                 });
             }
         );
     };
 
-    // Compress images or PDFs based on file type
     if (originalFile.type.startsWith('image/')) {
         compressDocumentImage(originalFile, uploadToFirebase);
     } else if (originalFile.type === 'application/pdf') {
@@ -1336,7 +1386,7 @@ function saveFileToDatabase(name, category, target, url, path, size) {
         url: url, 
         path: path, 
         size: size, 
-        folder: "Student Vault" 
+        folder: "Certificates" // MATCH ANDROID FOLDER EXACTLY
     };
     
     fetch(GOOGLE_APP_URL, {
@@ -1357,10 +1407,11 @@ function saveFileToDatabase(name, category, target, url, path, size) {
                 path: path,
                 size: size,
                 date: new Date().toISOString().split('T')[0],
-                folder: "Student Vault"
+                folder: "Certificates"
             });
-            renderStudentFiles(target);
-            alert("Document successfully saved to Student Vault!");
+            const stId = document.getElementById('tuition-student-id').value;
+            renderStudentFiles(stId);
+            alert("Document successfully compressed and saved to Vault!");
         } else {
             alert("Error saving file record to database: " + result.error);
         }
@@ -1376,8 +1427,19 @@ function renderStudentFiles(stId) {
     if(!listEl) return;
     listEl.innerHTML = '';
     
+    const student = appData.students.find(s => s.id === stId);
+    const stPhone = student ? String(student.phone).trim() : "NONE";
+
     if (!appData.files) appData.files = [];
-    const stFiles = appData.files.filter(f => f.target === stId);
+    
+    // ====================================================
+    // FETCH FILES USING BOTH ID AND PHONE NUMBER
+    // Matches logic so you can see Android uploads too
+    // ====================================================
+    const stFiles = appData.files.filter(f => {
+        const t = String(f.target).trim();
+        return (t === stId || t === stPhone) && f.folder === "Certificates";
+    });
     
     if (stFiles.length === 0) {
         listEl.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No documents stored yet.</td></tr>';
