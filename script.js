@@ -8,7 +8,7 @@ if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [] };
+let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], notices: [] };
 let sessionPassword = ""; 
 let cropper = null;
 let currentCropTarget = null;
@@ -44,8 +44,13 @@ function shareStudentWA() {
     if(!student) return;
     const actualPaid = getDynamicPaidFee(student);
     const adDiscount = parseFloat(student.adWallet) || 0;
-    const dues = student.totalFee - actualPaid - adDiscount;
-    const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${actualPaid}%0A*Ad Discount:* ₹${adDiscount.toFixed(2)}%0A*Due:* ₹${dues.toFixed(2)}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+    
+    let dues = student.totalFee - actualPaid - adDiscount;
+    if (student.customDueAmount && student.customDueAmount !== "") {
+        dues = parseFloat(student.customDueAmount);
+    }
+    
+    const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${actualPaid}%0A*Ad Discount:* ₹${adDiscount.toFixed(2)}%0A*Due:* ₹${dues.toFixed(2)}${student.customDueDate ? ' (By: '+student.customDueDate+')' : ''}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
     
     const link = document.createElement('a');
     link.href = `https://api.whatsapp.com/send?text=${msg}`;
@@ -72,27 +77,29 @@ function checkDuesNotifications() {
     appData.students.forEach(st => {
         const actualPaid = getDynamicPaidFee(st);
         const adDiscount = parseFloat(st.adWallet) || 0;
-        const overallDues = st.totalFee - actualPaid - adDiscount;
         
+        // CHECK CUSTOM DUE OVERRIDE
+        if (st.customDueAmount && st.customDueAmount !== "") {
+            const customDue = parseFloat(st.customDueAmount);
+            if (customDue > 0 && (st.status || 'Active') === 'Active') {
+                dueStudents.push({ ...st, currentDue: customDue });
+            }
+            return; // Skip standard math if override exists
+        }
+
+        const overallDues = st.totalFee - actualPaid - adDiscount;
         if (overallDues > 0 && st.date && (st.status || 'Active') === 'Active') {
             const admissionDate = new Date(st.date);
-            
             let monthsPassed = (today.getFullYear() - admissionDate.getFullYear()) * 12 + (today.getMonth() - admissionDate.getMonth());
             if (monthsPassed < 0) monthsPassed = 0;
             
             let expectedAmount = (monthsPassed + 1) * 500;
-            
-            if (expectedAmount > st.totalFee) {
-                expectedAmount = st.totalFee;
-            }
+            if (expectedAmount > st.totalFee) expectedAmount = st.totalFee;
             
             const currentMonthDue = expectedAmount - actualPaid - adDiscount;
             
             if (currentMonthDue > 0) {
-                dueStudents.push({ 
-                    ...st, 
-                    currentDue: currentMonthDue 
-                });
+                dueStudents.push({ ...st, currentDue: currentMonthDue });
             }
         }
     });
@@ -226,6 +233,7 @@ async function handleLogin(e) {
 
         sessionPassword = pass;
         appData = data;
+        if(!appData.notices) appData.notices = [];
         
         appData.transactions.forEach(tx => {
             if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000);
@@ -319,8 +327,20 @@ function updateDashboard() {
 }
 
 function refreshAllUI() {
-    updateDashboard(); renderStudentList(); renderLedger(); renderExpenseList(); renderJobList(); renderPrintList();
-    renderAnalytics(); checkDuesNotifications(); populateSettings();
+    updateDashboard(); 
+    renderStudentList(); 
+    renderLedger(); 
+    renderExpenseList(); 
+    renderJobList(); 
+    renderPrintList();
+    renderAnalytics(); 
+    checkDuesNotifications(); 
+    populateSettings();
+    
+    // NEW: Render the new Hub and Broadcast lists
+    renderHubFiles();
+    renderBroadcastList();
+
     const activeId = document.getElementById('tuition-student-id').value;
     if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
         selectStudent(activeId);
@@ -357,10 +377,26 @@ function importDatabaseBackup(event) {
 function switchTab(tabId) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`view-${tabId}`).classList.add('active');
-    document.getElementById(`nav-${tabId}`).classList.add('active');
-    const titles = { 'dashboard': 'System Dashboard', 'registration': 'New Admission', 'tuition': 'Student Database', 'job': 'Job Applications', 'print': 'Print & Copy Desk', 'expenditure': 'Expenditures', 'analytics': 'Profit & Loss Analytics', 'settings': 'System Settings' };
-    document.getElementById('page-title').innerText = titles[tabId];
+    
+    const viewSection = document.getElementById(`view-${tabId}`);
+    const navBtn = document.getElementById(`nav-${tabId}`);
+    
+    if(viewSection) viewSection.classList.add('active');
+    if(navBtn) navBtn.classList.add('active');
+    
+    const titles = { 
+        'dashboard': 'System Dashboard', 
+        'registration': 'New Admission', 
+        'tuition': 'Student Database', 
+        'filehub': 'Institute File Hub', 
+        'broadcast': 'Alerts & Notifications', 
+        'job': 'Job Applications', 
+        'print': 'Print & Copy Desk', 
+        'expenditure': 'Expenditures', 
+        'analytics': 'Profit & Loss Analytics', 
+        'settings': 'System Settings' 
+    };
+    document.getElementById('page-title').innerText = titles[tabId] || 'Dashboard';
     if(window.innerWidth < 768) {
         const sidebar = document.getElementById('sidebar');
         if(!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
@@ -758,7 +794,7 @@ function getDynamicPaidFee(student) {
 
 function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
     const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-    appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active' });
+    appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active', customDueAmount: "", customDueDate: "" });
     recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
     renderStudentList(); saveDatabase(); return id;
 }
@@ -819,7 +855,11 @@ function renderStudentList() {
     const filteredStudents = appData.students.filter(st => {
         const actualPaid = getDynamicPaidFee(st);
         const adDiscount = parseFloat(st.adWallet) || 0;
-        const dues = st.totalFee - actualPaid - adDiscount;
+        
+        let dues = st.totalFee - actualPaid - adDiscount;
+        if (st.customDueAmount && st.customDueAmount !== "") {
+            dues = parseFloat(st.customDueAmount);
+        }
         
         const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
         const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
@@ -838,7 +878,12 @@ function renderStudentList() {
     filteredStudents.forEach(st => {
         const actualPaid = getDynamicPaidFee(st);
         const adDiscount = parseFloat(st.adWallet) || 0;
-        const dues = st.totalFee - actualPaid - adDiscount;
+        
+        let dues = st.totalFee - actualPaid - adDiscount;
+        if (st.customDueAmount && st.customDueAmount !== "") {
+            dues = parseFloat(st.customDueAmount);
+        }
+
         const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
         const card = document.createElement('div');
         card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
@@ -924,11 +969,29 @@ function selectStudent(id) {
         }
     }
 
-    const dues = student.totalFee - actualPaid - adDiscount;
+    let dues = student.totalFee - actualPaid - adDiscount;
+    
+    // CUSTOM OVERRIDE
+    if (student.customDueAmount && student.customDueAmount !== "") {
+        dues = parseFloat(student.customDueAmount);
+    }
+
     const dueEl = document.getElementById('active-student-dues');
     dueEl.innerText = `₹${dues.toFixed(2)}`;
     dueEl.className = dues <= 0 ? "text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md" : "text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md";
     if(dues <= 0) dueEl.innerText = "Cleared";
+
+    // Handle Custom Date Label
+    const dueLabel = dueEl.previousElementSibling;
+    if(dueLabel) {
+        if (student.customDueDate && student.customDueDate !== "") {
+            dueLabel.innerText = 'Due By: ' + student.customDueDate;
+            dueLabel.classList.add('text-rose-500');
+        } else {
+            dueLabel.innerText = 'Pending Course Dues';
+            dueLabel.classList.remove('text-rose-500');
+        }
+    }
 
     renderMiniLedger(student);
     renderStudentFiles(student.id);
@@ -1002,6 +1065,10 @@ function openEditModal() {
     document.getElementById('edit-adwallet').value = student.adWallet || 0;
     document.getElementById('edit-duration').value = student.duration || 0;
     
+    // CUSTOM OVERRIDES
+    document.getElementById('edit-custom-due').value = student.customDueAmount || '';
+    document.getElementById('edit-custom-date').value = student.customDueDate || '';
+    
     const statusSelect = document.getElementById('edit-status');
     if (statusSelect) {
         statusSelect.value = student.status || 'Active';
@@ -1036,6 +1103,10 @@ function submitEditStudent(e) {
     student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
     student.duration = parseInt(document.getElementById('edit-duration').value) || 0;
     student.adWallet = parseFloat(document.getElementById('edit-adwallet').value) || 0;
+    
+    // SAVE CUSTOM OVERRIDES
+    student.customDueAmount = document.getElementById('edit-custom-due').value;
+    student.customDueDate = document.getElementById('edit-custom-date').value;
     
     const statusSelect = document.getElementById('edit-status');
     if (statusSelect) {
@@ -1200,11 +1271,9 @@ async function executeDelete() {
 }
 
 // =========================================
-// STUDENT DOCUMENT VAULT LOGIC
-// MATCHES ANDROID APP EXACTLY
+// FIREBASE & COMPRESSION LOGIC
 // =========================================
 
-// Compresses document images (JPG/PNG) heavily before upload
 function compressDocumentImage(file, callback) {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -1212,7 +1281,7 @@ function compressDocumentImage(file, callback) {
         img.onload = function() {
             const canvas = document.createElement('canvas'); 
             const ctx = canvas.getContext('2d');
-            const MAX_SIZE = 800; // Optimal size for reading document text
+            const MAX_SIZE = 800;
             let width = img.width, height = img.height;
             
             if (width > height) { 
@@ -1228,22 +1297,23 @@ function compressDocumentImage(file, callback) {
             canvas.toBlob((blob) => {
                 const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
                 callback(compressedFile);
-            }, 'image/jpeg', 0.6); // 60% quality shrinks size aggressively 
+            }, 'image/jpeg', 0.6); 
         }
         img.src = e.target.result;
     }
     reader.readAsDataURL(file);
 }
 
-// Dynamically injects PDF.js to physically rasterize and crush massive PDF sizes
-async function compressPDF(file, callback) {
+async function compressPDF(file, callback, buttonSelector = 'label[for="student-doc-upload"]') {
     try {
-        const uploadLabel = document.querySelector('label[for="student-doc-upload"]');
-        const originalHTML = uploadLabel.innerHTML;
-        uploadLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Compressing...';
-        uploadLabel.classList.add('opacity-70', 'pointer-events-none');
+        const uploadLabel = document.querySelector(buttonSelector);
+        let originalHTML = "";
+        if(uploadLabel) {
+            originalHTML = uploadLabel.innerHTML;
+            uploadLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Compressing...';
+            uploadLabel.classList.add('opacity-70', 'pointer-events-none');
+        }
 
-        // Dynamically load PDF.js framework
         if (!window.pdfjsLib) {
             const script = document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
@@ -1258,8 +1328,6 @@ async function compressPDF(file, callback) {
         
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
-            
-            // AGGRESSIVE DOWNSCALE: Limit width to 800px max
             const unscaledViewport = page.getViewport({ scale: 1.0 });
             const scaleFactor = Math.min(1.0, 800 / unscaledViewport.width); 
             const viewport = page.getViewport({ scale: scaleFactor }); 
@@ -1270,8 +1338,6 @@ async function compressPDF(file, callback) {
             canvas.height = viewport.height;
             
             await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-            
-            // AGGRESSIVE COMPRESSION: Convert page to 50% quality JPEG
             const imgData = canvas.toDataURL('image/jpeg', 0.5); 
             
             const img = await newPdfDoc.embedJpg(imgData);
@@ -1283,100 +1349,31 @@ async function compressPDF(file, callback) {
         const compressedBlob = new Blob([pdfBytes], { type: 'application/pdf' });
         let finalFile = new File([compressedBlob], file.name, { type: 'application/pdf', lastModified: Date.now() });
         
-        // Restore UI
-        uploadLabel.innerHTML = originalHTML;
-        uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
-        
-        // Safety Fallback: If compression somehow bloated the file, use the original
-        if(finalFile.size >= file.size) { 
-            finalFile = file; 
+        if(uploadLabel) {
+            uploadLabel.innerHTML = originalHTML;
+            uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
         }
+        
+        if(finalFile.size >= file.size) { finalFile = file; }
         callback(finalFile);
 
     } catch (error) {
         console.error("PDF Rasterization failed:", error);
-        
-        const uploadLabel = document.querySelector('label[for="student-doc-upload"]');
+        const uploadLabel = document.querySelector(buttonSelector);
         if(uploadLabel) {
             uploadLabel.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload';
             uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
         }
-
-        // If the browser ran out of memory, safely fallback to uploading the original file
         alert("Heavy PDF detected. Bypassing compression to prevent browser crash.");
         callback(file); 
     }
 }
 
-function handleStudentFileUpload(event) {
-    const originalFile = event.target.files[0];
-    if (!originalFile) return;
-    
-    const stId = document.getElementById('tuition-student-id').value;
-    const student = appData.students.find(s => s.id === stId);
-    if (!student) return;
+// =========================================
+// HUB AND FILE UPLOADS
+// =========================================
 
-    const uploadToFirebase = (fileToUpload) => {
-        const storageRef = firebase.storage().ref();
-        
-        // ====================================================
-        // THIS PATH EXACTLY MATCHES YOUR ANDROID APP AND FIREBASE RULES
-        // vault/{timestamp}_{safeName}
-        // ====================================================
-        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filePath = `vault/${Date.now()}_${safeName}`;
-        
-        const fileRef = storageRef.child(filePath);
-
-        const progressBar = document.getElementById('upload-progress-bar');
-        const progressContainer = document.getElementById('upload-progress-container');
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
-
-        const uploadTask = fileRef.put(fileToUpload);
-
-        uploadTask.on('state_changed', 
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                progressBar.style.width = progress + '%';
-            }, 
-            (error) => {
-                console.error("Upload failed:", error);
-                alert("File upload to Vault failed!\n\nFirebase Error: " + error.code + "\nMessage: " + error.message);
-                progressContainer.classList.add('hidden');
-                document.getElementById('student-doc-upload').value = '';
-            }, 
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    progressContainer.classList.add('hidden');
-                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                    
-                    // ====================================================
-                    // THIS PAYLOAD EXACTLY MATCHES YOUR ANDROID APP
-                    // target: Phone Number
-                    // folder: 'Certificates'
-                    // name: 'Certificate - Name'
-                    // ====================================================
-                    const targetVal = (student.phone && student.phone.toString().trim() !== "") ? String(student.phone).trim() : student.id;
-                    const formattedFileName = "Certificate - " + student.name;
-                    
-                    saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB);
-                    document.getElementById('student-doc-upload').value = '';
-                });
-            }
-        );
-    };
-
-    if (originalFile.type.startsWith('image/')) {
-        compressDocumentImage(originalFile, uploadToFirebase);
-    } else if (originalFile.type === 'application/pdf') {
-        compressPDF(originalFile, uploadToFirebase);
-    } else {
-        uploadToFirebase(originalFile);
-    }
-}
-
-function saveFileToDatabase(name, category, target, url, path, size) {
+function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
     const payload = { 
         action: 'add_file', 
         pass: sessionPassword, 
@@ -1386,7 +1383,7 @@ function saveFileToDatabase(name, category, target, url, path, size) {
         url: url, 
         path: path, 
         size: size, 
-        folder: "Certificates" // MATCH ANDROID FOLDER EXACTLY
+        folder: folderName 
     };
     
     fetch(GOOGLE_APP_URL, {
@@ -1399,19 +1396,15 @@ function saveFileToDatabase(name, category, target, url, path, size) {
         if(result.success) {
             if (!appData.files) appData.files = [];
             appData.files.push({
-                id: "FL" + Date.now(),
-                name: name,
-                category: category,
-                target: target,
-                url: url,
-                path: path,
-                size: size,
-                date: new Date().toISOString().split('T')[0],
-                folder: "Certificates"
+                id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
+                date: new Date().toISOString().split('T')[0], folder: folderName
             });
-            const stId = document.getElementById('tuition-student-id').value;
-            renderStudentFiles(stId);
-            alert("Document successfully compressed and saved to Vault!");
+            if(callback) {
+                callback();
+            } else {
+                const stId = document.getElementById('tuition-student-id').value;
+                renderStudentFiles(stId);
+            }
         } else {
             alert("Error saving file record to database: " + result.error);
         }
@@ -1420,6 +1413,169 @@ function saveFileToDatabase(name, category, target, url, path, size) {
         console.error("Database save failed:", error);
         alert("Database connection failed while saving file record.");
     });
+}
+
+function handleStudentFileUpload(event) {
+    const originalFile = event.target.files[0];
+    if (!originalFile) return;
+    
+    const stId = document.getElementById('tuition-student-id').value;
+    const student = appData.students.find(s => s.id === stId);
+    if (!student) return;
+
+    const uploadToFirebase = (fileToUpload) => {
+        const storageRef = firebase.storage().ref();
+        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
+        const filePath = `vault/${Date.now()}_${safeName}`;
+        const fileRef = storageRef.child(filePath);
+
+        const progressBar = document.getElementById('upload-progress-bar');
+        const progressContainer = document.getElementById('upload-progress-container');
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
+
+        const uploadTask = fileRef.put(fileToUpload);
+
+        uploadTask.on('state_changed', 
+            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
+            (error) => {
+                alert("File upload to Vault failed!\n\nFirebase Error: " + error.code + "\nMessage: " + error.message);
+                progressContainer.classList.add('hidden');
+                document.getElementById('student-doc-upload').value = '';
+            }, 
+            () => {
+                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                    progressContainer.classList.add('hidden');
+                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
+                    const targetVal = (student.phone && student.phone.toString().trim() !== "") ? String(student.phone).trim() : student.id;
+                    const formattedFileName = "Certificate - " + student.name;
+                    
+                    saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
+                        renderStudentFiles(stId);
+                        alert("Document successfully compressed and saved to Vault!");
+                    });
+                    document.getElementById('student-doc-upload').value = '';
+                });
+            }
+        );
+    };
+
+    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
+    else if (originalFile.type === 'application/pdf') compressPDF(originalFile, uploadToFirebase);
+    else uploadToFirebase(originalFile);
+}
+
+function submitMaterialUpload(e) {
+    e.preventDefault();
+    const title = document.getElementById('hub-mat-title').value.trim();
+    const folder = document.getElementById('hub-mat-folder').value.trim() || 'General';
+    const target = document.getElementById('hub-mat-target').value.trim();
+    const fileInput = document.getElementById('hub-mat-file');
+    const originalFile = fileInput.files[0];
+    
+    if (!originalFile) return alert("Please select a file.");
+
+    const btn = document.getElementById('btn-mat-upload');
+    const originalBtnText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
+    btn.disabled = true;
+
+    const uploadToFirebase = (fileToUpload) => {
+        const storageRef = firebase.storage().ref();
+        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
+        const filePath = `vault/${Date.now()}_${safeName}`;
+        const fileRef = storageRef.child(filePath);
+
+        const progressBar = document.getElementById('mat-progress-bar');
+        const progressContainer = document.getElementById('mat-progress-container');
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
+
+        const uploadTask = fileRef.put(fileToUpload);
+
+        uploadTask.on('state_changed', 
+            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
+            (error) => {
+                alert("Upload failed: " + error.message);
+                progressContainer.classList.add('hidden');
+                btn.innerHTML = originalBtnText;
+                btn.disabled = false;
+            }, 
+            () => {
+                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                    progressContainer.classList.add('hidden');
+                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
+                    saveFileToDatabase(title, "Material", target.toUpperCase(), downloadURL, filePath, sizeMB, folder, () => {
+                        e.target.reset();
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
+                        renderHubFiles();
+                        alert("Material Published Successfully!");
+                    });
+                });
+            }
+        );
+    };
+
+    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
+    else if (originalFile.type === 'application/pdf') compressPDF(originalFile, uploadToFirebase, '#btn-mat-upload');
+    else uploadToFirebase(originalFile);
+}
+
+function submitAssignmentUpload(e) {
+    e.preventDefault();
+    const title = document.getElementById('hub-ass-title').value.trim();
+    const target = document.getElementById('hub-ass-target').value.trim();
+    const fileInput = document.getElementById('hub-ass-file');
+    const originalFile = fileInput.files[0];
+    
+    if (!originalFile) return alert("Please select a file.");
+
+    const btn = document.getElementById('btn-ass-upload');
+    const originalBtnText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
+    btn.disabled = true;
+
+    const uploadToFirebase = (fileToUpload) => {
+        const storageRef = firebase.storage().ref();
+        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
+        const filePath = `vault/${Date.now()}_${safeName}`;
+        const fileRef = storageRef.child(filePath);
+
+        const progressBar = document.getElementById('ass-progress-bar');
+        const progressContainer = document.getElementById('ass-progress-container');
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
+
+        const uploadTask = fileRef.put(fileToUpload);
+
+        uploadTask.on('state_changed', 
+            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
+            (error) => {
+                alert("Upload failed: " + error.message);
+                progressContainer.classList.add('hidden');
+                btn.innerHTML = originalBtnText;
+                btn.disabled = false;
+            }, 
+            () => {
+                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                    progressContainer.classList.add('hidden');
+                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
+                    saveFileToDatabase(title, "Assignment", target.toUpperCase(), downloadURL, filePath, sizeMB, "Assignments", () => {
+                        e.target.reset();
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
+                        renderHubFiles();
+                        alert("Assignment Published Successfully!");
+                    });
+                });
+            }
+        );
+    };
+
+    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
+    else if (originalFile.type === 'application/pdf') compressPDF(originalFile, uploadToFirebase, '#btn-ass-upload');
+    else uploadToFirebase(originalFile);
 }
 
 function renderStudentFiles(stId) {
@@ -1431,11 +1587,6 @@ function renderStudentFiles(stId) {
     const stPhone = student ? String(student.phone).trim() : "NONE";
 
     if (!appData.files) appData.files = [];
-    
-    // ====================================================
-    // FETCH FILES USING BOTH ID AND PHONE NUMBER
-    // Matches logic so you can see Android uploads too
-    // ====================================================
     const stFiles = appData.files.filter(f => {
         const t = String(f.target).trim();
         return (t === stId || t === stPhone) && f.folder === "Certificates";
@@ -1461,6 +1612,36 @@ function renderStudentFiles(stId) {
     });
 }
 
+function renderHubFiles() {
+    const listEl = document.getElementById('hub-files-list');
+    if(!listEl) return;
+    listEl.innerHTML = '';
+    
+    if (!appData.files) appData.files = [];
+    const hubFiles = appData.files.filter(f => f.category === 'Material' || f.category === 'Assignment');
+    
+    if (hubFiles.length === 0) {
+        listEl.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No hub files found.</td></tr>';
+        return;
+    }
+    
+    hubFiles.slice().reverse().forEach(f => {
+        listEl.innerHTML += `
+            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                <td class="py-3 px-4 text-slate-500 font-bold text-xs">${f.date}</td>
+                <td class="py-3 px-4 text-indigo-600 font-bold text-xs">${f.category}</td>
+                <td class="py-3 px-4 text-slate-600 font-bold text-xs">${f.target} / ${f.folder}</td>
+                <td class="py-3 px-4 text-slate-800 font-bold text-xs max-w-[150px] truncate" title="${f.name}">
+                    <a href="${f.url}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name}</a>
+                </td>
+                <td class="py-3 px-2 text-center">
+                    <button type="button" onclick="deleteHubFile('${f.path}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
 function deleteStudentFile(path, fileId) {
     if(!confirm("Are you sure you want to permanently delete this document?")) return;
     
@@ -1469,18 +1650,13 @@ function deleteStudentFile(path, fileId) {
     
     fileRef.delete().then(() => {
         const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-        fetch(GOOGLE_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        })
+        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } })
         .then(res => res.json())
         .then(result => {
             if(result.success) {
                 appData.files = appData.files.filter(f => f.id !== fileId);
                 const stId = document.getElementById('tuition-student-id').value;
                 renderStudentFiles(stId);
-                alert("Document deleted.");
             }
         });
     }).catch((error) => {
@@ -1494,4 +1670,92 @@ function deleteStudentFile(path, fileId) {
             renderStudentFiles(stId);
         });
     });
+}
+
+function deleteHubFile(path, fileId) {
+    if(!confirm("Are you sure you want to delete this file from the hub?")) return;
+    
+    const storageRef = firebase.storage().ref();
+    const fileRef = storageRef.child(path);
+    
+    fileRef.delete().then(() => {
+        const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
+        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } })
+        .then(res => res.json())
+        .then(result => {
+            if(result.success) {
+                appData.files = appData.files.filter(f => f.id !== fileId);
+                renderHubFiles();
+            }
+        });
+    }).catch((error) => {
+        console.error("Firebase deletion failed:", error);
+        const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
+        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
+        .then(res => res.json())
+        .then(result => {
+            appData.files = appData.files.filter(f => f.id !== fileId);
+            renderHubFiles();
+        });
+    });
+}
+
+// =========================================
+// BROADCAST / ALERTS LOGIC
+// =========================================
+
+function submitBroadcast(e) {
+    e.preventDefault();
+    const target = document.getElementById('bc-target').value.trim();
+    const title = document.getElementById('bc-title').value.trim();
+    const message = document.getElementById('bc-message').value.trim();
+    
+    // Exact formatting match to Android DateFormat('dd MMM yyyy, hh:mm a')
+    const now = new Date();
+    const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+    const dateString = now.toLocaleString('en-IN', options).replace(/am/i, 'AM').replace(/pm/i, 'PM');
+    
+    if (!appData.notices) appData.notices = [];
+    
+    appData.notices.unshift({
+        title: '📢 ' + title,
+        message: 'Target: ' + target.toUpperCase() + '\n\n' + message,
+        date: dateString
+    });
+    
+    saveDatabase();
+    renderBroadcastList();
+    e.target.reset();
+    alert("Broadcast Alert Sent!");
+}
+
+function renderBroadcastList() {
+    const listEl = document.getElementById('broadcast-list');
+    if(!listEl) return;
+    listEl.innerHTML = '';
+    
+    if (!appData.notices || appData.notices.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-satellite-dish text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No broadcasts sent yet.</p></div>';
+        return;
+    }
+    
+    appData.notices.forEach((n, index) => {
+        listEl.innerHTML += `
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 mb-3 shadow-sm flex justify-between items-start">
+                <div class="flex-1 mr-4">
+                    <h4 class="font-bold text-slate-800 text-base">${n.title}</h4>
+                    <p class="text-[10px] text-amber-600 font-bold uppercase tracking-wider mb-2">${n.date}</p>
+                    <p class="text-sm text-slate-600 whitespace-pre-wrap">${n.message}</p>
+                </div>
+                <button type="button" onclick="deleteBroadcast(${index})" class="text-rose-400 hover:text-rose-600 p-2 transition-colors"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+    });
+}
+
+function deleteBroadcast(index) {
+    if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
+    appData.notices.splice(index, 1);
+    saveDatabase();
+    renderBroadcastList();
 }
