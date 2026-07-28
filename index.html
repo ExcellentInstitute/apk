@@ -149,6 +149,7 @@
                         </div>
                         
                         <div class="flex flex-wrap gap-3 w-full sm:w-auto">
+                            <!-- Privacy Toggle Button -->
                             <button type="button" onclick="toggleBalanceVisibility()" id="toggle-balance-btn" class="flex-1 sm:flex-none px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors shadow-sm border border-slate-200 flex items-center justify-center" title="Toggle Dashboard Visibility">
                                 <i class="fa-solid fa-eye mr-2"></i> Show Values
                             </button>
@@ -535,8 +536,8 @@
                                     </div>
                                 </div>
 
-                                <!-- EXACTLY REVERTED 3 CARDS LAYOUT -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 flex-1 overflow-visible">
+                                <!-- UPDATED: 2 CARDS TOP, 1 CARD BOTTOM LAYOUT -->
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 overflow-visible">
                                     
                                     <!-- Card 1 -->
                                     <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px]">
@@ -572,8 +573,8 @@
                                         </div>
                                     </div>
 
-                                    <!-- Card 3 -->
-                                    <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px]">
+                                    <!-- Card 3 (Now spans full width on bottom) -->
+                                    <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px] lg:col-span-2">
                                         <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
                                             <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-folder-open mr-2 text-indigo-500"></i> Documents</h3>
                                             <label class="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm border border-indigo-200">
