@@ -206,6 +206,9 @@ function confirmCrop() {
     closeCropModal();
 }
 
+// =========================================
+// AUTO-RETRY LOGIN LOGIC
+// =========================================
 async function handleLogin(e) {
     e.preventDefault();
     const user = document.getElementById('username').value.toLowerCase().trim();
@@ -223,8 +226,30 @@ async function handleLogin(e) {
     btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
     
     try {
-        const response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
-        const data = await response.json();
+        let response;
+        let retries = 3; // Retry up to 3 times if Google's server drops the connection
+        
+        while(retries > 0) {
+            try {
+                response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
+                if (response.ok) break; // If successful, exit the retry loop
+                throw new Error("Server response not OK");
+            } catch (netErr) {
+                retries--;
+                if (retries === 0) throw netErr;
+                await new Promise(r => setTimeout(r, 1000)); // Wait 1 second before trying again
+            }
+        }
+
+        const rawText = await response.text();
+        let data;
+        
+        try {
+            data = JSON.parse(rawText);
+        } catch (jsonErr) {
+            console.error("Google Script Error Response:", rawText);
+            throw new Error("Server returned invalid data format.");
+        }
         
         if(data.error) {
             errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.';
@@ -259,8 +284,9 @@ async function handleLogin(e) {
         }, 500);
 
     } catch(err) {
+        console.error("Login System Error:", err);
         if(err.message !== "Invalid Password") {
-            errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Please update Google Apps Script.';
+            errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Google server is busy. Try again.';
         }
         showError(errorMsg);
         btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
@@ -337,7 +363,6 @@ function refreshAllUI() {
     checkDuesNotifications(); 
     populateSettings();
     
-    // NEW: Render the new Hub and Broadcast lists
     renderHubFiles();
     renderBroadcastList();
 
