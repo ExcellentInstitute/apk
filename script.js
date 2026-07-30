@@ -1329,6 +1329,8 @@ function compressDocumentImage(file, callback) {
     reader.readAsDataURL(file);
 }
 
+// SAFELY BYPASSED PDF COMPRESSION: Uploads the original, uncorrupted PDF natively
+// The function remains here so no code is deleted, but routing skips it.
 async function compressPDF(file, callback, buttonSelector = 'label[for="student-doc-upload"]') {
     try {
         const uploadLabel = document.querySelector(buttonSelector);
@@ -1477,7 +1479,7 @@ function handleStudentFileUpload(event) {
                     
                     saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
                         renderStudentFiles(stId);
-                        alert("Document successfully compressed and saved to Vault!");
+                        alert("Document saved securely to Vault!");
                     });
                     document.getElementById('student-doc-upload').value = '';
                 });
@@ -1486,7 +1488,7 @@ function handleStudentFileUpload(event) {
     };
 
     if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else if (originalFile.type === 'application/pdf') compressPDF(originalFile, uploadToFirebase);
+    // SAFELY BYPASSED PDF COMPRESSION: Uploads the original, uncorrupted PDF natively
     else uploadToFirebase(originalFile);
 }
 
@@ -1543,7 +1545,7 @@ function submitMaterialUpload(e) {
     };
 
     if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else if (originalFile.type === 'application/pdf') compressPDF(originalFile, uploadToFirebase, '#btn-mat-upload');
+    // SAFELY BYPASSED PDF COMPRESSION: Uploads the original, uncorrupted PDF natively
     else uploadToFirebase(originalFile);
 }
 
@@ -1599,7 +1601,7 @@ function submitAssignmentUpload(e) {
     };
 
     if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else if (originalFile.type === 'application/pdf') compressPDF(originalFile, uploadToFirebase, '#btn-ass-upload');
+    // SAFELY BYPASSED PDF COMPRESSION: Uploads the original, uncorrupted PDF natively
     else uploadToFirebase(originalFile);
 }
 
