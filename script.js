@@ -1,8 +1,16 @@
+// =========================================================
+// SERVER SWITCH TOGGLE
+// Set to 'true' to shift the entire database to Firebase.
+// Set to 'false' to keep using Google Apps Script (Code.gs).
+// =========================================================
+const USE_FIREBASE_SERVER = false; 
+
 const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
 
-// Initialize Firebase Storage for the Document Vault
+// Initialize Firebase Storage & Database
 const firebaseConfig = {
-    storageBucket: "excellent-institute-vault.firebasestorage.app"
+    storageBucket: "excellent-institute-vault.firebasestorage.app",
+    databaseURL: "https://excellent-institute-vault-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
@@ -39,7 +47,7 @@ function shareTransactionWA(txId) {
 }
 
 // =========================================================
-// NEW: UNIFIED DUE CALCULATION ENGINE (Synced with Android)
+// UNIFIED DUE CALCULATION ENGINE (Synced with Android)
 // =========================================================
 function calculateExactDues(student) {
     let safeParse = (val) => parseFloat(String(val).replace(/,/g, '').trim()) || 0;
@@ -145,6 +153,7 @@ function checkDuesNotifications() {
     appData.students.forEach(st => {
         if ((st.status || 'Active') !== 'Active') return;
         
+        // CHECK CUSTOM DUE OVERRIDE
         if (st.customDueAmount && st.customDueAmount !== "") {
             const customDue = parseFloat(st.customDueAmount);
             if (customDue > 0) {
@@ -262,7 +271,7 @@ function confirmCrop() {
 }
 
 // =========================================
-// AUTO-RETRY LOGIN LOGIC
+// AUTO-RETRY LOGIN LOGIC WITH SERVER SWITCH
 // =========================================
 async function handleLogin(e) {
     e.preventDefault();
@@ -281,38 +290,78 @@ async function handleLogin(e) {
     btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
     
     try {
-        let response;
-        let retries = 3; 
-        
-        while(retries > 0) {
-            try {
-                response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
-                if (response.ok) break; 
-                throw new Error("Server response not OK");
-            } catch (netErr) {
-                retries--;
-                if (retries === 0) throw netErr;
-                await new Promise(r => setTimeout(r, 1000)); 
-            }
-        }
-
-        const rawText = await response.text();
         let data;
         
-        try {
-            data = JSON.parse(rawText);
-        } catch (jsonErr) {
-            console.error("Google Script Error Response:", rawText);
-            throw new Error("Server returned invalid data format.");
-        }
-        
-        if(data.error) {
-            errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.';
-            throw new Error("Invalid Password");
+        if (USE_FIREBASE_SERVER) {
+            // FIREBASE RTDB FETCH
+            const snapshot = await firebase.database().ref('/').once('value');
+            const dbData = snapshot.val() || {};
+            
+            let fullData = {
+                students: dbData.students || [],
+                transactions: dbData.transactions || [],
+                stats: dbData.stats || { income: 0, expense: 0, balance: 0 },
+                files: dbData.files || [],
+                notices: dbData.notices || [],
+                settings: dbData.settings || {}
+            };
+            
+            let masterPass = "excellent@9658"; 
+            let role = null;
+            let userProfile = null;
+            
+            if (user === 'excellent' && pass === masterPass) {
+                role = 'admin';
+            } else if (user === 'excellent' && (pass === '9658' || pass === masterPass)) {
+                role = 'staff';
+            } else {
+                const student = fullData.students.find(s => {
+                    let phoneMatch = String(s.phone).trim() === user;
+                    if(phoneMatch) {
+                        let firstName = String(s.name || "").trim().split(/\s+/)[0];
+                        let regYear = (s.date && s.date.length >= 4) ? s.date.substring(0, 4) : new Date().getFullYear().toString();
+                        let expectedPass = "EI" + firstName + regYear;
+                        return pass === expectedPass || pass === masterPass;
+                    }
+                    return false;
+                });
+                if (student) {
+                    role = 'student';
+                    userProfile = student;
+                }
+            }
+            
+            if (!role) throw new Error("Invalid Password");
+            
+            data = { role: role, data: fullData };
+            if (userProfile) data.userProfile = userProfile;
+
+        } else {
+            // GOOGLE APPS SCRIPT FETCH
+            let response;
+            let retries = 3; 
+            while(retries > 0) {
+                try {
+                    response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
+                    if (response.ok) break; 
+                    throw new Error("Server response not OK");
+                } catch (netErr) {
+                    retries--;
+                    if (retries === 0) throw netErr;
+                    await new Promise(r => setTimeout(r, 1000)); 
+                }
+            }
+            const rawText = await response.text();
+            try {
+                data = JSON.parse(rawText);
+            } catch (jsonErr) {
+                throw new Error("Server returned invalid data format.");
+            }
+            if(data.error) throw new Error("Invalid Password");
         }
 
         sessionPassword = pass;
-        appData = data;
+        appData = data.data; // Bind main data
         if(!appData.notices) appData.notices = [];
         
         appData.transactions.forEach(tx => {
@@ -341,7 +390,9 @@ async function handleLogin(e) {
     } catch(err) {
         console.error("Login System Error:", err);
         if(err.message !== "Invalid Password") {
-            errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Google server is busy. Try again.';
+            errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Server is busy. Try again.';
+        } else {
+            errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.';
         }
         showError(errorMsg);
         btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
@@ -365,22 +416,34 @@ function recalculateStats() {
     appData.stats.balance = appData.stats.income - appData.stats.expense;
 }
 
+// =========================================
+// DATA SAVING LOGIC (Server Switch aware)
+// =========================================
 function saveDatabase() {
     localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-    const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
-    fetch(GOOGLE_APP_URL, { 
-        method: 'POST', 
-        body: JSON.stringify(payload), 
-        headers: { "Content-Type": "text/plain;charset=utf-8" }
-    })
-    .then(res => res.json())
-    .then(result => {
-        if(result.error) {
-            console.error("Database Save Failed:", result.error);
-            alert("Database Sync Error: " + result.error + "\n\n(Your data is saved locally, but cloud sync was rejected by the database script).");
-        }
-    })
-    .catch(error => console.log("Cloud sync connection failed.", error));
+    
+    if (USE_FIREBASE_SERVER) {
+        firebase.database().ref('/').set(appData)
+        .catch(error => {
+            console.error("Firebase Sync Failed:", error);
+            alert("Database Sync Error: " + error.message);
+        });
+    } else {
+        const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
+        fetch(GOOGLE_APP_URL, { 
+            method: 'POST', 
+            body: JSON.stringify(payload), 
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        })
+        .then(res => res.json())
+        .then(result => {
+            if(result.error) {
+                console.error("Database Save Failed:", result.error);
+                alert("Database Sync Error: " + result.error + "\n\n(Your data is saved locally).");
+            }
+        })
+        .catch(error => console.log("Cloud sync connection failed.", error));
+    }
 }
 
 function toggleBalanceVisibility() {
@@ -1429,11 +1492,23 @@ async function compressPDF(file, callback, buttonSelector = 'label[for="student-
     }
 }
 
-// =========================================
-// HUB AND FILE UPLOADS
-// =========================================
-
 function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
+    if (USE_FIREBASE_SERVER) {
+        if (!appData.files) appData.files = [];
+        appData.files.push({
+            id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
+            date: new Date().toISOString().split('T')[0], folder: folderName
+        });
+        saveDatabase();
+        if(callback) {
+            callback();
+        } else {
+            const stId = document.getElementById('tuition-student-id').value;
+            renderStudentFiles(stId);
+        }
+        return;
+    }
+
     const payload = { 
         action: 'add_file', 
         pass: sessionPassword, 
@@ -1706,6 +1781,14 @@ function deleteStudentFile(path, fileId) {
     const fileRef = storageRef.child(path);
     
     fileRef.delete().then(() => {
+        if (USE_FIREBASE_SERVER) {
+            appData.files = appData.files.filter(f => f.id !== fileId);
+            saveDatabase();
+            const stId = document.getElementById('tuition-student-id').value;
+            renderStudentFiles(stId);
+            return;
+        }
+
         const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
         fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } })
         .then(res => res.json())
@@ -1718,14 +1801,16 @@ function deleteStudentFile(path, fileId) {
         });
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
-        const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
-        .then(res => res.json())
-        .then(result => {
-            appData.files = appData.files.filter(f => f.id !== fileId);
-            const stId = document.getElementById('tuition-student-id').value;
-            renderStudentFiles(stId);
-        });
+        if (!USE_FIREBASE_SERVER) {
+            const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
+            fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
+            .then(res => res.json())
+            .then(result => {
+                appData.files = appData.files.filter(f => f.id !== fileId);
+                const stId = document.getElementById('tuition-student-id').value;
+                renderStudentFiles(stId);
+            });
+        }
     });
 }
 
@@ -1736,6 +1821,13 @@ function deleteHubFile(path, fileId) {
     const fileRef = storageRef.child(path);
     
     fileRef.delete().then(() => {
+        if (USE_FIREBASE_SERVER) {
+            appData.files = appData.files.filter(f => f.id !== fileId);
+            saveDatabase();
+            renderHubFiles();
+            return;
+        }
+
         const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
         fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } })
         .then(res => res.json())
@@ -1747,20 +1839,21 @@ function deleteHubFile(path, fileId) {
         });
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
-        const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
-        .then(res => res.json())
-        .then(result => {
-            appData.files = appData.files.filter(f => f.id !== fileId);
-            renderHubFiles();
-        });
+        if (!USE_FIREBASE_SERVER) {
+            const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
+            fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
+            .then(res => res.json())
+            .then(result => {
+                appData.files = appData.files.filter(f => f.id !== fileId);
+                renderHubFiles();
+            });
+        }
     });
 }
 
 // =========================================
 // BROADCAST / ALERTS LOGIC
 // =========================================
-
 function submitBroadcast(e) {
     e.preventDefault();
     const target = document.getElementById('bc-target').value.trim();
@@ -1814,4 +1907,161 @@ function deleteBroadcast(index) {
     appData.notices.splice(index, 1);
     saveDatabase();
     renderBroadcastList();
+}
+
+// =========================================
+// DATA SAVING LOGIC (Server Switch aware)
+// =========================================
+function saveDatabase() {
+    localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+    
+    if (USE_FIREBASE_SERVER) {
+        firebase.database().ref('/').set(appData)
+        .catch(error => {
+            console.error("Firebase Sync Failed:", error);
+            alert("Database Sync Error: " + error.message);
+        });
+    } else {
+        const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
+        fetch(GOOGLE_APP_URL, { 
+            method: 'POST', 
+            body: JSON.stringify(payload), 
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        })
+        .then(res => res.json())
+        .then(result => {
+            if(result.error) {
+                console.error("Database Save Failed:", result.error);
+                alert("Database Sync Error: " + result.error + "\n\n(Your data is saved locally).");
+            }
+        })
+        .catch(error => console.log("Cloud sync connection failed.", error));
+    }
+}
+
+// =========================================
+// AUTO-RETRY LOGIN LOGIC WITH SERVER SWITCH
+// =========================================
+async function handleLogin(e) {
+    e.preventDefault();
+    const user = document.getElementById('username').value.toLowerCase().trim();
+    const pass = document.getElementById('password').value.trim(); 
+    const errorMsg = document.getElementById('login-error');
+    const btnText = document.getElementById('login-btn-text');
+
+    if (user !== 'excellent') { 
+        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Username.';
+        showError(errorMsg); 
+        return; 
+    }
+
+    errorMsg.classList.add('hidden');
+    btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
+    
+    try {
+        let data;
+        
+        if (USE_FIREBASE_SERVER) {
+            const snapshot = await firebase.database().ref('/').once('value');
+            const dbData = snapshot.val() || {};
+            
+            let fullData = {
+                students: dbData.students || [],
+                transactions: dbData.transactions || [],
+                stats: dbData.stats || { income: 0, expense: 0, balance: 0 },
+                files: dbData.files || [],
+                notices: dbData.notices || [],
+                settings: dbData.settings || {}
+            };
+            
+            let masterPass = "excellent@9658"; 
+            let role = null;
+            let userProfile = null;
+            
+            if (user === 'excellent' && pass === masterPass) {
+                role = 'admin';
+            } else if (user === 'excellent' && (pass === '9658' || pass === masterPass)) {
+                role = 'staff';
+            } else {
+                const student = fullData.students.find(s => {
+                    let phoneMatch = String(s.phone).trim() === user;
+                    if(phoneMatch) {
+                        let firstName = String(s.name || "").trim().split(/\s+/)[0];
+                        let regYear = (s.date && s.date.length >= 4) ? s.date.substring(0, 4) : new Date().getFullYear().toString();
+                        let expectedPass = "EI" + firstName + regYear;
+                        return pass === expectedPass || pass === masterPass;
+                    }
+                    return false;
+                });
+                if (student) {
+                    role = 'student';
+                    userProfile = student;
+                }
+            }
+            
+            if (!role) throw new Error("Invalid Password");
+            
+            data = { role: role, data: fullData };
+            if (userProfile) data.userProfile = userProfile;
+
+        } else {
+            let response;
+            let retries = 3; 
+            while(retries > 0) {
+                try {
+                    response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
+                    if (response.ok) break; 
+                    throw new Error("Server response not OK");
+                } catch (netErr) {
+                    retries--;
+                    if (retries === 0) throw netErr;
+                    await new Promise(r => setTimeout(r, 1000)); 
+                }
+            }
+            const rawText = await response.text();
+            try {
+                data = JSON.parse(rawText);
+            } catch (jsonErr) {
+                throw new Error("Server returned invalid data format.");
+            }
+            if(data.error) throw new Error("Invalid Password");
+        }
+
+        sessionPassword = pass;
+        appData = data.data || data; 
+        if(!appData.notices) appData.notices = [];
+        
+        appData.transactions.forEach(tx => {
+            if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000);
+        });
+        appData.students.forEach(st => {
+            if(!st.id) st.id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
+            if(!st.status) st.status = 'Active'; 
+        });
+
+        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+        
+        setDefaultDates();
+        refreshAllUI();
+        
+        document.getElementById('login-screen').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('flex');
+            document.getElementById('password').value = '';
+            btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+            document.getElementById('login-screen').style.opacity = '1';
+        }, 500);
+
+    } catch(err) {
+        console.error("Login System Error:", err);
+        if(err.message !== "Invalid Password") {
+            errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Server is busy. Try again.';
+        } else {
+            errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.';
+        }
+        showError(errorMsg);
+        btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+    }
 }
