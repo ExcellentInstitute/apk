@@ -38,19 +38,88 @@ function shareTransactionWA(txId) {
     document.body.removeChild(link);
 }
 
+// =========================================================
+// NEW: UNIFIED DUE CALCULATION ENGINE (Synced with Android)
+// =========================================================
+function calculateExactDues(student) {
+    let safeParse = (val) => parseFloat(String(val).replace(/,/g, '').trim()) || 0;
+    
+    let totalFee = safeParse(student.totalFee) || safeParse(student['Total Course Fee']);
+    let adDiscount = safeParse(student.adWallet);
+    let actualPaid = getDynamicPaidFee(student);
+    
+    let totalOutstanding = totalFee - actualPaid - adDiscount;
+    if (totalOutstanding < 0) totalOutstanding = 0;
+
+    let feeStructure = (student.feeType || student.feeStructure || student['Fee Structure'] || 'Monthly').toString().trim();
+    let durationMonths = parseInt(student.duration) || 12;
+    let match = (student.course || "").toString().match(/(\d+)\s*(month|mth|mon)/i);
+    if (match) durationMonths = parseInt(match[1]);
+
+    let currentMonthDue = 0;
+
+    if (feeStructure.toLowerCase().includes('one-time') || feeStructure.toLowerCase().includes('onetime') || feeStructure.toLowerCase().includes('lumpsum')) {
+        currentMonthDue = totalOutstanding;
+    } else {
+        let advanceFee = safeParse(student.advance) || safeParse(student.Advance) || safeParse(student.advanceFee);
+        let stTx = appData.transactions.filter(tx => tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
+        
+        if (advanceFee === 0 && stTx.length > 0) {
+            let sortedTx = [...stTx].sort((a,b) => new Date(a.date) - new Date(b.date));
+            advanceFee = safeParse(sortedTx[0].amount);
+        }
+        if (advanceFee === 0) advanceFee = actualPaid;
+        if (advanceFee > actualPaid) advanceFee = actualPaid;
+        if (advanceFee > totalFee) advanceFee = totalFee;
+
+        let monthsPassed = 0;
+        let dateStr = (student.date || student['Admission Date'] || "").toString();
+        if (dateStr) {
+            let adDate = new Date(dateStr.split('T')[0]);
+            if (!isNaN(adDate.getTime())) {
+                let today = new Date();
+                monthsPassed = (today.getFullYear() - adDate.getFullYear()) * 12 + today.getMonth() - adDate.getMonth();
+                
+                let targetDay = adDate.getDate();
+                let daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                if (targetDay > daysInCurrentMonth) targetDay = daysInCurrentMonth;
+                if (today.getDate() < targetDay) monthsPassed--;
+                if (monthsPassed < 0) monthsPassed = 0;
+            }
+        } else {
+            monthsPassed = stTx.length;
+        }
+
+        let installmentMonths = durationMonths - 1;
+        if (installmentMonths < 1) installmentMonths = 1;
+
+        let baseInstallment = (totalFee - advanceFee) / installmentMonths;
+        let billableMonths = monthsPassed > installmentMonths ? installmentMonths : monthsPassed;
+        let expectedPaidByNow = advanceFee + (baseInstallment * billableMonths);
+
+        currentMonthDue = Math.ceil(expectedPaidByNow - (actualPaid + adDiscount));
+        
+        if (currentMonthDue < 0) currentMonthDue = 0;
+        if (currentMonthDue > totalOutstanding) currentMonthDue = totalOutstanding;
+        if (monthsPassed >= installmentMonths) currentMonthDue = totalOutstanding;
+    }
+
+    return { currentMonthDue, totalOutstanding, actualPaid, adDiscount };
+}
+
 function shareStudentWA() {
     const stId = document.getElementById('tuition-student-id').value;
     const student = appData.students.find(s => s.id === stId);
     if(!student) return;
-    const actualPaid = getDynamicPaidFee(student);
-    const adDiscount = parseFloat(student.adWallet) || 0;
     
-    let dues = student.totalFee - actualPaid - adDiscount;
+    const metrics = calculateExactDues(student);
+    let displayDue = metrics.totalOutstanding;
+    
     if (student.customDueAmount && student.customDueAmount !== "") {
-        dues = parseFloat(student.customDueAmount);
+        displayDue = parseFloat(student.customDueAmount);
     }
     
-    const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${actualPaid}%0A*Ad Discount:* ₹${adDiscount.toFixed(2)}%0A*Due:* ₹${dues.toFixed(2)}${student.customDueDate ? ' (By: '+student.customDueDate+')' : ''}%0A*Status:* ${dues <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+    const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${metrics.actualPaid}%0A*Ad Discount:* ₹${metrics.adDiscount.toFixed(2)}%0A*Due:* ₹${displayDue.toFixed(2)}${student.customDueDate ? ' (By: '+student.customDueDate+')' : ''}%0A*Status:* ${displayDue <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
     
     const link = document.createElement('a');
     link.href = `https://api.whatsapp.com/send?text=${msg}`;
@@ -71,36 +140,22 @@ function setDefaultDates() {
 }
 
 function checkDuesNotifications() {
-    const today = new Date();
     let dueStudents = [];
     
     appData.students.forEach(st => {
-        const actualPaid = getDynamicPaidFee(st);
-        const adDiscount = parseFloat(st.adWallet) || 0;
+        if ((st.status || 'Active') !== 'Active') return;
         
-        // CHECK CUSTOM DUE OVERRIDE
         if (st.customDueAmount && st.customDueAmount !== "") {
             const customDue = parseFloat(st.customDueAmount);
-            if (customDue > 0 && (st.status || 'Active') === 'Active') {
+            if (customDue > 0) {
                 dueStudents.push({ ...st, currentDue: customDue });
             }
-            return; // Skip standard math if override exists
+            return; 
         }
 
-        const overallDues = st.totalFee - actualPaid - adDiscount;
-        if (overallDues > 0 && st.date && (st.status || 'Active') === 'Active') {
-            const admissionDate = new Date(st.date);
-            let monthsPassed = (today.getFullYear() - admissionDate.getFullYear()) * 12 + (today.getMonth() - admissionDate.getMonth());
-            if (monthsPassed < 0) monthsPassed = 0;
-            
-            let expectedAmount = (monthsPassed + 1) * 500;
-            if (expectedAmount > st.totalFee) expectedAmount = st.totalFee;
-            
-            const currentMonthDue = expectedAmount - actualPaid - adDiscount;
-            
-            if (currentMonthDue > 0) {
-                dueStudents.push({ ...st, currentDue: currentMonthDue });
-            }
+        const metrics = calculateExactDues(st);
+        if (metrics.currentMonthDue > 0) {
+            dueStudents.push({ ...st, currentDue: metrics.currentMonthDue });
         }
     });
 
@@ -227,17 +282,17 @@ async function handleLogin(e) {
     
     try {
         let response;
-        let retries = 3; // Retry up to 3 times if Google's server drops the connection
+        let retries = 3; 
         
         while(retries > 0) {
             try {
                 response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
-                if (response.ok) break; // If successful, exit the retry loop
+                if (response.ok) break; 
                 throw new Error("Server response not OK");
             } catch (netErr) {
                 retries--;
                 if (retries === 0) throw netErr;
-                await new Promise(r => setTimeout(r, 1000)); // Wait 1 second before trying again
+                await new Promise(r => setTimeout(r, 1000)); 
             }
         }
 
@@ -878,20 +933,14 @@ function renderStudentList() {
     }
 
     const filteredStudents = appData.students.filter(st => {
-        const actualPaid = getDynamicPaidFee(st);
-        const adDiscount = parseFloat(st.adWallet) || 0;
-        
-        let dues = st.totalFee - actualPaid - adDiscount;
-        if (st.customDueAmount && st.customDueAmount !== "") {
-            dues = parseFloat(st.customDueAmount);
-        }
+        const metrics = calculateExactDues(st);
+        let dues = metrics.totalOutstanding;
+        if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
         
         const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
         const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
         const matchCourse = courseF === 'all' || st.course === courseF;
-        
-        const stStatus = st.status || 'Active';
-        const matchStatus = statusF === 'all' || stStatus === statusF;
+        const matchStatus = statusF === 'all' || (st.status || 'Active') === statusF;
         
         return matchSearch && matchDue && matchCourse && matchStatus;
     });
@@ -901,13 +950,9 @@ function renderStudentList() {
     }
 
     filteredStudents.forEach(st => {
-        const actualPaid = getDynamicPaidFee(st);
-        const adDiscount = parseFloat(st.adWallet) || 0;
-        
-        let dues = st.totalFee - actualPaid - adDiscount;
-        if (st.customDueAmount && st.customDueAmount !== "") {
-            dues = parseFloat(st.customDueAmount);
-        }
+        const metrics = calculateExactDues(st);
+        let dues = metrics.totalOutstanding;
+        if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
 
         const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
         const card = document.createElement('div');
@@ -967,8 +1012,7 @@ function selectStudent(id) {
     const student = appData.students.find(s => s.id === id);
     if(!student) return;
 
-    const actualPaid = getDynamicPaidFee(student);
-    const adDiscount = parseFloat(student.adWallet) || 0;
+    const metrics = calculateExactDues(student);
 
     document.getElementById('tuition-placeholder').classList.add('hidden');
     document.getElementById('tuition-active').classList.remove('hidden');
@@ -981,32 +1025,25 @@ function selectStudent(id) {
     document.getElementById('active-student-date').innerText = student.date || "-";
     document.getElementById('active-student-phone').innerText = student.phone || "-";
     document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
-    document.getElementById('active-student-paidfee').innerText = `₹${actualPaid}`;
-    document.getElementById('active-student-adwallet').innerText = `₹${adDiscount.toFixed(2)}`;
+    document.getElementById('active-student-paidfee').innerText = `₹${metrics.actualPaid}`;
+    document.getElementById('active-student-adwallet').innerText = `₹${metrics.adDiscount.toFixed(2)}`;
 
-    // Show/Hide Graduated Badge
     const badgeEl = document.getElementById('active-student-badge');
     if(badgeEl) {
-        if (student.status === 'Graduated') {
-            badgeEl.classList.remove('hidden');
-        } else {
-            badgeEl.classList.add('hidden');
-        }
+        if (student.status === 'Graduated') badgeEl.classList.remove('hidden');
+        else badgeEl.classList.add('hidden');
     }
 
-    let dues = student.totalFee - actualPaid - adDiscount;
-    
-    // CUSTOM OVERRIDE
+    let displayDue = metrics.totalOutstanding;
     if (student.customDueAmount && student.customDueAmount !== "") {
-        dues = parseFloat(student.customDueAmount);
+        displayDue = parseFloat(student.customDueAmount);
     }
 
     const dueEl = document.getElementById('active-student-dues');
-    dueEl.innerText = `₹${dues.toFixed(2)}`;
-    dueEl.className = dues <= 0 ? "text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md" : "text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md";
-    if(dues <= 0) dueEl.innerText = "Cleared";
+    dueEl.innerText = `₹${displayDue.toFixed(2)}`;
+    dueEl.className = displayDue <= 0 ? "text-3xl md:text-4xl font-black text-emerald-400 drop-shadow-md" : "text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md";
+    if(displayDue <= 0) dueEl.innerText = "Cleared";
 
-    // Handle Custom Date Label
     const dueLabel = dueEl.previousElementSibling;
     if(dueLabel) {
         if (student.customDueDate && student.customDueDate !== "") {
@@ -1090,7 +1127,6 @@ function openEditModal() {
     document.getElementById('edit-adwallet').value = student.adWallet || 0;
     document.getElementById('edit-duration').value = student.duration || 0;
     
-    // CUSTOM OVERRIDES
     document.getElementById('edit-custom-due').value = student.customDueAmount || '';
     document.getElementById('edit-custom-date').value = student.customDueDate || '';
     
@@ -1129,7 +1165,6 @@ function submitEditStudent(e) {
     student.duration = parseInt(document.getElementById('edit-duration').value) || 0;
     student.adWallet = parseFloat(document.getElementById('edit-adwallet').value) || 0;
     
-    // SAVE CUSTOM OVERRIDES
     student.customDueAmount = document.getElementById('edit-custom-due').value;
     student.customDueDate = document.getElementById('edit-custom-date').value;
     
@@ -1329,8 +1364,6 @@ function compressDocumentImage(file, callback) {
     reader.readAsDataURL(file);
 }
 
-// SAFELY BYPASSED PDF COMPRESSION: Uploads the original, uncorrupted PDF natively
-// The function remains here so no code is deleted, but routing skips it.
 async function compressPDF(file, callback, buttonSelector = 'label[for="student-doc-upload"]') {
     try {
         const uploadLabel = document.querySelector(buttonSelector);
@@ -1488,7 +1521,6 @@ function handleStudentFileUpload(event) {
     };
 
     if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    // SAFELY BYPASSED PDF COMPRESSION: Uploads the original, uncorrupted PDF natively
     else uploadToFirebase(originalFile);
 }
 
@@ -1545,7 +1577,6 @@ function submitMaterialUpload(e) {
     };
 
     if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    // SAFELY BYPASSED PDF COMPRESSION: Uploads the original, uncorrupted PDF natively
     else uploadToFirebase(originalFile);
 }
 
@@ -1601,7 +1632,6 @@ function submitAssignmentUpload(e) {
     };
 
     if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    // SAFELY BYPASSED PDF COMPRESSION: Uploads the original, uncorrupted PDF natively
     else uploadToFirebase(originalFile);
 }
 
@@ -1737,7 +1767,6 @@ function submitBroadcast(e) {
     const title = document.getElementById('bc-title').value.trim();
     const message = document.getElementById('bc-message').value.trim();
     
-    // Exact formatting match to Android DateFormat('dd MMM yyyy, hh:mm a')
     const now = new Date();
     const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
     const dateString = now.toLocaleString('en-IN', options).replace(/am/i, 'AM').replace(/pm/i, 'PM');
