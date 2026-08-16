@@ -20,6 +20,7 @@
     <!-- Firebase SDKs for Storage Vault -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
@@ -300,6 +301,20 @@
                         
                         <form id="settings-form" onsubmit="submitSettings(event)" class="space-y-8">
                             
+                            <!-- NEW SERVER SWITCH UI -->
+                            <div class="bg-indigo-50 p-6 rounded-2xl border border-indigo-200 mb-6">
+                                <h4 class="font-bold text-indigo-900 mb-4 flex items-center"><i class="fa-solid fa-server mr-2 text-indigo-600"></i> Database Routing Switch</h4>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-bold text-indigo-800">Active Database Server</p>
+                                        <p class="text-xs text-indigo-600 mt-1">To change servers, please update the "USE_FIREBASE_SERVER" constant inside script.js</p>
+                                    </div>
+                                    <div class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-md text-sm cursor-default">
+                                        <i class="fa-solid fa-lock mr-1"></i> Locked in Code
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                                 <h4 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-qrcode mr-2 text-indigo-500"></i> UPI & Payment QR Code</h4>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -513,7 +528,9 @@
                                                 <div class="flex items-center gap-3 mb-1">
                                                     <h2 class="text-2xl md:text-3xl font-black tracking-tight leading-none" id="active-student-name">Name</h2>
                                                     <span id="active-student-badge" class="hidden px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold uppercase tracking-wider ml-2">Graduated</span>
+                                                    
                                                     <button type="button" onclick="shareStudentWA()" class="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition-all ml-auto" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp text-xs"></i></button>
+                                                    <button type="button" id="custom-notify-btn" onclick="sendCustomPushNotification()" class="w-8 h-8 rounded-full bg-amber-500/20 hover:bg-amber-500 text-amber-500 hover:text-white flex items-center justify-center transition-all" title="Send App Notification"><i class="fa-solid fa-bell text-xs"></i></button>
                                                     <button type="button" onclick="openEditModal()" class="w-8 h-8 rounded-full bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white flex items-center justify-center transition-all" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
                                                     <button type="button" onclick="openDeleteModal(null, true)" class="w-8 h-8 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition-all" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
                                                 </div>
@@ -806,5 +823,14 @@
 
     <!-- Main Javascript File -->
     <script src="script.js"></script>
+    <script>
+        // Inline UI handler for the server switch
+        function handleServerSwitchChange(selectElement) {
+            if(selectElement.value === "true") {
+                alert("WARNING: To complete the switch to Firebase, you must physically change 'USE_FIREBASE_SERVER = true' at the top of your script.js file in your code editor. This dropdown is just a visual reminder.");
+                selectElement.value = "false"; // Resets it so the user knows they must edit the code.
+            }
+        }
+    </script>
 </body>
 </html>
