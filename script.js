@@ -35,7 +35,7 @@ function shareTransactionWA(txId) {
     const tx = appData.transactions.find(t => t.id === txId);
     if(!tx) return;
     const isInc = tx.type === 'income';
-    let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}%0A*Title:* ${tx.title.replace(/ \[STU.*\]/, '')}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
+    let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}%0A*Title:* ${String(tx.title || "").replace(/ \[STU.*\]/, '')}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
     if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
     
     const link = document.createElement('a');
@@ -65,7 +65,11 @@ function calculateExactDues(student) {
         if (paidFee > 0) break;
     }
 
-    let stTx = appData.transactions.filter(tx => tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
+    let stTx = appData.transactions.filter(tx => {
+        let title = String(tx.title || "");
+        let sName = String(student.name || "UNNAMED");
+        return tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(sName) && !title.includes('[STU')));
+    });
     
     if (paidFee === 0 && stTx.length > 0) {
         stTx.forEach(tx => paidFee += safeParse(tx.amount));
@@ -377,6 +381,9 @@ async function handleLogin(e) {
         let data;
         
         if (USE_FIREBASE_SERVER) {
+            if (typeof firebase === 'undefined' || !firebase.database) {
+                throw new Error("Firebase SDK missing! Please check index.html");
+            }
             const snapshot = await firebase.database().ref('/').once('value');
             const dbData = snapshot.val() || {};
             
@@ -444,7 +451,13 @@ async function handleLogin(e) {
 
         sessionPassword = pass;
         appData = data.data || data; 
+        
+        // CRITICAL SAFETY CHECKS (Prevents crash if Database is empty/missing properties)
+        if(!appData.students) appData.students = [];
+        if(!appData.transactions) appData.transactions = [];
         if(!appData.notices) appData.notices = [];
+        if(!appData.files) appData.files = [];
+        if(!appData.stats) appData.stats = { income: 0, expense: 0, balance: 0 };
         
         appData.transactions.forEach(tx => {
             if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000);
@@ -505,11 +518,13 @@ function saveDatabase() {
     localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
     
     if (USE_FIREBASE_SERVER) {
-        firebase.database().ref('/').set(appData)
-        .catch(error => {
-            console.error("Firebase Sync Failed:", error);
-            alert("Database Sync Error: " + error.message);
-        });
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            firebase.database().ref('/').set(appData)
+            .catch(error => {
+                console.error("Firebase Sync Failed:", error);
+                alert("Database Sync Error: " + error.message);
+            });
+        }
     } else {
         const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
         fetch(GOOGLE_APP_URL, { 
@@ -733,7 +748,7 @@ function generateComprehensivePrint() {
         html += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 8px 5px; color: #475569;">${tx.date}</td>
-                <td style="padding: 8px 5px;"><strong>${tx.title.replace(/ \[STU.*\]/, '')}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
+                <td style="padding: 8px 5px;"><strong>${String(tx.title || "").replace(/ \[STU.*\]/, '')}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
                 <td style="padding: 8px 5px; font-weight: bold; color: ${isInc ? '#059669' : '#e11d48'}">${isInc ? 'INCOME' : 'EXPENSE'}</td>
                 <td style="padding: 8px 5px; text-align: right; font-weight: bold;">${sign}₹${tx.amount.toLocaleString('en-IN')}</td>
             </tr>
@@ -829,7 +844,7 @@ function renderAnalytics() {
     
     appData.transactions.forEach(tx => {
         if(parseFloat(tx.amount) === 0) return;
-        const dateParts = tx.date.split('-');
+        const dateParts = String(tx.date || "").split('-');
         if(dateParts.length < 2) return;
         const year = dateParts[0]; const month = dateParts[1];
         let key = ''; let sortVal = 0;
@@ -849,7 +864,7 @@ function renderAnalytics() {
     if(assumptionMode && assumptionsData.length > 0) {
         assumptionsData.forEach(tx => {
             if(parseFloat(tx.amount) === 0) return;
-            const dateParts = tx.date.split('-');
+            const dateParts = String(tx.date || "").split('-');
             const year = dateParts[0]; const month = dateParts[1];
             let key = ''; let sortVal = 0;
             
@@ -989,12 +1004,13 @@ function renderAnalyticsTable(keys, grouped) {
 function showFeeBreakdown() {
     let admission = 0, tuition = 0, exam = 0, other = 0, totalAdDiscount = 0;
     appData.transactions.forEach(tx => {
-        if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+        let title = String(tx.title || "").toLowerCase();
+        if(tx.type === 'income' && !title.includes('job desk:') && !title.includes('print desk:')) {
             const amt = parseFloat(tx.amount) || 0;
-            if(tx.title.toLowerCase().includes('admission')) admission += amt;
-            else if(tx.title.toLowerCase().includes('tuition')) tuition += amt;
-            else if(tx.title.toLowerCase().includes('exam') || tx.title.toLowerCase().includes('certificate')) exam += amt;
-            else if(tx.title.toLowerCase().includes('other')) other += amt;
+            if(title.includes('admission')) admission += amt;
+            else if(title.includes('tuition')) tuition += amt;
+            else if(title.includes('exam') || title.includes('certificate')) exam += amt;
+            else if(title.includes('other')) other += amt;
             else admission += amt; 
         }
     });
@@ -1008,8 +1024,9 @@ function showFeeBreakdown() {
 function getDynamicPaidFee(student) {
     let total = 0;
     appData.transactions.forEach(tx => {
-        if (tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
-            if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))) {
+        let title = String(tx.title || "");
+        if (tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:')) {
+            if (title.includes(`[${student.id}]`) || (title.includes(String(student.name || "UNNAMED")) && !title.includes('[STU'))) {
                 total += parseFloat(tx.amount) || 0;
             }
         }
@@ -1050,7 +1067,8 @@ function submitRegistration(e) {
 function renderStudentList() {
     let totalTuition = 0;
     appData.transactions.forEach(tx => {
-        if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+        let title = String(tx.title || "");
+        if(tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:')) {
             totalTuition += parseFloat(tx.amount) || 0;
         }
     });
@@ -1071,9 +1089,9 @@ function renderStudentList() {
     const courseSelect = document.getElementById('filter-course');
     if (courseSelect) {
         const currentVal = courseSelect.value;
-        const uniqueCourses = [...new Set(appData.students.map(s => s.course))];
+        const uniqueCourses = [...new Set(appData.students.map(s => String(s.course || "")))];
         let optionsHtml = '<option value="all">All Batches</option>';
-        uniqueCourses.forEach(c => { optionsHtml += `<option value="${c}">${c}</option>`; });
+        uniqueCourses.forEach(c => { if(c) optionsHtml += `<option value="${c}">${c}</option>`; });
         courseSelect.innerHTML = optionsHtml; courseSelect.value = uniqueCourses.includes(currentVal) ? currentVal : 'all';
     }
 
@@ -1082,7 +1100,7 @@ function renderStudentList() {
         let dues = metrics.totalOutstanding;
         if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
         
-        const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
+        const matchSearch = String(st.name || "").toLowerCase().includes(searchQ) || String(st.id || "").toLowerCase().includes(searchQ);
         const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
         const matchCourse = courseF === 'all' || st.course === courseF;
         const matchStatus = statusF === 'all' || (st.status || 'Active') === statusF;
@@ -1099,7 +1117,7 @@ function renderStudentList() {
         let dues = metrics.totalOutstanding;
         if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
 
-        const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
+        const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${String(st.name || "?").charAt(0)}</span>`;
         const card = document.createElement('div');
         card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
         card.onclick = () => selectStudent(st.id);
@@ -1118,7 +1136,10 @@ function renderMiniLedger(student) {
     const miniLedger = document.getElementById('student-mini-ledger');
     miniLedger.innerHTML = '';
     
-    const stTx = appData.transactions.filter(t => !t.title.includes('Job Desk:') && !t.title.includes('Print Desk:') && (t.title.includes(`[${student.id}]`) || (t.title.includes(student.name) && !t.title.includes('[STU'))));
+    const stTx = appData.transactions.filter(t => {
+        let title = String(t.title || "");
+        return !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(String(student.name || "UNNAMED")) && !title.includes('[STU')));
+    });
     
     if(stTx.length === 0) {
         if (student.paidFee > 0) {
@@ -1138,7 +1159,7 @@ function renderMiniLedger(student) {
     
     stTx.forEach(tx => {
         const isInc = tx.type === 'income';
-        const cleanTitle = tx.title.replace(` - ${student.name}`, '').replace(` [${student.id}]`, '');
+        const cleanTitle = String(tx.title || "").replace(` - ${student.name}`, '').replace(` [${student.id}]`, '');
         miniLedger.innerHTML += `
             <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
                 <td class="py-3 px-3 text-slate-500 font-bold">${tx.date}</td>
@@ -1166,7 +1187,7 @@ function selectStudent(id) {
     document.getElementById('active-student-gender').innerText = student.gender || "N/A";
     document.getElementById('active-student-feetype').innerText = student.feeType || "Monthly";
     document.getElementById('tuition-student-id').value = student.id;
-    document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : student.name.charAt(0);
+    document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : String(student.name || "?").charAt(0);
     document.getElementById('active-student-date').innerText = student.date || "-";
     document.getElementById('active-student-phone').innerText = student.phone || "-";
     document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
@@ -1175,7 +1196,7 @@ function selectStudent(id) {
 
     const badgeEl = document.getElementById('active-student-badge');
     if(badgeEl) {
-        if (student.status === 'Graduated') badgeEl.classList.remove('hidden');
+        if ((student.status || "") === 'Graduated') badgeEl.classList.remove('hidden');
         else badgeEl.classList.add('hidden');
     }
 
@@ -1200,9 +1221,6 @@ function selectStudent(id) {
         }
     }
 
-    // =========================================================
-    // INJECT CUSTOM NOTIFICATION BUTTON DYNAMICALLY
-    // =========================================================
     let waBtn = document.querySelector('button[title="Share via WhatsApp"]');
     if (waBtn && !document.getElementById('custom-notify-btn')) {
         let notifyBtn = document.createElement('button');
@@ -1229,7 +1247,7 @@ function renderLedger() {
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
                 <td class="py-4 px-4 text-slate-500 text-xs font-bold whitespace-nowrap">${tx.date}</td>
-                <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title.replace(/ \[STU.*\]/, '')}</td>
+                <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${String(tx.title || "").replace(/ \[STU.*\]/, '')}</td>
                 <td class="py-4 px-4 text-center">${badge}</td>
                 <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
                 <td class="py-4 px-2 text-center">
@@ -1252,7 +1270,7 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
             <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
                 <div class="flex items-center space-x-4">
                     <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
-                    <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
+                    <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${String(tx.title || "").replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
                     <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
@@ -1267,8 +1285,8 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
     });
 }
 function renderExpenseList() { renderList('expense-list', t => t.type === 'expense', '', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
-function renderJobList() { renderList('job-list', t => t.title.includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
-function renderPrintList() { renderList('print-list', t => t.title.includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
+function renderJobList() { renderList('job-list', t => String(t.title || "").includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
+function renderPrintList() { renderList('print-list', t => String(t.title || "").includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
 function openEditModal() {
     const stId = document.getElementById('tuition-student-id').value;
@@ -1335,11 +1353,12 @@ function submitEditStudent(e) {
     
     if (oldName !== newName) {
         appData.transactions.forEach(tx => {
-            if (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(oldName) && !tx.title.includes('[STU')))) { 
-                tx.title = tx.title.replace(oldName, newName); 
+            let title = String(tx.title || "");
+            if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(oldName) && !title.includes('[STU')))) { 
+                tx.title = title.replace(oldName, newName); 
             }
-            if (tx.description && (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || tx.description.includes(oldName)))) { 
-                tx.description = tx.description.replace(oldName, newName); 
+            if (tx.description && (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || String(tx.description).includes(oldName)))) { 
+                tx.description = String(tx.description).replace(oldName, newName); 
             }
         });
     }
@@ -1350,7 +1369,10 @@ function submitEditStudent(e) {
 
     if(newPaid !== oldPaid) {
         const diff = newPaid - oldPaid;
-        let targetTx = appData.transactions.find(tx => tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
+        let targetTx = appData.transactions.find(tx => {
+            let title = String(tx.title || "");
+            return tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')));
+        });
         if (targetTx) { targetTx.amount = parseFloat(targetTx.amount) + diff; if(targetTx.amount < 0) targetTx.amount = 0; }
     }
 
@@ -1406,7 +1428,8 @@ function submitExpense(e) {
 function openEditTransactionModal(txId) {
     const tx = appData.transactions.find(t => t.id === txId);
     if(!tx) return;
-    if(tx.title.includes("Tuition Fee") || tx.title.includes("Admission") || tx.title.includes("Advance")) {
+    let title = String(tx.title || "");
+    if(title.includes("Tuition Fee") || title.includes("Admission") || title.includes("Advance")) {
         alert("Please edit student payments directly from their profile in the Student Database."); return;
     }
     document.getElementById('edit-tx-id').value = tx.id; document.getElementById('edit-tx-date').value = tx.date;
@@ -1467,7 +1490,10 @@ async function executeDelete() {
             const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
             if(student) {
                 appData.students = appData.students.filter(s => s.id !== stId);
-                appData.transactions = appData.transactions.filter(tx => !(!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))));
+                appData.transactions = appData.transactions.filter(tx => {
+                    let title = String(tx.title || "");
+                    return !(!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU'))));
+                });
                 document.getElementById('tuition-placeholder').classList.remove('hidden'); document.getElementById('tuition-active').classList.add('hidden');
                 alert(`${student.name} deleted.`);
             }
@@ -1475,9 +1501,10 @@ async function executeDelete() {
             const txId = document.getElementById('delete-transaction-id').value; const txIndex = appData.transactions.findIndex(t => t.id === txId);
             if(txIndex !== -1) {
                 const tx = appData.transactions[txIndex];
-                if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
+                let title = String(tx.title || "");
+                if (title.includes('Tuition') || title.includes('Admission') || title.includes('Advance')) {
                     appData.students.forEach(student => { 
-                        if (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))) { 
+                        if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')))) { 
                             student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
                         } 
                     });
@@ -2013,11 +2040,13 @@ function saveDatabase() {
     localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
     
     if (USE_FIREBASE_SERVER) {
-        firebase.database().ref('/').set(appData)
-        .catch(error => {
-            console.error("Firebase Sync Failed:", error);
-            alert("Database Sync Error: " + error.message);
-        });
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            firebase.database().ref('/').set(appData)
+            .catch(error => {
+                console.error("Firebase Sync Failed:", error);
+                alert("Database Sync Error: " + error.message);
+            });
+        }
     } else {
         const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
         fetch(GOOGLE_APP_URL, { 
@@ -2059,6 +2088,9 @@ async function handleLogin(e) {
         let data;
         
         if (USE_FIREBASE_SERVER) {
+            if (typeof firebase === 'undefined' || !firebase.database) {
+                throw new Error("Firebase SDK missing! Please check index.html");
+            }
             const snapshot = await firebase.database().ref('/').once('value');
             const dbData = snapshot.val() || {};
             
@@ -2084,7 +2116,7 @@ async function handleLogin(e) {
                     let phoneMatch = String(s.phone).trim() === user;
                     if(phoneMatch) {
                         let firstName = String(s.name || "").trim().split(/\s+/)[0];
-                        let regYear = (s.date && s.date.length >= 4) ? s.date.substring(0, 4) : new Date().getFullYear().toString();
+                        let regYear = (s.date && s.date.length >= 4) ? String(s.date).substring(0, 4) : new Date().getFullYear().toString();
                         let expectedPass = "EI" + firstName + regYear;
                         return pass === expectedPass || pass === masterPass;
                     }
@@ -2126,7 +2158,13 @@ async function handleLogin(e) {
 
         sessionPassword = pass;
         appData = data.data || data; 
+        
+        // CRITICAL SAFETY CHECKS (Prevents crash if Database is empty/missing properties)
+        if(!appData.students) appData.students = [];
+        if(!appData.transactions) appData.transactions = [];
         if(!appData.notices) appData.notices = [];
+        if(!appData.files) appData.files = [];
+        if(!appData.stats) appData.stats = { income: 0, expense: 0, balance: 0 };
         
         appData.transactions.forEach(tx => {
             if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000);
@@ -2385,7 +2423,7 @@ function generateComprehensivePrint() {
         html += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 8px 5px; color: #475569;">${tx.date}</td>
-                <td style="padding: 8px 5px;"><strong>${tx.title.replace(/ \[STU.*\]/, '')}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
+                <td style="padding: 8px 5px;"><strong>${String(tx.title || "").replace(/ \[STU.*\]/, '')}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
                 <td style="padding: 8px 5px; font-weight: bold; color: ${isInc ? '#059669' : '#e11d48'}">${isInc ? 'INCOME' : 'EXPENSE'}</td>
                 <td style="padding: 8px 5px; text-align: right; font-weight: bold;">${sign}₹${tx.amount.toLocaleString('en-IN')}</td>
             </tr>
@@ -2460,7 +2498,7 @@ function renderAssumedList() {
         assumptionsData.forEach(a => {
             const sign = a.type === 'income' ? '+' : '-';
             const color = a.type === 'income' ? 'text-emerald-600' : 'text-rose-600';
-            list.innerHTML += `<li class="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100 shadow-sm"><span class="font-bold text-slate-700">${a.date.substring(0,7)} <span class="text-[10px] text-slate-400 ml-1 truncate">(${a.title})</span></span> <span class="font-black ${color}">${sign}₹${a.amount}</span></li>`;
+            list.innerHTML += `<li class="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100 shadow-sm"><span class="font-bold text-slate-700">${String(a.date || "").substring(0,7)} <span class="text-[10px] text-slate-400 ml-1 truncate">(${a.title})</span></span> <span class="font-black ${color}">${sign}₹${a.amount}</span></li>`;
         });
     } else {
         container.classList.add('hidden');
@@ -2481,7 +2519,7 @@ function renderAnalytics() {
     
     appData.transactions.forEach(tx => {
         if(parseFloat(tx.amount) === 0) return;
-        const dateParts = tx.date.split('-');
+        const dateParts = String(tx.date || "").split('-');
         if(dateParts.length < 2) return;
         const year = dateParts[0]; const month = dateParts[1];
         let key = ''; let sortVal = 0;
@@ -2501,7 +2539,7 @@ function renderAnalytics() {
     if(assumptionMode && assumptionsData.length > 0) {
         assumptionsData.forEach(tx => {
             if(parseFloat(tx.amount) === 0) return;
-            const dateParts = tx.date.split('-');
+            const dateParts = String(tx.date || "").split('-');
             const year = dateParts[0]; const month = dateParts[1];
             let key = ''; let sortVal = 0;
             
@@ -2641,12 +2679,13 @@ function renderAnalyticsTable(keys, grouped) {
 function showFeeBreakdown() {
     let admission = 0, tuition = 0, exam = 0, other = 0, totalAdDiscount = 0;
     appData.transactions.forEach(tx => {
-        if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+        let title = String(tx.title || "").toLowerCase();
+        if(tx.type === 'income' && !title.includes('job desk:') && !title.includes('print desk:')) {
             const amt = parseFloat(tx.amount) || 0;
-            if(tx.title.toLowerCase().includes('admission')) admission += amt;
-            else if(tx.title.toLowerCase().includes('tuition')) tuition += amt;
-            else if(tx.title.toLowerCase().includes('exam') || tx.title.toLowerCase().includes('certificate')) exam += amt;
-            else if(tx.title.toLowerCase().includes('other')) other += amt;
+            if(title.includes('admission')) admission += amt;
+            else if(title.includes('tuition')) tuition += amt;
+            else if(title.includes('exam') || title.includes('certificate')) exam += amt;
+            else if(title.includes('other')) other += amt;
             else admission += amt; 
         }
     });
@@ -2660,8 +2699,9 @@ function showFeeBreakdown() {
 function getDynamicPaidFee(student) {
     let total = 0;
     appData.transactions.forEach(tx => {
-        if (tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
-            if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))) {
+        let title = String(tx.title || "");
+        if (tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:')) {
+            if (title.includes(`[${student.id}]`) || (title.includes(String(student.name || "UNNAMED")) && !title.includes('[STU'))) {
                 total += parseFloat(tx.amount) || 0;
             }
         }
@@ -2702,7 +2742,8 @@ function submitRegistration(e) {
 function renderStudentList() {
     let totalTuition = 0;
     appData.transactions.forEach(tx => {
-        if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+        let title = String(tx.title || "");
+        if(tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:')) {
             totalTuition += parseFloat(tx.amount) || 0;
         }
     });
@@ -2723,9 +2764,9 @@ function renderStudentList() {
     const courseSelect = document.getElementById('filter-course');
     if (courseSelect) {
         const currentVal = courseSelect.value;
-        const uniqueCourses = [...new Set(appData.students.map(s => s.course))];
+        const uniqueCourses = [...new Set(appData.students.map(s => String(s.course || "")))];
         let optionsHtml = '<option value="all">All Batches</option>';
-        uniqueCourses.forEach(c => { optionsHtml += `<option value="${c}">${c}</option>`; });
+        uniqueCourses.forEach(c => { if(c) optionsHtml += `<option value="${c}">${c}</option>`; });
         courseSelect.innerHTML = optionsHtml; courseSelect.value = uniqueCourses.includes(currentVal) ? currentVal : 'all';
     }
 
@@ -2734,7 +2775,7 @@ function renderStudentList() {
         let dues = metrics.totalOutstanding;
         if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
         
-        const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
+        const matchSearch = String(st.name || "").toLowerCase().includes(searchQ) || String(st.id || "").toLowerCase().includes(searchQ);
         const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
         const matchCourse = courseF === 'all' || st.course === courseF;
         const matchStatus = statusF === 'all' || (st.status || 'Active') === statusF;
@@ -2751,7 +2792,7 @@ function renderStudentList() {
         let dues = metrics.totalOutstanding;
         if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
 
-        const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
+        const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${String(st.name || "?").charAt(0)}</span>`;
         const card = document.createElement('div');
         card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
         card.onclick = () => selectStudent(st.id);
@@ -2770,7 +2811,10 @@ function renderMiniLedger(student) {
     const miniLedger = document.getElementById('student-mini-ledger');
     miniLedger.innerHTML = '';
     
-    const stTx = appData.transactions.filter(t => !t.title.includes('Job Desk:') && !t.title.includes('Print Desk:') && (t.title.includes(`[${student.id}]`) || (t.title.includes(student.name) && !t.title.includes('[STU'))));
+    const stTx = appData.transactions.filter(t => {
+        let title = String(t.title || "");
+        return !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(String(student.name || "UNNAMED")) && !title.includes('[STU')));
+    });
     
     if(stTx.length === 0) {
         if (student.paidFee > 0) {
@@ -2790,7 +2834,7 @@ function renderMiniLedger(student) {
     
     stTx.forEach(tx => {
         const isInc = tx.type === 'income';
-        const cleanTitle = tx.title.replace(` - ${student.name}`, '').replace(` [${student.id}]`, '');
+        const cleanTitle = String(tx.title || "").replace(` - ${student.name}`, '').replace(` [${student.id}]`, '');
         miniLedger.innerHTML += `
             <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
                 <td class="py-3 px-3 text-slate-500 font-bold">${tx.date}</td>
@@ -2818,7 +2862,7 @@ function selectStudent(id) {
     document.getElementById('active-student-gender').innerText = student.gender || "N/A";
     document.getElementById('active-student-feetype').innerText = student.feeType || "Monthly";
     document.getElementById('tuition-student-id').value = student.id;
-    document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : student.name.charAt(0);
+    document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : String(student.name || "?").charAt(0);
     document.getElementById('active-student-date').innerText = student.date || "-";
     document.getElementById('active-student-phone').innerText = student.phone || "-";
     document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
@@ -2827,7 +2871,7 @@ function selectStudent(id) {
 
     const badgeEl = document.getElementById('active-student-badge');
     if(badgeEl) {
-        if (student.status === 'Graduated') badgeEl.classList.remove('hidden');
+        if ((student.status || "") === 'Graduated') badgeEl.classList.remove('hidden');
         else badgeEl.classList.add('hidden');
     }
 
@@ -2852,9 +2896,6 @@ function selectStudent(id) {
         }
     }
 
-    // =========================================================
-    // INJECT CUSTOM NOTIFICATION BUTTON DYNAMICALLY
-    // =========================================================
     let waBtn = document.querySelector('button[title="Share via WhatsApp"]');
     if (waBtn && !document.getElementById('custom-notify-btn')) {
         let notifyBtn = document.createElement('button');
@@ -2881,7 +2922,7 @@ function renderLedger() {
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
                 <td class="py-4 px-4 text-slate-500 text-xs font-bold whitespace-nowrap">${tx.date}</td>
-                <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title.replace(/ \[STU.*\]/, '')}</td>
+                <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${String(tx.title || "").replace(/ \[STU.*\]/, '')}</td>
                 <td class="py-4 px-4 text-center">${badge}</td>
                 <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
                 <td class="py-4 px-2 text-center">
@@ -2904,7 +2945,7 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
             <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
                 <div class="flex items-center space-x-4">
                     <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
-                    <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
+                    <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${String(tx.title || "").replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
                     <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
@@ -2919,8 +2960,8 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
     });
 }
 function renderExpenseList() { renderList('expense-list', t => t.type === 'expense', '', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
-function renderJobList() { renderList('job-list', t => t.title.includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
-function renderPrintList() { renderList('print-list', t => t.title.includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
+function renderJobList() { renderList('job-list', t => String(t.title || "").includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
+function renderPrintList() { renderList('print-list', t => String(t.title || "").includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
 function openEditModal() {
     const stId = document.getElementById('tuition-student-id').value;
@@ -2987,11 +3028,12 @@ function submitEditStudent(e) {
     
     if (oldName !== newName) {
         appData.transactions.forEach(tx => {
-            if (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(oldName) && !tx.title.includes('[STU')))) { 
-                tx.title = tx.title.replace(oldName, newName); 
+            let title = String(tx.title || "");
+            if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(oldName) && !title.includes('[STU')))) { 
+                tx.title = title.replace(oldName, newName); 
             }
-            if (tx.description && (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || tx.description.includes(oldName)))) { 
-                tx.description = tx.description.replace(oldName, newName); 
+            if (tx.description && (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || String(tx.description).includes(oldName)))) { 
+                tx.description = String(tx.description).replace(oldName, newName); 
             }
         });
     }
@@ -3002,7 +3044,10 @@ function submitEditStudent(e) {
 
     if(newPaid !== oldPaid) {
         const diff = newPaid - oldPaid;
-        let targetTx = appData.transactions.find(tx => tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
+        let targetTx = appData.transactions.find(tx => {
+            let title = String(tx.title || "");
+            return tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')));
+        });
         if (targetTx) { targetTx.amount = parseFloat(targetTx.amount) + diff; if(targetTx.amount < 0) targetTx.amount = 0; }
     }
 
@@ -3049,630 +3094,4 @@ function submitPrintIncome(e) {
 function submitExpense(e) {
     e.preventDefault();
     const date = document.getElementById('exp-date').value; const category = document.getElementById('exp-category').value;
-    const amount = document.getElementById('exp-amount').value; const desc = document.getElementById('exp-desc').value;
-    if(parseFloat(amount) > appData.stats.balance && !confirm("Expense is greater than balance. Proceed?")) return;
-    recordTransaction("expense", category, amount, date, desc);
-    e.target.reset(); setDefaultDates();
-}
-
-function openEditTransactionModal(txId) {
-    const tx = appData.transactions.find(t => t.id === txId);
-    if(!tx) return;
-    if(tx.title.includes("Tuition Fee") || tx.title.includes("Admission") || tx.title.includes("Advance")) {
-        alert("Please edit student payments directly from their profile in the Student Database."); return;
-    }
-    document.getElementById('edit-tx-id').value = tx.id; document.getElementById('edit-tx-date').value = tx.date;
-    document.getElementById('edit-tx-title').value = tx.title; document.getElementById('edit-tx-amount').value = tx.amount;
-    document.getElementById('edit-tx-desc').value = tx.description || '';
-    const modal = document.getElementById('edit-transaction-modal');
-    modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
-}
-
-function closeEditTransactionModal() {
-    const modal = document.getElementById('edit-transaction-modal'); modal.classList.add('opacity-0'); modal.querySelector('div').classList.add('scale-95');
-    setTimeout(() => modal.classList.add('hidden'), 300);
-}
-
-function submitEditTransaction(e) {
-    e.preventDefault();
-    const txId = document.getElementById('edit-tx-id').value; const tx = appData.transactions.find(t => t.id === txId);
-    if(!tx) return;
-    tx.date = document.getElementById('edit-tx-date').value; tx.title = document.getElementById('edit-tx-title').value;
-    tx.amount = parseFloat(document.getElementById('edit-tx-amount').value); tx.description = document.getElementById('edit-tx-desc').value;
-    recalculateStats(); saveDatabase(); refreshAllUI(); closeEditTransactionModal(); alert("Record updated successfully!");
-}
-
-function deleteTransaction(txId) { openDeleteModal(txId, false); }
-
-function openDeleteModal(id = null, isStudent = true) {
-    if(isStudent) {
-        const stId = document.getElementById('tuition-student-id').value; const student = appData.students.find(s => s.id === stId);
-        if(!student) return;
-        document.getElementById('delete-student-name').innerText = student.name; document.getElementById('delete-student-flag').value = 'true';
-    } else {
-        document.getElementById('delete-student-name').innerText = "this record"; document.getElementById('delete-transaction-id').value = id;
-        document.getElementById('delete-student-flag').value = 'false';
-    }
-    document.getElementById('delete-password-input').value = ''; document.getElementById('delete-error').classList.add('hidden');
-    const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
-    modal.classList.remove('hidden'); setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
-}
-
-function closeDeleteModal() {
-    const modal = document.getElementById('delete-student-modal'); const content = document.getElementById('delete-modal-content');
-    modal.classList.add('opacity-0'); content.classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300);
-}
-
-async function executeDelete() {
-    const pass = document.getElementById('delete-password-input').value;
-    const errorMsg = document.getElementById('delete-error');
-    const btnText = document.getElementById('delete-btn-text');
-    const isStudent = document.getElementById('delete-student-flag').value === 'true';
-
-    if(!pass) return;
-    if (pass !== 'admin') { errorMsg.classList.remove('hidden'); return; }
-
-    errorMsg.classList.add('hidden'); btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
-
-    setTimeout(() => {
-        if(isStudent) {
-            const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
-            if(student) {
-                appData.students = appData.students.filter(s => s.id !== stId);
-                appData.transactions = appData.transactions.filter(tx => !(!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))));
-                document.getElementById('tuition-placeholder').classList.remove('hidden'); document.getElementById('tuition-active').classList.add('hidden');
-                alert(`${student.name} deleted.`);
-            }
-        } else {
-            const txId = document.getElementById('delete-transaction-id').value; const txIndex = appData.transactions.findIndex(t => t.id === txId);
-            if(txIndex !== -1) {
-                const tx = appData.transactions[txIndex];
-                if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
-                    appData.students.forEach(student => { 
-                        if (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))) { 
-                            student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
-                        } 
-                    });
-                }
-                appData.transactions.splice(txIndex, 1);
-                alert("Record deleted successfully.");
-            }
-        }
-        recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal(); btnText.innerHTML = 'Confirm Delete';
-    }, 300);
-}
-
-// =========================================
-// FIREBASE & COMPRESSION LOGIC
-// =========================================
-
-function compressDocumentImage(file, callback) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas'); 
-            const ctx = canvas.getContext('2d');
-            const MAX_SIZE = 800;
-            let width = img.width, height = img.height;
-            
-            if (width > height) { 
-                if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } 
-            } else { 
-                if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } 
-            }
-            
-            canvas.width = width; 
-            canvas.height = height; 
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            canvas.toBlob((blob) => {
-                const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
-                callback(compressedFile);
-            }, 'image/jpeg', 0.6); 
-        }
-        img.src = e.target.result;
-    }
-    reader.readAsDataURL(file);
-}
-
-async function compressPDF(file, callback, buttonSelector = 'label[for="student-doc-upload"]') {
-    try {
-        const uploadLabel = document.querySelector(buttonSelector);
-        let originalHTML = "";
-        if(uploadLabel) {
-            originalHTML = uploadLabel.innerHTML;
-            uploadLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Compressing...';
-            uploadLabel.classList.add('opacity-70', 'pointer-events-none');
-        }
-
-        if (!window.pdfjsLib) {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-            document.head.appendChild(script);
-            await new Promise(resolve => script.onload = resolve);
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-        }
-
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await window.pdfjsLib.getDocument(arrayBuffer).promise;
-        const newPdfDoc = await PDFLib.PDFDocument.create();
-        
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const unscaledViewport = page.getViewport({ scale: 1.0 });
-            const scaleFactor = Math.min(1.0, 800 / unscaledViewport.width); 
-            const viewport = page.getViewport({ scale: scaleFactor }); 
-            
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-            const imgData = canvas.toDataURL('image/jpeg', 0.5); 
-            
-            const img = await newPdfDoc.embedJpg(imgData);
-            const newPage = newPdfDoc.addPage([viewport.width, viewport.height]);
-            newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
-        }
-        
-        const pdfBytes = await newPdfDoc.save({ useObjectStreams: true });
-        const compressedBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-        let finalFile = new File([compressedBlob], file.name, { type: 'application/pdf', lastModified: Date.now() });
-        
-        if(uploadLabel) {
-            uploadLabel.innerHTML = originalHTML;
-            uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
-        }
-        
-        if(finalFile.size >= file.size) { finalFile = file; }
-        callback(finalFile);
-
-    } catch (error) {
-        console.error("PDF Rasterization failed:", error);
-        const uploadLabel = document.querySelector(buttonSelector);
-        if(uploadLabel) {
-            uploadLabel.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload';
-            uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
-        }
-        alert("Heavy PDF detected. Bypassing compression to prevent browser crash.");
-        callback(file); 
-    }
-}
-
-function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
-    if (USE_FIREBASE_SERVER) {
-        if (!appData.files) appData.files = [];
-        appData.files.push({
-            id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
-            date: new Date().toISOString().split('T')[0], folder: folderName
-        });
-        saveDatabase();
-        if(callback) {
-            callback();
-        } else {
-            const stId = document.getElementById('tuition-student-id').value;
-            renderStudentFiles(stId);
-        }
-        return;
-    }
-
-    const payload = { 
-        action: 'add_file', 
-        pass: sessionPassword, 
-        name: name, 
-        category: category, 
-        target: target, 
-        url: url, 
-        path: path, 
-        size: size, 
-        folder: folderName 
-    };
-    
-    fetch(GOOGLE_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "text/plain;charset=utf-8" }
-    })
-    .then(res => res.json())
-    .then(result => {
-        if(result.success) {
-            if (!appData.files) appData.files = [];
-            appData.files.push({
-                id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
-                date: new Date().toISOString().split('T')[0], folder: folderName
-            });
-            if(callback) {
-                callback();
-            } else {
-                const stId = document.getElementById('tuition-student-id').value;
-                renderStudentFiles(stId);
-            }
-        } else {
-            alert("Error saving file record to database: " + result.error);
-        }
-    })
-    .catch(error => {
-        console.error("Database save failed:", error);
-        alert("Database connection failed while saving file record.");
-    });
-}
-
-function handleStudentFileUpload(event) {
-    const originalFile = event.target.files[0];
-    if (!originalFile) return;
-    
-    const stId = document.getElementById('tuition-student-id').value;
-    const student = appData.students.find(s => s.id === stId);
-    if (!student) return;
-
-    const uploadToFirebase = (fileToUpload) => {
-        const storageRef = firebase.storage().ref();
-        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filePath = `vault/${Date.now()}_${safeName}`;
-        const fileRef = storageRef.child(filePath);
-
-        const progressBar = document.getElementById('upload-progress-bar');
-        const progressContainer = document.getElementById('upload-progress-container');
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
-
-        const uploadTask = fileRef.put(fileToUpload);
-
-        uploadTask.on('state_changed', 
-            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => {
-                alert("File upload to Vault failed!\n\nFirebase Error: " + error.code + "\nMessage: " + error.message);
-                progressContainer.classList.add('hidden');
-                document.getElementById('student-doc-upload').value = '';
-            }, 
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    progressContainer.classList.add('hidden');
-                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                    const targetVal = (student.phone && student.phone.toString().trim() !== "") ? String(student.phone).trim() : student.id;
-                    const formattedFileName = "Certificate - " + student.name;
-                    
-                    saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
-                        renderStudentFiles(stId);
-                        alert("Document saved securely to Vault!");
-                    });
-                    document.getElementById('student-doc-upload').value = '';
-                });
-            }
-        );
-    };
-
-    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else uploadToFirebase(originalFile);
-}
-
-function submitMaterialUpload(e) {
-    e.preventDefault();
-    const title = document.getElementById('hub-mat-title').value.trim();
-    const folder = document.getElementById('hub-mat-folder').value.trim() || 'General';
-    const target = document.getElementById('hub-mat-target').value.trim();
-    const fileInput = document.getElementById('hub-mat-file');
-    const originalFile = fileInput.files[0];
-    
-    if (!originalFile) return alert("Please select a file.");
-
-    const btn = document.getElementById('btn-mat-upload');
-    const originalBtnText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
-    btn.disabled = true;
-
-    const uploadToFirebase = (fileToUpload) => {
-        const storageRef = firebase.storage().ref();
-        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filePath = `vault/${Date.now()}_${safeName}`;
-        const fileRef = storageRef.child(filePath);
-
-        const progressBar = document.getElementById('mat-progress-bar');
-        const progressContainer = document.getElementById('mat-progress-container');
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
-
-        const uploadTask = fileRef.put(fileToUpload);
-
-        uploadTask.on('state_changed', 
-            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => {
-                alert("Upload failed: " + error.message);
-                progressContainer.classList.add('hidden');
-                btn.innerHTML = originalBtnText;
-                btn.disabled = false;
-            }, 
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    progressContainer.classList.add('hidden');
-                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                    saveFileToDatabase(title, "Material", target.toUpperCase(), downloadURL, filePath, sizeMB, folder, () => {
-                        e.target.reset();
-                        btn.innerHTML = originalBtnText;
-                        btn.disabled = false;
-                        renderHubFiles();
-                        alert("Material Published Successfully!");
-                    });
-                });
-            }
-        );
-    };
-
-    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else uploadToFirebase(originalFile);
-}
-
-function submitAssignmentUpload(e) {
-    e.preventDefault();
-    const title = document.getElementById('hub-ass-title').value.trim();
-    const target = document.getElementById('hub-ass-target').value.trim();
-    const fileInput = document.getElementById('hub-ass-file');
-    const originalFile = fileInput.files[0];
-    
-    if (!originalFile) return alert("Please select a file.");
-
-    const btn = document.getElementById('btn-ass-upload');
-    const originalBtnText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
-    btn.disabled = true;
-
-    const uploadToFirebase = (fileToUpload) => {
-        const storageRef = firebase.storage().ref();
-        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filePath = `vault/${Date.now()}_${safeName}`;
-        const fileRef = storageRef.child(filePath);
-
-        const progressBar = document.getElementById('ass-progress-bar');
-        const progressContainer = document.getElementById('ass-progress-container');
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
-
-        const uploadTask = fileRef.put(fileToUpload);
-
-        uploadTask.on('state_changed', 
-            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => {
-                alert("Upload failed: " + error.message);
-                progressContainer.classList.add('hidden');
-                btn.innerHTML = originalBtnText;
-                btn.disabled = false;
-            }, 
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    progressContainer.classList.add('hidden');
-                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                    saveFileToDatabase(title, "Assignment", target.toUpperCase(), downloadURL, filePath, sizeMB, "Assignments", () => {
-                        e.target.reset();
-                        btn.innerHTML = originalBtnText;
-                        btn.disabled = false;
-                        renderHubFiles();
-                        alert("Assignment Published Successfully!");
-                    });
-                });
-            }
-        );
-    };
-
-    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else uploadToFirebase(originalFile);
-}
-
-function renderStudentFiles(stId) {
-    const listEl = document.getElementById('student-files-list');
-    if(!listEl) return;
-    listEl.innerHTML = '';
-    
-    const student = appData.students.find(s => s.id === stId);
-    const stPhone = student ? String(student.phone).trim() : "NONE";
-
-    if (!appData.files) appData.files = [];
-    const stFiles = appData.files.filter(f => {
-        const t = String(f.target).trim();
-        return (t === stId || t === stPhone) && f.folder === "Certificates";
-    });
-    
-    if (stFiles.length === 0) {
-        listEl.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No documents stored yet.</td></tr>';
-        return;
-    }
-    
-    stFiles.forEach(f => {
-        listEl.innerHTML += `
-            <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
-                <td class="py-3 px-3 text-slate-500 font-bold text-[10px]">${f.date}</td>
-                <td class="py-3 px-3 text-slate-800 font-bold max-w-[150px] truncate" title="${f.name}">
-                    <a href="${f.url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name}</a>
-                </td>
-                <td class="py-3 px-2 text-center">
-                    <button type="button" onclick="deleteStudentFile('${f.path}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Document"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>
-        `;
-    });
-}
-
-function renderHubFiles() {
-    const listEl = document.getElementById('hub-files-list');
-    if(!listEl) return;
-    listEl.innerHTML = '';
-    
-    if (!appData.files) appData.files = [];
-    const hubFiles = appData.files.filter(f => f.category === 'Material' || f.category === 'Assignment');
-    
-    if (hubFiles.length === 0) {
-        listEl.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No hub files found.</td></tr>';
-        return;
-    }
-    
-    hubFiles.slice().reverse().forEach(f => {
-        listEl.innerHTML += `
-            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
-                <td class="py-3 px-4 text-slate-500 font-bold text-xs">${f.date}</td>
-                <td class="py-3 px-4 text-indigo-600 font-bold text-xs">${f.category}</td>
-                <td class="py-3 px-4 text-slate-600 font-bold text-xs">${f.target} / ${f.folder}</td>
-                <td class="py-3 px-4 text-slate-800 font-bold text-xs max-w-[150px] truncate" title="${f.name}">
-                    <a href="${f.url}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name}</a>
-                </td>
-                <td class="py-3 px-2 text-center">
-                    <button type="button" onclick="deleteHubFile('${f.path}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>
-        `;
-    });
-}
-
-function deleteStudentFile(path, fileId) {
-    if(!confirm("Are you sure you want to permanently delete this document?")) return;
-    
-    const storageRef = firebase.storage().ref();
-    const fileRef = storageRef.child(path);
-    
-    fileRef.delete().then(() => {
-        if (USE_FIREBASE_SERVER) {
-            appData.files = appData.files.filter(f => f.id !== fileId);
-            saveDatabase();
-            const stId = document.getElementById('tuition-student-id').value;
-            renderStudentFiles(stId);
-            return;
-        }
-
-        const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } })
-        .then(res => res.json())
-        .then(result => {
-            if(result.success) {
-                appData.files = appData.files.filter(f => f.id !== fileId);
-                const stId = document.getElementById('tuition-student-id').value;
-                renderStudentFiles(stId);
-            }
-        });
-    }).catch((error) => {
-        console.error("Firebase deletion failed:", error);
-        if (!USE_FIREBASE_SERVER) {
-            const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-            fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
-            .then(res => res.json())
-            .then(result => {
-                appData.files = appData.files.filter(f => f.id !== fileId);
-                const stId = document.getElementById('tuition-student-id').value;
-                renderStudentFiles(stId);
-            });
-        }
-    });
-}
-
-function deleteHubFile(path, fileId) {
-    if(!confirm("Are you sure you want to delete this file from the hub?")) return;
-    
-    const storageRef = firebase.storage().ref();
-    const fileRef = storageRef.child(path);
-    
-    fileRef.delete().then(() => {
-        if (USE_FIREBASE_SERVER) {
-            appData.files = appData.files.filter(f => f.id !== fileId);
-            saveDatabase();
-            renderHubFiles();
-            return;
-        }
-
-        const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } })
-        .then(res => res.json())
-        .then(result => {
-            if(result.success) {
-                appData.files = appData.files.filter(f => f.id !== fileId);
-                renderHubFiles();
-            }
-        });
-    }).catch((error) => {
-        console.error("Firebase deletion failed:", error);
-        if (!USE_FIREBASE_SERVER) {
-            const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-            fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
-            .then(res => res.json())
-            .then(result => {
-                appData.files = appData.files.filter(f => f.id !== fileId);
-                renderHubFiles();
-            });
-        }
-    });
-}
-
-// =========================================
-// BROADCAST / ALERTS LOGIC
-// =========================================
-function submitBroadcast(e) {
-    e.preventDefault();
-    const target = document.getElementById('bc-target').value.trim();
-    const title = document.getElementById('bc-title').value.trim();
-    const message = document.getElementById('bc-message').value.trim();
-    
-    const now = new Date();
-    const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
-    const dateString = now.toLocaleString('en-IN', options).replace(/am/i, 'AM').replace(/pm/i, 'PM');
-    
-    if (!appData.notices) appData.notices = [];
-    
-    appData.notices.unshift({
-        title: '📢 ' + title,
-        message: 'Target: ' + target.toUpperCase() + '\n\n' + message,
-        date: dateString
-    });
-    
-    saveDatabase();
-    renderBroadcastList();
-    e.target.reset();
-    alert("Broadcast Alert Sent!");
-}
-
-function renderBroadcastList() {
-    const listEl = document.getElementById('broadcast-list');
-    if(!listEl) return;
-    listEl.innerHTML = '';
-    
-    if (!appData.notices || appData.notices.length === 0) {
-        listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-satellite-dish text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No broadcasts sent yet.</p></div>';
-        return;
-    }
-    
-    appData.notices.forEach((n, index) => {
-        listEl.innerHTML += `
-            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 mb-3 shadow-sm flex justify-between items-start">
-                <div class="flex-1 mr-4">
-                    <h4 class="font-bold text-slate-800 text-base">${n.title}</h4>
-                    <p class="text-[10px] text-amber-600 font-bold uppercase tracking-wider mb-2">${n.date}</p>
-                    <p class="text-sm text-slate-600 whitespace-pre-wrap">${n.message}</p>
-                </div>
-                <button type="button" onclick="deleteBroadcast(${index})" class="text-rose-400 hover:text-rose-600 p-2 transition-colors"><i class="fa-solid fa-trash"></i></button>
-            </div>
-        `;
-    });
-}
-
-function deleteBroadcast(index) {
-    if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
-    appData.notices.splice(index, 1);
-    saveDatabase();
-    renderBroadcastList();
-}
-
-// =========================================
-// DATA SAVING LOGIC (Server Switch aware)
-// =========================================
-function saveDatabase() {
-    localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-    
-    if (USE_FIREBASE_SERVER) {
-        firebase.database().ref('/').set(appData)
-        .catch(error => {
-            console.error("Firebase Sync Failed:", error);
-            alert("Database Sync Error: " + error.message);
-        });
-    } else {
-        const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
-        fetch(GOOGLE_APP_URL, { 
-            method: 'POST', 
-            body: JSON.stringify(payload), 
-            headers: { "Content-I seem to be encountering an error. Can I try something else for you?
+    const amount = document.getElementById('I'm having a hard time fulfilling your request. Can I help you with something else instead?
