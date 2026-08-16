@@ -7,7 +7,7 @@ const USE_FIREBASE_SERVER = false;
 
 const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
 
-// Initialize Firebase Storage & Database
+// Initialize Firebase Storage
 const firebaseConfig = {
     storageBucket: "excellent-institute-vault.firebasestorage.app",
     databaseURL: "https://excellent-institute-vault-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -35,7 +35,7 @@ function shareTransactionWA(txId) {
     const tx = appData.transactions.find(t => t.id === txId);
     if(!tx) return;
     const isInc = tx.type === 'income';
-    let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}%0A*Title:* ${tx.title.replace(/ \[STU.*\]/, '')}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
+    let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}\%0A*Title:*${String(tx.title || "").replace(/ \[STU.*\]/, '')}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
     if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
     
     const link = document.createElement('a');
@@ -47,72 +47,172 @@ function shareTransactionWA(txId) {
 }
 
 // =========================================================
-// UNIFIED DUE CALCULATION ENGINE (Synced with Android)
+// UNIFIED DUE CALCULATION ENGINE (Exact Match to Dart Code)
+// Fixes the 31st/28th Loophole & Ad Wallet Discrepancy
 // =========================================================
 function calculateExactDues(student) {
-    let safeParse = (val) => parseFloat(String(val).replace(/,/g, '').trim()) || 0;
+    let safeParse = (val) => {
+        if (!val) return 0.0;
+        return parseFloat(String(val).replace(/,/g, '').trim()) || 0.0;
+    };
     
-    let totalFee = safeParse(student.totalFee) || safeParse(student['Total Course Fee']);
-    let adDiscount = safeParse(student.adWallet);
-    let actualPaid = getDynamicPaidFee(student);
+    let totalFee = safeParse(student.totalFee);
+    if (totalFee === 0) totalFee = safeParse(student['Total Course Fee']);
     
-    let totalOutstanding = totalFee - actualPaid - adDiscount;
-    if (totalOutstanding < 0) totalOutstanding = 0;
+    let paidFee = 0.0;
+    const paidKeys = ['paidFee', 'Advance/Paid', 'advance/paid', 'Advance', 'paid'];
+    for (let key of paidKeys) {
+        paidFee = safeParse(student[key]);
+        if (paidFee > 0) break;
+    }
 
-    let feeStructure = (student.feeType || student.feeStructure || student['Fee Structure'] || 'Monthly').toString().trim();
-    let durationMonths = parseInt(student.duration) || 12;
-    let match = (student.course || "").toString().match(/(\d+)\s*(month|mth|mon)/i);
-    if (match) durationMonths = parseInt(match[1]);
+    let stTx = appData.transactions.filter(tx => {
+        let title = String(tx.title || "");
+        let sName = String(student.name || "UNNAMED");
+        return tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(sName) && !title.includes('[STU')));
+    });
+    
+    let totalTxPaid = 0.0;
+    stTx.forEach(tx => totalTxPaid += safeParse(tx.amount));
+    
+    let actualPaid = totalTxPaid > paidFee ? totalTxPaid : paidFee;
+    let adWallet = safeParse(student.adWallet);
+    
+    let totalOutstanding = totalFee - actualPaid - adWallet;
+    if (totalOutstanding < 0) totalOutstanding = 0.0;
 
-    let currentMonthDue = 0;
+    let feeStructure = (student.feeType || student.feeStructure || student['Fee Structure'] || student.fee_structure || 'Monthly').toString().trim();
+    let durationMonths = 12;
+    let courseStr = (student.course || student.Course || "").toString();
+    let match = courseStr.match(/(\d+)\s*(month|mth|mon)/i);
+    if (match && parseInt(match[1])) {
+        durationMonths = parseInt(match[1]);
+    } else {
+        let explicitDuration = parseInt(student.duration || student.Duration) || 0;
+        if (explicitDuration > 0) durationMonths = explicitDuration;
+    }
+
+    let currentMonthDue = 0.0;
 
     if (feeStructure.toLowerCase().includes('one-time') || feeStructure.toLowerCase().includes('onetime') || feeStructure.toLowerCase().includes('lumpsum')) {
         currentMonthDue = totalOutstanding;
     } else {
-        let advanceFee = safeParse(student.advance) || safeParse(student.Advance) || safeParse(student.advanceFee);
-        let stTx = appData.transactions.filter(tx => tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
-        
-        if (advanceFee === 0 && stTx.length > 0) {
+        let initialAdvance = 0.0;
+        if (stTx.length > 0) {
             let sortedTx = [...stTx].sort((a,b) => new Date(a.date) - new Date(b.date));
-            advanceFee = safeParse(sortedTx[0].amount);
-        }
-        if (advanceFee === 0) advanceFee = actualPaid;
-        if (advanceFee > actualPaid) advanceFee = actualPaid;
-        if (advanceFee > totalFee) advanceFee = totalFee;
-
-        let monthsPassed = 0;
-        let dateStr = (student.date || student['Admission Date'] || "").toString();
-        if (dateStr) {
-            let adDate = new Date(dateStr.split('T')[0]);
-            if (!isNaN(adDate.getTime())) {
-                let today = new Date();
-                monthsPassed = (today.getFullYear() - adDate.getFullYear()) * 12 + today.getMonth() - adDate.getMonth();
-                
-                let targetDay = adDate.getDate();
-                let daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-                if (targetDay > daysInCurrentMonth) targetDay = daysInCurrentMonth;
-                if (today.getDate() < targetDay) monthsPassed--;
-                if (monthsPassed < 0) monthsPassed = 0;
-            }
+            initialAdvance = safeParse(sortedTx[0].amount);
         } else {
-            monthsPassed = stTx.length;
+            initialAdvance = paidFee;
         }
 
-        let installmentMonths = durationMonths - 1;
-        if (installmentMonths < 1) installmentMonths = 1;
+        if (initialAdvance > actualPaid) initialAdvance = actualPaid;
+        if (initialAdvance > totalFee) initialAdvance = totalFee;
 
-        let baseInstallment = (totalFee - advanceFee) / installmentMonths;
-        let billableMonths = monthsPassed > installmentMonths ? installmentMonths : monthsPassed;
-        let expectedPaidByNow = advanceFee + (baseInstallment * billableMonths);
-
-        currentMonthDue = Math.ceil(expectedPaidByNow - (actualPaid + adDiscount));
+        let elapsedMonths = 0;
+        let dateStr = (student.date || student['Admission Date'] || "").toString();
         
-        if (currentMonthDue < 0) currentMonthDue = 0;
+        try {
+            if (dateStr) {
+                let adDateStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+                let adDate;
+                if (adDateStr.includes('-')) {
+                    adDate = new Date(adDateStr);
+                } else if (adDateStr.includes('/')) {
+                    let parts = adDateStr.split('/');
+                    if (parts.length === 3) adDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+
+                if (adDate && !isNaN(adDate.getTime())) {
+                    let now = new Date();
+                    
+                    // Exact replica of the Dart Loop logic
+                    for (let m = 1; m < durationMonths; m++) {
+                        let targetYear = adDate.getFullYear() + Math.floor((adDate.getMonth() + m) / 12);
+                        let targetMonth = (adDate.getMonth() + m) % 12; 
+                        
+                        let maxDaysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+                        let targetDay = adDate.getDate() > maxDaysInTargetMonth ? maxDaysInTargetMonth : adDate.getDate();
+                        
+                        let targetDate = new Date(targetYear, targetMonth, targetDay);
+                        let todayClean = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        
+                        if (todayClean >= targetDate) {
+                            elapsedMonths++;
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            elapsedMonths = stTx.length > 0 ? stTx.length : 0;
+        }
+
+        let emi = 0.0;
+        if (durationMonths > 1) {
+            emi = (totalFee - initialAdvance) / (durationMonths - 1);
+        } else {
+            emi = totalFee - initialAdvance;
+        }
+
+        let expectedPaidSoFar = initialAdvance + (emi * elapsedMonths);
+        currentMonthDue = Math.ceil(expectedPaidSoFar - actualPaid - adWallet);
+        
+        if (currentMonthDue < 0) currentMonthDue = 0.0;
         if (currentMonthDue > totalOutstanding) currentMonthDue = totalOutstanding;
-        if (monthsPassed >= installmentMonths) currentMonthDue = totalOutstanding;
     }
 
-    return { currentMonthDue, totalOutstanding, actualPaid, adDiscount };
+    return { 
+        currentMonthDue: currentMonthDue, 
+        totalOutstanding: totalOutstanding, 
+        actualPaid: actualPaid, 
+        adDiscount: adWallet 
+    };
+}
+
+// =========================================================
+// NEW: INDIVIDUAL STUDENT CUSTOM PUSH NOTIFICATION
+// =========================================================
+async function sendCustomPushNotification() {
+    const stId = document.getElementById('tuition-student-id').value;
+    const student = appData.students.find(s => s.id === stId);
+    if (!student) return;
+    
+    const phone = student.phone ? String(student.phone).trim() : "";
+    if(!phone) return alert("Cannot send notification: Student phone number is missing.");
+
+    const metrics = calculateExactDues(student);
+    let currentDue = metrics.currentMonthDue;
+    let totalDue = metrics.totalOutstanding;
+    
+    if (student.customDueAmount && student.customDueAmount !== "") {
+        currentDue = parseFloat(student.customDueAmount);
+        totalDue = currentDue;
+    }
+    
+    if (currentDue <= 0) {
+        return alert("This student has no pending dues. No alert needed.");
+    }
+    
+    if(!confirm(`Send App Notification to ${student.name} for ₹${Math.floor(currentDue)}?`)) return;
+
+    const title = encodeURIComponent("Pending Fee Alert ⚠️");
+    const body = encodeURIComponent(`You have a current pending due of ₹${Math.floor(currentDue)} (Total Remaining: ₹${Math.floor(totalDue)}). Please clear it via the Student Hub to avoid interruptions.`);
+    
+    const notifyBtn = document.getElementById('custom-notify-btn');
+    if(notifyBtn) notifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs text-amber-500"></i>';
+
+    try {
+        let response = await fetch(`${GOOGLE_APP_URL}?action=send_notification&phone=${phone}&title=${title}&body=${body}`);
+        let result = await response.json();
+        if (result.success) {
+            alert(`Push notification sent successfully to ${student.name}!`);
+        } else {
+            alert("Failed to send: " + result.error);
+        }
+    } catch (err) {
+        alert("Network error while sending notification. Check connection.");
+    } finally {
+        if(notifyBtn) notifyBtn.innerHTML = '<i class="fa-solid fa-bell text-xs"></i>';
+    }
 }
 
 function shareStudentWA() {
@@ -127,7 +227,7 @@ function shareStudentWA() {
         displayDue = parseFloat(student.customDueAmount);
     }
     
-    const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}%0A*Duration:* ${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}%0A*Total Paid:* ₹${metrics.actualPaid}%0A*Ad Discount:* ₹${metrics.adDiscount.toFixed(2)}%0A*Due:* ₹${displayDue.toFixed(2)}${student.customDueDate ? ' (By: '+student.customDueDate+')' : ''}%0A*Status:* ${displayDue <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+    const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}\%0A*Duration:*${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}\%0A*Total Paid:* ₹${metrics.actualPaid}%0A*Ad Discount:* ₹${metrics.adDiscount.toFixed(2)}\%0A*Due:* ₹${displayDue.toFixed(2)}${student.customDueDate ? ' (By: '+student.customDueDate+')' : ''}\%0A*Status:* ${displayDue <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
     
     const link = document.createElement('a');
     link.href = `https://api.whatsapp.com/send?text=${msg}`;
@@ -153,7 +253,6 @@ function checkDuesNotifications() {
     appData.students.forEach(st => {
         if ((st.status || 'Active') !== 'Active') return;
         
-        // CHECK CUSTOM DUE OVERRIDE
         if (st.customDueAmount && st.customDueAmount !== "") {
             const customDue = parseFloat(st.customDueAmount);
             if (customDue > 0) {
@@ -271,7 +370,7 @@ function confirmCrop() {
 }
 
 // =========================================
-// AUTO-RETRY LOGIN LOGIC WITH SERVER SWITCH
+// REVERTED TO SAFE LOGIN LOGIC
 // =========================================
 async function handleLogin(e) {
     e.preventDefault();
@@ -293,7 +392,9 @@ async function handleLogin(e) {
         let data;
         
         if (USE_FIREBASE_SERVER) {
-            // FIREBASE RTDB FETCH
+            if (typeof firebase === 'undefined' || !firebase.database) {
+                throw new Error("Firebase SDK missing! Please check index.html");
+            }
             const snapshot = await firebase.database().ref('/').once('value');
             const dbData = snapshot.val() || {};
             
@@ -337,7 +438,6 @@ async function handleLogin(e) {
             if (userProfile) data.userProfile = userProfile;
 
         } else {
-            // GOOGLE APPS SCRIPT FETCH
             let response;
             let retries = 3; 
             while(retries > 0) {
@@ -361,8 +461,14 @@ async function handleLogin(e) {
         }
 
         sessionPassword = pass;
-        appData = data.data; // Bind main data
+        appData = data.data || data; 
+        
+        // CRITICAL SAFETY CHECKS (Prevents crash if Database is empty/missing properties)
+        if(!appData.students) appData.students = [];
+        if(!appData.transactions) appData.transactions = [];
         if(!appData.notices) appData.notices = [];
+        if(!appData.files) appData.files = [];
+        if(!appData.stats) appData.stats = { income: 0, expense: 0, balance: 0 };
         
         appData.transactions.forEach(tx => {
             if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000);
@@ -414,36 +520,6 @@ function recalculateStats() {
         if(tx.type === 'expense') appData.stats.expense += parseFloat(tx.amount);
     });
     appData.stats.balance = appData.stats.income - appData.stats.expense;
-}
-
-// =========================================
-// DATA SAVING LOGIC (Server Switch aware)
-// =========================================
-function saveDatabase() {
-    localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-    
-    if (USE_FIREBASE_SERVER) {
-        firebase.database().ref('/').set(appData)
-        .catch(error => {
-            console.error("Firebase Sync Failed:", error);
-            alert("Database Sync Error: " + error.message);
-        });
-    } else {
-        const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
-        fetch(GOOGLE_APP_URL, { 
-            method: 'POST', 
-            body: JSON.stringify(payload), 
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        })
-        .then(res => res.json())
-        .then(result => {
-            if(result.error) {
-                console.error("Database Save Failed:", result.error);
-                alert("Database Sync Error: " + result.error + "\n\n(Your data is saved locally).");
-            }
-        })
-        .catch(error => console.log("Cloud sync connection failed.", error));
-    }
 }
 
 function toggleBalanceVisibility() {
@@ -651,7 +727,7 @@ function generateComprehensivePrint() {
         html += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 8px 5px; color: #475569;">${tx.date}</td>
-                <td style="padding: 8px 5px;"><strong>${tx.title.replace(/ \[STU.*\]/, '')}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
+                <td style="padding: 8px 5px;"><strong>${String(tx.title || "").replace(/ \[STU.*\]/, '')}</strong> <br><small style="color:#64748b">${tx.description || ''}</small></td>
                 <td style="padding: 8px 5px; font-weight: bold; color: ${isInc ? '#059669' : '#e11d48'}">${isInc ? 'INCOME' : 'EXPENSE'}</td>
                 <td style="padding: 8px 5px; text-align: right; font-weight: bold;">${sign}₹${tx.amount.toLocaleString('en-IN')}</td>
             </tr>
@@ -726,7 +802,7 @@ function renderAssumedList() {
         assumptionsData.forEach(a => {
             const sign = a.type === 'income' ? '+' : '-';
             const color = a.type === 'income' ? 'text-emerald-600' : 'text-rose-600';
-            list.innerHTML += `<li class="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100 shadow-sm"><span class="font-bold text-slate-700">${a.date.substring(0,7)} <span class="text-[10px] text-slate-400 ml-1 truncate">(${a.title})</span></span> <span class="font-black ${color}">${sign}₹${a.amount}</span></li>`;
+            list.innerHTML += `<li class="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100 shadow-sm"><span class="font-bold text-slate-700">${String(a.date || "").substring(0,7)} <span class="text-[10px] text-slate-400 ml-1 truncate">(${a.title})</span></span> <span class="font-black ${color}">${sign}₹${a.amount}</span></li>`;
         });
     } else {
         container.classList.add('hidden');
@@ -747,7 +823,7 @@ function renderAnalytics() {
     
     appData.transactions.forEach(tx => {
         if(parseFloat(tx.amount) === 0) return;
-        const dateParts = tx.date.split('-');
+        const dateParts = String(tx.date || "").split('-');
         if(dateParts.length < 2) return;
         const year = dateParts[0]; const month = dateParts[1];
         let key = ''; let sortVal = 0;
@@ -767,7 +843,7 @@ function renderAnalytics() {
     if(assumptionMode && assumptionsData.length > 0) {
         assumptionsData.forEach(tx => {
             if(parseFloat(tx.amount) === 0) return;
-            const dateParts = tx.date.split('-');
+            const dateParts = String(tx.date || "").split('-');
             const year = dateParts[0]; const month = dateParts[1];
             let key = ''; let sortVal = 0;
             
@@ -907,12 +983,13 @@ function renderAnalyticsTable(keys, grouped) {
 function showFeeBreakdown() {
     let admission = 0, tuition = 0, exam = 0, other = 0, totalAdDiscount = 0;
     appData.transactions.forEach(tx => {
-        if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+        let title = String(tx.title || "").toLowerCase();
+        if(tx.type === 'income' && !title.includes('job desk:') && !title.includes('print desk:')) {
             const amt = parseFloat(tx.amount) || 0;
-            if(tx.title.toLowerCase().includes('admission')) admission += amt;
-            else if(tx.title.toLowerCase().includes('tuition')) tuition += amt;
-            else if(tx.title.toLowerCase().includes('exam') || tx.title.toLowerCase().includes('certificate')) exam += amt;
-            else if(tx.title.toLowerCase().includes('other')) other += amt;
+            if(title.includes('admission')) admission += amt;
+            else if(title.includes('tuition')) tuition += amt;
+            else if(title.includes('exam') || title.includes('certificate')) exam += amt;
+            else if(title.includes('other')) other += amt;
             else admission += amt; 
         }
     });
@@ -926,8 +1003,9 @@ function showFeeBreakdown() {
 function getDynamicPaidFee(student) {
     let total = 0;
     appData.transactions.forEach(tx => {
-        if (tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
-            if (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))) {
+        let title = String(tx.title || "");
+        if (tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:')) {
+            if (title.includes(`[${student.id}]`) || (title.includes(String(student.name || "UNNAMED")) && !title.includes('[STU'))) {
                 total += parseFloat(tx.amount) || 0;
             }
         }
@@ -968,7 +1046,8 @@ function submitRegistration(e) {
 function renderStudentList() {
     let totalTuition = 0;
     appData.transactions.forEach(tx => {
-        if(tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:')) {
+        let title = String(tx.title || "");
+        if(tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:')) {
             totalTuition += parseFloat(tx.amount) || 0;
         }
     });
@@ -989,9 +1068,9 @@ function renderStudentList() {
     const courseSelect = document.getElementById('filter-course');
     if (courseSelect) {
         const currentVal = courseSelect.value;
-        const uniqueCourses = [...new Set(appData.students.map(s => s.course))];
+        const uniqueCourses = [...new Set(appData.students.map(s => String(s.course || "")))];
         let optionsHtml = '<option value="all">All Batches</option>';
-        uniqueCourses.forEach(c => { optionsHtml += `<option value="${c}">${c}</option>`; });
+        uniqueCourses.forEach(c => { if(c) optionsHtml += `<option value="${c}">${c}</option>`; });
         courseSelect.innerHTML = optionsHtml; courseSelect.value = uniqueCourses.includes(currentVal) ? currentVal : 'all';
     }
 
@@ -1000,7 +1079,7 @@ function renderStudentList() {
         let dues = metrics.totalOutstanding;
         if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
         
-        const matchSearch = st.name.toLowerCase().includes(searchQ) || st.id.toLowerCase().includes(searchQ);
+        const matchSearch = String(st.name || "").toLowerCase().includes(searchQ) || String(st.id || "").toLowerCase().includes(searchQ);
         const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
         const matchCourse = courseF === 'all' || st.course === courseF;
         const matchStatus = statusF === 'all' || (st.status || 'Active') === statusF;
@@ -1017,14 +1096,14 @@ function renderStudentList() {
         let dues = metrics.totalOutstanding;
         if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
 
-        const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${st.name.charAt(0)}</span>`;
+        const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${String(st.name || "?").charAt(0)}</span>`;
         const card = document.createElement('div');
         card.className = "flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl cursor-pointer hover:border-indigo-400 hover:shadow-lg transition-all group transform hover:-translate-y-1 shadow-sm";
         card.onclick = () => selectStudent(st.id);
         card.innerHTML = `
             <div class="flex items-center space-x-4 overflow-hidden">
                 <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors overflow-hidden shadow-inner shrink-0">${avatar}</div>
-                <div class="truncate"><p class="font-extrabold text-slate-800 text-sm truncate">${st.name}</p><p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-0.5 truncate">${st.id} • ${st.course}</p></div>
+                <div class="truncate"><p class="font-extrabold text-slate-800 text-sm truncate">${st.name}</p><p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-0.5 truncate">${st.id} •${st.course}</p></div>
             </div>
             <div class="text-right shrink-0 ml-2"><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Due</p><p class="${dues > 0 ? 'text-rose-500' : 'text-emerald-500'} font-black text-sm drop-shadow-sm">₹${dues.toFixed(2)}</p></div>
         `;
@@ -1036,7 +1115,10 @@ function renderMiniLedger(student) {
     const miniLedger = document.getElementById('student-mini-ledger');
     miniLedger.innerHTML = '';
     
-    const stTx = appData.transactions.filter(t => !t.title.includes('Job Desk:') && !t.title.includes('Print Desk:') && (t.title.includes(`[${student.id}]`) || (t.title.includes(student.name) && !t.title.includes('[STU'))));
+    const stTx = appData.transactions.filter(t => {
+        let title = String(t.title || "");
+        return !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(String(student.name || "UNNAMED")) && !title.includes('[STU')));
+    });
     
     if(stTx.length === 0) {
         if (student.paidFee > 0) {
@@ -1056,7 +1138,7 @@ function renderMiniLedger(student) {
     
     stTx.forEach(tx => {
         const isInc = tx.type === 'income';
-        const cleanTitle = tx.title.replace(` - ${student.name}`, '').replace(` [${student.id}]`, '');
+        const cleanTitle = String(tx.title || "").replace(` - ${student.name}`, '').replace(` [${student.id}]`, '');
         miniLedger.innerHTML += `
             <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
                 <td class="py-3 px-3 text-slate-500 font-bold">${tx.date}</td>
@@ -1084,7 +1166,7 @@ function selectStudent(id) {
     document.getElementById('active-student-gender').innerText = student.gender || "N/A";
     document.getElementById('active-student-feetype').innerText = student.feeType || "Monthly";
     document.getElementById('tuition-student-id').value = student.id;
-    document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : student.name.charAt(0);
+    document.getElementById('active-student-avatar').innerHTML = student.image ? `<img src="${student.image}" class="w-full h-full object-cover">` : String(student.name || "?").charAt(0);
     document.getElementById('active-student-date').innerText = student.date || "-";
     document.getElementById('active-student-phone').innerText = student.phone || "-";
     document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
@@ -1093,7 +1175,7 @@ function selectStudent(id) {
 
     const badgeEl = document.getElementById('active-student-badge');
     if(badgeEl) {
-        if (student.status === 'Graduated') badgeEl.classList.remove('hidden');
+        if ((student.status || "") === 'Graduated') badgeEl.classList.remove('hidden');
         else badgeEl.classList.add('hidden');
     }
 
@@ -1132,7 +1214,7 @@ function renderLedger() {
         tbody.innerHTML += `
             <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
                 <td class="py-4 px-4 text-slate-500 text-xs font-bold whitespace-nowrap">${tx.date}</td>
-                <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${tx.title.replace(/ \[STU.*\]/, '')}</td>
+                <td class="py-4 px-4 font-extrabold text-slate-800 min-w-[200px]">${String(tx.title || "").replace(/ \[STU.*\]/, '')}</td>
                 <td class="py-4 px-4 text-center">${badge}</td>
                 <td class="py-4 px-4 text-right font-black text-base ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</td>
                 <td class="py-4 px-2 text-center">
@@ -1155,7 +1237,7 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
             <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
                 <div class="flex items-center space-x-4">
                     <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
-                    <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${tx.title.replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
+                    <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${String(tx.title || "").replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
                     <h3 class="text-xl md:text-2xl font-black drop-shadow-sm ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}₹${tx.amount.toLocaleString('en-IN')}</h3>
@@ -1170,8 +1252,8 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
     });
 }
 function renderExpenseList() { renderList('expense-list', t => t.type === 'expense', '', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
-function renderJobList() { renderList('job-list', t => t.title.includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
-function renderPrintList() { renderList('print-list', t => t.title.includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
+function renderJobList() { renderList('job-list', t => String(t.title || "").includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
+function renderPrintList() { renderList('print-list', t => String(t.title || "").includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
 function openEditModal() {
     const stId = document.getElementById('tuition-student-id').value;
@@ -1238,11 +1320,12 @@ function submitEditStudent(e) {
     
     if (oldName !== newName) {
         appData.transactions.forEach(tx => {
-            if (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(oldName) && !tx.title.includes('[STU')))) { 
-                tx.title = tx.title.replace(oldName, newName); 
+            let title = String(tx.title || "");
+            if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(oldName) && !title.includes('[STU')))) { 
+                tx.title = title.replace(oldName, newName); 
             }
-            if (tx.description && (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || tx.description.includes(oldName)))) { 
-                tx.description = tx.description.replace(oldName, newName); 
+            if (tx.description && (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || String(tx.description).includes(oldName)))) { 
+                tx.description = String(tx.description).replace(oldName, newName); 
             }
         });
     }
@@ -1253,7 +1336,10 @@ function submitEditStudent(e) {
 
     if(newPaid !== oldPaid) {
         const diff = newPaid - oldPaid;
-        let targetTx = appData.transactions.find(tx => tx.type === 'income' && !tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU'))));
+        let targetTx = appData.transactions.find(tx => {
+            let title = String(tx.title || "");
+            return tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')));
+        });
         if (targetTx) { targetTx.amount = parseFloat(targetTx.amount) + diff; if(targetTx.amount < 0) targetTx.amount = 0; }
     }
 
@@ -1309,7 +1395,8 @@ function submitExpense(e) {
 function openEditTransactionModal(txId) {
     const tx = appData.transactions.find(t => t.id === txId);
     if(!tx) return;
-    if(tx.title.includes("Tuition Fee") || tx.title.includes("Admission") || tx.title.includes("Advance")) {
+    let title = String(tx.title || "");
+    if(title.includes("Tuition Fee") || title.includes("Admission") || title.includes("Advance")) {
         alert("Please edit student payments directly from their profile in the Student Database."); return;
     }
     document.getElementById('edit-tx-id').value = tx.id; document.getElementById('edit-tx-date').value = tx.date;
@@ -1370,7 +1457,10 @@ async function executeDelete() {
             const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
             if(student) {
                 appData.students = appData.students.filter(s => s.id !== stId);
-                appData.transactions = appData.transactions.filter(tx => !(!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))));
+                appData.transactions = appData.transactions.filter(tx => {
+                    let title = String(tx.title || "");
+                    return !(!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU'))));
+                });
                 document.getElementById('tuition-placeholder').classList.remove('hidden'); document.getElementById('tuition-active').classList.add('hidden');
                 alert(`${student.name} deleted.`);
             }
@@ -1378,9 +1468,10 @@ async function executeDelete() {
             const txId = document.getElementById('delete-transaction-id').value; const txIndex = appData.transactions.findIndex(t => t.id === txId);
             if(txIndex !== -1) {
                 const tx = appData.transactions[txIndex];
-                if (tx.title.includes('Tuition') || tx.title.includes('Admission') || tx.title.includes('Advance')) {
+                let title = String(tx.title || "");
+                if (title.includes('Tuition') || title.includes('Admission') || title.includes('Advance')) {
                     appData.students.forEach(student => { 
-                        if (!tx.title.includes('Job Desk:') && !tx.title.includes('Print Desk:') && (tx.title.includes(`[${student.id}]`) || (tx.title.includes(student.name) && !tx.title.includes('[STU')))) { 
+                        if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')))) { 
                             student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
                         } 
                     });
@@ -1907,161 +1998,4 @@ function deleteBroadcast(index) {
     appData.notices.splice(index, 1);
     saveDatabase();
     renderBroadcastList();
-}
-
-// =========================================
-// DATA SAVING LOGIC (Server Switch aware)
-// =========================================
-function saveDatabase() {
-    localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-    
-    if (USE_FIREBASE_SERVER) {
-        firebase.database().ref('/').set(appData)
-        .catch(error => {
-            console.error("Firebase Sync Failed:", error);
-            alert("Database Sync Error: " + error.message);
-        });
-    } else {
-        const payload = { action: 'legacy_save', password: sessionPassword, data: appData }; 
-        fetch(GOOGLE_APP_URL, { 
-            method: 'POST', 
-            body: JSON.stringify(payload), 
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        })
-        .then(res => res.json())
-        .then(result => {
-            if(result.error) {
-                console.error("Database Save Failed:", result.error);
-                alert("Database Sync Error: " + result.error + "\n\n(Your data is saved locally).");
-            }
-        })
-        .catch(error => console.log("Cloud sync connection failed.", error));
-    }
-}
-
-// =========================================
-// AUTO-RETRY LOGIN LOGIC WITH SERVER SWITCH
-// =========================================
-async function handleLogin(e) {
-    e.preventDefault();
-    const user = document.getElementById('username').value.toLowerCase().trim();
-    const pass = document.getElementById('password').value.trim(); 
-    const errorMsg = document.getElementById('login-error');
-    const btnText = document.getElementById('login-btn-text');
-
-    if (user !== 'excellent') { 
-        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Username.';
-        showError(errorMsg); 
-        return; 
-    }
-
-    errorMsg.classList.add('hidden');
-    btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
-    
-    try {
-        let data;
-        
-        if (USE_FIREBASE_SERVER) {
-            const snapshot = await firebase.database().ref('/').once('value');
-            const dbData = snapshot.val() || {};
-            
-            let fullData = {
-                students: dbData.students || [],
-                transactions: dbData.transactions || [],
-                stats: dbData.stats || { income: 0, expense: 0, balance: 0 },
-                files: dbData.files || [],
-                notices: dbData.notices || [],
-                settings: dbData.settings || {}
-            };
-            
-            let masterPass = "excellent@9658"; 
-            let role = null;
-            let userProfile = null;
-            
-            if (user === 'excellent' && pass === masterPass) {
-                role = 'admin';
-            } else if (user === 'excellent' && (pass === '9658' || pass === masterPass)) {
-                role = 'staff';
-            } else {
-                const student = fullData.students.find(s => {
-                    let phoneMatch = String(s.phone).trim() === user;
-                    if(phoneMatch) {
-                        let firstName = String(s.name || "").trim().split(/\s+/)[0];
-                        let regYear = (s.date && s.date.length >= 4) ? s.date.substring(0, 4) : new Date().getFullYear().toString();
-                        let expectedPass = "EI" + firstName + regYear;
-                        return pass === expectedPass || pass === masterPass;
-                    }
-                    return false;
-                });
-                if (student) {
-                    role = 'student';
-                    userProfile = student;
-                }
-            }
-            
-            if (!role) throw new Error("Invalid Password");
-            
-            data = { role: role, data: fullData };
-            if (userProfile) data.userProfile = userProfile;
-
-        } else {
-            let response;
-            let retries = 3; 
-            while(retries > 0) {
-                try {
-                    response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
-                    if (response.ok) break; 
-                    throw new Error("Server response not OK");
-                } catch (netErr) {
-                    retries--;
-                    if (retries === 0) throw netErr;
-                    await new Promise(r => setTimeout(r, 1000)); 
-                }
-            }
-            const rawText = await response.text();
-            try {
-                data = JSON.parse(rawText);
-            } catch (jsonErr) {
-                throw new Error("Server returned invalid data format.");
-            }
-            if(data.error) throw new Error("Invalid Password");
-        }
-
-        sessionPassword = pass;
-        appData = data.data || data; 
-        if(!appData.notices) appData.notices = [];
-        
-        appData.transactions.forEach(tx => {
-            if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000);
-        });
-        appData.students.forEach(st => {
-            if(!st.id) st.id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-            if(!st.status) st.status = 'Active'; 
-        });
-
-        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-        
-        setDefaultDates();
-        refreshAllUI();
-        
-        document.getElementById('login-screen').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            document.getElementById('app-screen').classList.add('flex');
-            document.getElementById('password').value = '';
-            btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
-            document.getElementById('login-screen').style.opacity = '1';
-        }, 500);
-
-    } catch(err) {
-        console.error("Login System Error:", err);
-        if(err.message !== "Invalid Password") {
-            errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Server is busy. Try again.';
-        } else {
-            errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.';
-        }
-        showError(errorMsg);
-        btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
-    }
 }
