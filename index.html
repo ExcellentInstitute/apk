@@ -79,10 +79,10 @@
                 <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p><div onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active"><i class="fa-solid fa-layer-group w-8 text-lg"></i> <span>Dashboard</span></div></div>
                 <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics</p><div onclick="switchTab('registration')" id="nav-registration" class="nav-btn"><i class="fa-solid fa-user-plus w-8 text-lg"></i> <span>New Admission</span></div><div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn"><i class="fa-solid fa-graduation-cap w-8 text-lg"></i> <span>Student Database</span></div></div>
                 
-                <!-- NEW TABS ADDED HERE -->
                 <div class="mb-6">
                     <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics & Comms</p>
                     <div onclick="switchTab('filehub')" id="nav-filehub" class="nav-btn"><i class="fa-solid fa-cloud-arrow-up w-8 text-lg text-indigo-400"></i> <span>File Hub (Study & Tasks)</span></div>
+                    <div onclick="switchTab('exam')" id="nav-exam" class="nav-btn"><i class="fa-solid fa-laptop-code w-8 text-lg text-emerald-400"></i> <span>MCQ Exam Portal</span></div>
                     <div onclick="switchTab('broadcast')" id="nav-broadcast" class="nav-btn"><i class="fa-solid fa-satellite-dish w-8 text-lg text-amber-400"></i> <span>Broadcasts (Alerts)</span></div>
                 </div>
 
@@ -150,7 +150,6 @@
                         </div>
                         
                         <div class="flex flex-wrap gap-3 w-full sm:w-auto">
-                            <!-- Privacy Toggle Button -->
                             <button type="button" onclick="toggleBalanceVisibility()" id="toggle-balance-btn" class="flex-1 sm:flex-none px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors shadow-sm border border-slate-200 flex items-center justify-center" title="Toggle Dashboard Visibility">
                                 <i class="fa-solid fa-eye mr-2"></i> Show Values
                             </button>
@@ -217,7 +216,13 @@
                     </div>
                 </div>
 
-                <!-- NEW: FILE HUB VIEW -->
+                <div id="view-exam" class="view-section h-[80vh] w-full max-w-7xl mx-auto">
+                    <div class="premium-card w-full h-full overflow-hidden border border-slate-200 p-0 m-0">
+                        <iframe src="https://excellentinstitute.github.io/exam/#admin" class="w-full h-full border-0"></iframe>
+                    </div>
+                </div>
+
+                <!-- FILE HUB VIEW -->
                 <div id="view-filehub" class="view-section max-w-7xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Study Material Card -->
@@ -272,7 +277,7 @@
                     </div>
                 </div>
 
-                <!-- NEW: BROADCASTS VIEW -->
+                <!-- BROADCASTS VIEW -->
                 <div id="view-broadcast" class="view-section max-w-6xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
                         <div class="lg:col-span-5">
@@ -301,16 +306,19 @@
                         
                         <form id="settings-form" onsubmit="submitSettings(event)" class="space-y-8">
                             
-                            <!-- NEW SERVER SWITCH UI -->
+                            <!-- UPDATED SERVER SWITCH UI -->
                             <div class="bg-indigo-50 p-6 rounded-2xl border border-indigo-200 mb-6">
                                 <h4 class="font-bold text-indigo-900 mb-4 flex items-center"><i class="fa-solid fa-server mr-2 text-indigo-600"></i> Database Routing Switch</h4>
-                                <div class="flex items-center justify-between">
+                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
                                         <p class="text-sm font-bold text-indigo-800">Active Database Server</p>
-                                        <p class="text-xs text-indigo-600 mt-1">To change servers, please update the "USE_FIREBASE_SERVER" constant inside script.js</p>
+                                        <p class="text-xs text-indigo-600 mt-1">Select the primary database to read data from. Writing automatically syncs to both.</p>
                                     </div>
-                                    <div class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-md text-sm cursor-default">
-                                        <i class="fa-solid fa-lock mr-1"></i> Locked in Code
+                                    <div>
+                                        <select id="server-switch-dropdown" onchange="updateServerReadSource(this.value === 'true')" class="form-input py-2 bg-white border-indigo-300 font-bold text-indigo-700 cursor-pointer shadow-sm w-full md:w-auto">
+                                            <option value="false">Google Sheets (Legacy)</option>
+                                            <option value="true">Firebase (High Speed)</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -824,13 +832,13 @@
     <!-- Main Javascript File -->
     <script src="script.js"></script>
     <script>
-        // Inline UI handler for the server switch
-        function handleServerSwitchChange(selectElement) {
-            if(selectElement.value === "true") {
-                alert("WARNING: To complete the switch to Firebase, you must physically change 'USE_FIREBASE_SERVER = true' at the top of your script.js file in your code editor. This dropdown is just a visual reminder.");
-                selectElement.value = "false"; // Resets it so the user knows they must edit the code.
+        document.addEventListener("DOMContentLoaded", function() {
+            const useFb = localStorage.getItem('useFirebaseServer') === 'true';
+            const dropdown = document.getElementById('server-switch-dropdown');
+            if(dropdown) {
+                dropdown.value = useFb ? 'true' : 'false';
             }
-        }
+        });
     </script>
 </body>
 </html>
