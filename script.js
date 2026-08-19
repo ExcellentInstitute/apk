@@ -23,7 +23,6 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// NEW: 'materials' array added to standard app state
 let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [] };
 let sessionPassword = ""; 
 let cropper = null;
@@ -63,8 +62,8 @@ async function syncToBothDatabases(action, payload) {
                 await firebase.database().ref('students').set(appData.students); 
             } else if (action === 'add_notice' || action === 'delete_notice') {
                 await firebase.database().ref('notices').set(appData.notices);
-            }
-            // Note: Files and Materials are handled directly within their specific functions below
+            } 
+            // Files and Materials are handled directly within their specific functions below
         }
 
         const bodyPayload = { action: action, pass: sessionPassword, data: payload };
@@ -79,19 +78,19 @@ async function syncToBothDatabases(action, payload) {
     }
 }
 
-// Global Bulk Fallback for Settings & Master Edits
+// Global Bulk Fallback (FIXED: Bypasses the locked Root rule by writing to specific nodes)
 async function saveDatabase() {
     try {
         if (typeof firebase !== 'undefined' && firebase.database) {
-            await firebase.database().ref('/').set({
-                students: appData.students || [],
-                transactions: appData.transactions || [],
-                stats: appData.stats || { income: 0, expense: 0, balance: 0 },
-                files: appData.files || [],
-                materials: appData.materials || [],
-                notices: appData.notices || [],
-                settings: appData.settings || {}
-            });
+            await Promise.all([
+                firebase.database().ref('students').set(appData.students || []),
+                firebase.database().ref('transactions').set(appData.transactions || []),
+                firebase.database().ref('stats').set(appData.stats || { income: 0, expense: 0, balance: 0 }),
+                firebase.database().ref('files').set(appData.files || []),
+                firebase.database().ref('materials').set(appData.materials || []),
+                firebase.database().ref('notices').set(appData.notices || []),
+                firebase.database().ref('settings').set(appData.settings || {})
+            ]);
         }
 
         const payload = { action: 'bulk_sync', password: sessionPassword, data: appData };
@@ -134,24 +133,32 @@ async function handleLogin(e) {
         // 1. Authenticate with Firebase Server securely
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
-        // 2. Load the App Data
+        // 2. Load the App Data (FIXED: Bypasses the locked Root rule by reading specific nodes)
         if (USE_FIREBASE_SERVER) {
-            const snapshot = await firebase.database().ref('/').once('value');
-            const dbData = snapshot.val() || {};
+            const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap] = await Promise.all([
+                firebase.database().ref('students').once('value'),
+                firebase.database().ref('transactions').once('value'),
+                firebase.database().ref('stats').once('value'),
+                firebase.database().ref('files').once('value'),
+                firebase.database().ref('materials').once('value'),
+                firebase.database().ref('notices').once('value'),
+                firebase.database().ref('settings').once('value')
+            ]);
             
             appData = {
-                students: parseFbList(dbData.students),
-                transactions: parseFbList(dbData.transactions),
-                stats: dbData.stats || { income: 0, expense: 0, balance: 0 },
-                files: parseFbList(dbData.files),
-                materials: parseFbList(dbData.materials),
-                notices: parseFbList(dbData.notices),
-                settings: dbData.settings || {}
+                students: parseFbList(stSnap.val()),
+                transactions: parseFbList(txSnap.val()),
+                stats: statSnap.val() || { income: 0, expense: 0, balance: 0 },
+                files: parseFbList(flSnap.val()),
+                materials: parseFbList(matSnap.val()),
+                notices: parseFbList(notSnap.val()),
+                settings: setSnap.val() || {}
             };
         } else {
             let response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
             const rawText = await response.text();
             
+            // HTML Error Shield
             if (rawText.trim().startsWith('<')) {
                 throw new Error("Google Apps Script returned an HTML error. The script URL may be broken or requires re-authorization.");
             }
@@ -160,9 +167,7 @@ async function handleLogin(e) {
             if(parsed.error) throw new Error(parsed.error);
             appData = parsed.data || parsed; 
 
-            // 🛡️ SHEETS FALLBACK PROTECTOR:
-            // Since Google Sheets bundles all files into one sheet, we must manually split them upon loading 
-            // so the Two-Vault UI doesn't crash while in Offline/Sheets mode.
+            // 🛡️ SHEETS FALLBACK PROTECTOR: Manually split files to prevent offline crashes
             if (!appData.materials) appData.materials = [];
             if (appData.files && appData.files.length > 0) {
                 let tempFiles = [];
@@ -297,8 +302,10 @@ async function runFileMigration() {
         appData.materials = newPublicMaterials;
 
         if (USE_FIREBASE_SERVER && typeof firebase !== 'undefined') {
-            await firebase.database().ref('files').set(appData.files.length > 0 ? appData.files : null);
-            await firebase.database().ref('materials').set(appData.materials.length > 0 ? appData.materials : null);
+            await Promise.all([
+                firebase.database().ref('files').set(appData.files.length > 0 ? appData.files : null),
+                firebase.database().ref('materials').set(appData.materials.length > 0 ? appData.materials : null)
+            ]);
         }
         
         saveDatabase(); 
@@ -1672,7 +1679,6 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
     }
 
     // LEGACY SHEET PROTECTOR: We STILL tell Google Sheets it's an 'add_file' command.
-    // This tricks the backend script into backing it up seamlessly without needing to rewrite Google Apps Script.
     const payload = { action: 'add_file', pass: sessionPassword, data: newFile };
     fetch(GOOGLE_APP_URL, {
         method: 'POST',
@@ -1704,71 +1710,6 @@ function compressDocumentImage(file, callback) {
         img.src = e.target.result;
     }
     reader.readAsDataURL(file);
-}
-
-async function compressPDF(file, callback, buttonSelector = 'label[for="student-doc-upload"]') {
-    try {
-        const uploadLabel = document.querySelector(buttonSelector);
-        let originalHTML = "";
-        if(uploadLabel) {
-            originalHTML = uploadLabel.innerHTML;
-            uploadLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Compressing...';
-            uploadLabel.classList.add('opacity-70', 'pointer-events-none');
-        }
-
-        if (!window.pdfjsLib) {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-            document.head.appendChild(script);
-            await new Promise(resolve => script.onload = resolve);
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-        }
-
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await window.pdfjsLib.getDocument(arrayBuffer).promise;
-        const newPdfDoc = await PDFLib.PDFDocument.create();
-        
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const unscaledViewport = page.getViewport({ scale: 1.0 });
-            const scaleFactor = Math.min(1.0, 800 / unscaledViewport.width); 
-            const viewport = page.getViewport({ scale: scaleFactor }); 
-            
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-            const imgData = canvas.toDataURL('image/jpeg', 0.5); 
-            
-            const img = await newPdfDoc.embedJpg(imgData);
-            const newPage = newPdfDoc.addPage([viewport.width, viewport.height]);
-            newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
-        }
-        
-        const pdfBytes = await newPdfDoc.save({ useObjectStreams: true });
-        const compressedBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-        let finalFile = new File([compressedBlob], file.name, { type: 'application/pdf', lastModified: Date.now() });
-        
-        if(uploadLabel) {
-            uploadLabel.innerHTML = originalHTML;
-            uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
-        }
-        
-        if(finalFile.size >= file.size) { finalFile = file; }
-        callback(finalFile);
-
-    } catch (error) {
-        console.error("PDF Rasterization failed:", error);
-        const uploadLabel = document.querySelector(buttonSelector);
-        if(uploadLabel) {
-            uploadLabel.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload';
-            uploadLabel.classList.remove('opacity-70', 'pointer-events-none');
-        }
-        alert("Heavy PDF detected. Bypassing compression to prevent browser crash.");
-        callback(file); 
-    }
 }
 
 function handleStudentFileUpload(event) {
