@@ -2,7 +2,9 @@
 // 🌐 ENTERPRISE DUAL-WRITE PIPELINE & SERVER SWITCH 🌐
 // Read source is dynamic. Write source is ALWAYS BOTH.
 // =========================================================
-let USE_FIREBASE_SERVER = localStorage.getItem('useFirebaseServer') === 'true';
+// FIX: Force Firebase as the default server for all users unless explicitly set to false
+let savedPref = localStorage.getItem('useFirebaseServer');
+let USE_FIREBASE_SERVER = (savedPref === null) ? true : (savedPref === 'true');
 
 const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
 
@@ -148,6 +150,12 @@ async function handleLogin(e) {
         } else {
             let response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
             const rawText = await response.text();
+            
+            // FIX: The HTML Shield
+            if (rawText.trim().startsWith('<')) {
+                throw new Error("Google Apps Script returned an HTML error. The script URL may be broken or requires re-authorization.");
+            }
+
             let parsed = JSON.parse(rawText);
             if(parsed.error) throw new Error(parsed.error);
             appData = parsed.data || parsed; 
@@ -176,7 +184,6 @@ async function handleLogin(e) {
 
     } catch(err) {
         console.error("Login System Error:", err);
-        // Explicit Error Display
         errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i> Error: ' + err.message;
         showError(errorMsg);
         btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
@@ -1539,7 +1546,7 @@ async function executeDelete() {
 
     if(!pass) return;
     
-    // NEW: Attempt to authenticate deletion with Firebase Auth directly.
+    // Attempt to authenticate deletion with Firebase Auth directly.
     try {
         errorMsg.classList.add('hidden'); 
         btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
