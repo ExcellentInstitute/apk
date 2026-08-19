@@ -88,11 +88,18 @@ body {
     animation: fadeSlideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; 
 }
 
+/* SPECIFIC FIX: Ensure Flex layout works properly when Exam Portal is activated */
+#view-exam.active {
+    display: flex !important;
+    flex-direction: column;
+}
+
 @keyframes fadeSlideUp { 
     0% { opacity: 0; transform: translateY(20px); } 
     100% { opacity: 1; transform: translateY(0); } 
 }
 
+/* GLOBAL SCROLLBAR */
 ::-webkit-scrollbar { 
     width: 8px; 
     height: 8px; 
@@ -109,6 +116,32 @@ body {
 
 ::-webkit-scrollbar-thumb:hover { 
     background: #94a3b8; 
+}
+
+/* TARGETED CUSTOM SCROLLBAR FOR INNER CONTAINERS */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+}
+
+/* EXAM PORTAL IFRAME POLISH */
+#view-exam iframe {
+    border-radius: 1.5rem;
+    box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.05);
+    background-color: #ffffff;
 }
 
 .bg-animated { 
