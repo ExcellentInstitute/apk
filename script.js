@@ -1,11 +1,7 @@
 // =========================================================
-// 🌐 ENTERPRISE DUAL-WRITE PIPELINE & SERVER SWITCH 🌐
-// Read source is dynamic. Write source is ALWAYS BOTH.
+// 🌐 ENTERPRISE FIREBASE PIPELINE (Pure Realtime Database)
+// Google Sheets backend has been completely disconnected.
 // =========================================================
-let savedPref = localStorage.getItem('useFirebaseServer');
-let USE_FIREBASE_SERVER = (savedPref === null) ? true : (savedPref === 'true');
-
-const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
 
 // Initialize Firebase App (CDN Compat Method)
 const firebaseConfig = {
@@ -23,7 +19,10 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [] };
+// FCM Notification Relay (Only used for Push Notifications)
+const FCM_RELAY_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
+
+let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {} };
 let sessionPassword = ""; 
 let cropper = null;
 let currentCropTarget = null;
@@ -36,7 +35,6 @@ let isBalanceHidden = true;
 
 window.onload = function() {
     setDefaultDates();
-    _injectMigrationTool();
 };
 
 // =========================================================
@@ -49,66 +47,22 @@ function parseFbList(data) {
 }
 
 // =========================================================
-// 🚀 DUAL-WRITE ENGINE: PUSHES TO BOTH SERVERS INSTANTLY
+// 🚀 PURE FIREBASE SYNC ENGINE
 // =========================================================
-async function syncToBothDatabases(action, payload) {
-    try {
-        if (typeof firebase !== 'undefined' && firebase.database) {
-            if (action === 'add_student' || action === 'update_student') {
-                await firebase.database().ref('students').set(appData.students);
-            } else if (action === 'log_transaction') {
-                await firebase.database().ref('transactions').set(appData.transactions);
-                await firebase.database().ref('stats').set(appData.stats);
-                await firebase.database().ref('students').set(appData.students); 
-            } else if (action === 'add_notice' || action === 'delete_notice') {
-                await firebase.database().ref('notices').set(appData.notices);
-            } 
-            // Files and Materials are handled directly within their specific functions below
-        }
-
-        const bodyPayload = { action: action, pass: sessionPassword, data: payload };
-        fetch(GOOGLE_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(bodyPayload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        }).catch(err => console.error("Sheets Targeted Sync Error:", err));
-        
-    } catch (error) {
-        console.error("Dual-Sync Engine Error:", error);
-    }
-}
-
-// Global Bulk Fallback (FIXED: Bypasses the locked Root rule by writing to specific nodes)
 async function saveDatabase() {
     try {
-        if (typeof firebase !== 'undefined' && firebase.database) {
-            await Promise.all([
-                firebase.database().ref('students').set(appData.students || []),
-                firebase.database().ref('transactions').set(appData.transactions || []),
-                firebase.database().ref('stats').set(appData.stats || { income: 0, expense: 0, balance: 0 }),
-                firebase.database().ref('files').set(appData.files || []),
-                firebase.database().ref('materials').set(appData.materials || []),
-                firebase.database().ref('notices').set(appData.notices || []),
-                firebase.database().ref('settings').set(appData.settings || {})
-            ]);
-        }
-
-        const payload = { action: 'bulk_sync', password: sessionPassword, data: appData };
-        fetch(GOOGLE_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        }).catch(err => console.error("Sheets Bulk Sync Error:", err));
-        
+        await Promise.all([
+            firebase.database().ref('students').set(appData.students || []),
+            firebase.database().ref('transactions').set(appData.transactions || []),
+            firebase.database().ref('stats').set(appData.stats || { income: 0, expense: 0, balance: 0 }),
+            firebase.database().ref('files').set(appData.files || []),
+            firebase.database().ref('materials').set(appData.materials || []),
+            firebase.database().ref('notices').set(appData.notices || []),
+            firebase.database().ref('settings').set(appData.settings || {})
+        ]);
     } catch (error) {
-        console.error("Critical Bulk Sync Error:", error);
+        console.error("Critical Firebase Sync Error:", error);
     }
-}
-
-function updateServerReadSource(useFirebase) {
-    localStorage.setItem('useFirebaseServer', useFirebase ? 'true' : 'false');
-    alert("Read source switched! The app will now reload to fetch from the new source.");
-    location.reload();
 }
 
 // =========================================================
@@ -133,56 +87,26 @@ async function handleLogin(e) {
         // 1. Authenticate with Firebase Server securely
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
-        // 2. Load the App Data (FIXED: Bypasses the locked Root rule by reading specific nodes)
-        if (USE_FIREBASE_SERVER) {
-            const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap] = await Promise.all([
-                firebase.database().ref('students').once('value'),
-                firebase.database().ref('transactions').once('value'),
-                firebase.database().ref('stats').once('value'),
-                firebase.database().ref('files').once('value'),
-                firebase.database().ref('materials').once('value'),
-                firebase.database().ref('notices').once('value'),
-                firebase.database().ref('settings').once('value')
-            ]);
-            
-            appData = {
-                students: parseFbList(stSnap.val()),
-                transactions: parseFbList(txSnap.val()),
-                stats: statSnap.val() || { income: 0, expense: 0, balance: 0 },
-                files: parseFbList(flSnap.val()),
-                materials: parseFbList(matSnap.val()),
-                notices: parseFbList(notSnap.val()),
-                settings: setSnap.val() || {}
-            };
-        } else {
-            let response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
-            const rawText = await response.text();
-            
-            // HTML Error Shield
-            if (rawText.trim().startsWith('<')) {
-                throw new Error("Google Apps Script returned an HTML error. The script URL may be broken or requires re-authorization.");
-            }
-
-            let parsed = JSON.parse(rawText);
-            if(parsed.error) throw new Error(parsed.error);
-            appData = parsed.data || parsed; 
-
-            // 🛡️ SHEETS FALLBACK PROTECTOR: Manually split files to prevent offline crashes
-            if (!appData.materials) appData.materials = [];
-            if (appData.files && appData.files.length > 0) {
-                let tempFiles = [];
-                let tempMaterials = [];
-                appData.files.forEach(f => {
-                    if (f.category === 'Material' || f.category === 'Assignment') {
-                        tempMaterials.push(f);
-                    } else {
-                        tempFiles.push(f);
-                    }
-                });
-                appData.files = tempFiles;
-                appData.materials = tempMaterials;
-            }
-        }
+        // 2. Safely load nodes individually to bypass root security lock
+        const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap] = await Promise.all([
+            firebase.database().ref('students').once('value'),
+            firebase.database().ref('transactions').once('value'),
+            firebase.database().ref('stats').once('value'),
+            firebase.database().ref('files').once('value'),
+            firebase.database().ref('materials').once('value'),
+            firebase.database().ref('notices').once('value'),
+            firebase.database().ref('settings').once('value')
+        ]);
+        
+        appData = {
+            students: parseFbList(stSnap.val()),
+            transactions: parseFbList(txSnap.val()),
+            stats: statSnap.val() || { income: 0, expense: 0, balance: 0 },
+            files: parseFbList(flSnap.val()),
+            materials: parseFbList(matSnap.val()),
+            notices: parseFbList(notSnap.val()),
+            settings: setSnap.val() || {}
+        };
 
         sessionPassword = pass; 
         
@@ -216,24 +140,6 @@ async function handleLogin(e) {
 // =========================================================
 // ⚙️ AUTOMATED MIGRATION TOOLS
 // =========================================================
-function _injectMigrationTool() {
-    setTimeout(() => {
-        const settingsForm = document.getElementById('settings-form');
-        if(settingsForm) {
-            const migrationHTML = `
-            <div class="bg-rose-50 p-6 rounded-2xl border border-rose-200 mb-6 mt-6">
-                <h4 class="font-bold text-rose-900 mb-2 flex items-center"><i class="fa-solid fa-shield-halved mr-2 text-rose-600"></i> System Migration Tools</h4>
-                <p class="text-xs text-rose-700 mb-4">Run these tools once to upgrade your database to the new enterprise security architecture.</p>
-                <div class="flex flex-col gap-3">
-                    <button type="button" onclick="runStudentAuthMigration()" class="px-4 py-2 bg-rose-600 text-white font-bold rounded-lg shadow hover:bg-rose-700 transition-colors text-sm text-left"><i class="fa-solid fa-users mr-2"></i> 1. Migrate Student Auth</button>
-                    <button type="button" onclick="runFileMigration()" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow hover:bg-indigo-700 transition-colors text-sm text-left"><i class="fa-solid fa-folder-tree mr-2"></i> 2. Split File Vaults (Security Upgrade)</button>
-                </div>
-            </div>`;
-            settingsForm.insertAdjacentHTML('beforeend', migrationHTML);
-        }
-    }, 1000);
-}
-
 async function runStudentAuthMigration() {
     if(!confirm("Start automated Auth Migration? This will create secure Firebase accounts for all students without logging you out.")) return;
     
@@ -288,7 +194,6 @@ async function runFileMigration() {
         if (appData.files && appData.files.length > 0) {
             appData.files.forEach(f => {
                 if (f.category === 'Material' || f.category === 'Assignment') {
-                    // Prevent duplicates
                     if (!newPublicMaterials.some(m => m.id === f.id)) {
                         newPublicMaterials.push(f);
                     }
@@ -301,14 +206,11 @@ async function runFileMigration() {
         appData.files = newPrivateFiles;
         appData.materials = newPublicMaterials;
 
-        if (USE_FIREBASE_SERVER && typeof firebase !== 'undefined') {
-            await Promise.all([
-                firebase.database().ref('files').set(appData.files.length > 0 ? appData.files : null),
-                firebase.database().ref('materials').set(appData.materials.length > 0 ? appData.materials : null)
-            ]);
-        }
+        await Promise.all([
+            firebase.database().ref('files').set(appData.files.length > 0 ? appData.files : null),
+            firebase.database().ref('materials').set(appData.materials.length > 0 ? appData.materials : null)
+        ]);
         
-        saveDatabase(); 
         renderHubFiles();
         alert("File Migration Complete! Database successfully split into two secure vaults.");
     } catch(e) {
@@ -465,7 +367,7 @@ async function sendCustomPushNotification() {
     if(notifyBtn) notifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs text-amber-500"></i>';
 
     try {
-        let response = await fetch(`${GOOGLE_APP_URL}?action=send_notification&phone=${phone}&title=${title}&body=${body}`);
+        let response = await fetch(`${FCM_RELAY_URL}?action=send_notification&phone=${phone}&title=${title}&body=${body}`);
         let result = await response.json();
         if (result.success) {
             alert(`Push notification sent successfully to ${student.name}!`);
@@ -755,7 +657,9 @@ function switchTab(tabId) {
 function populateSettings() {
     if (!appData.settings) return;
     document.getElementById('set-upi').value = appData.settings.upiId || '';
-    document.getElementById('set-reward-amt').value = appData.settings.rewardPerClick || 0.25;
+    
+    // Set default to 0 to prevent 0.25 placeholder overriding
+    document.getElementById('set-reward-amt').value = appData.settings.rewardPerClick ?? 0;
     document.getElementById('set-allow-rewards').value = appData.settings.allowVideoRewards ? "true" : "false";
     
     const qrPreview = document.getElementById('set-qr-preview');
@@ -804,12 +708,14 @@ function submitSettings(e) {
         pendingQRCodeBase64 = null;
     }
     
-    saveDatabase();
-    
-    setTimeout(() => {
+    // Pure Firebase Save
+    firebase.database().ref('settings').set(appData.settings).then(() => {
         btn.innerHTML = 'Save Configuration';
         alert("Settings Saved Successfully to Cloud!");
-    }, 1000);
+    }).catch(err => {
+        btn.innerHTML = 'Save Configuration';
+        alert("Error saving settings: " + err.message);
+    });
 }
 
 function compressImage(file, callback) {
@@ -1145,10 +1051,12 @@ function getDynamicPaidFee(student) {
 function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
     const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
     const newStudent = { id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active', customDueAmount: "", customDueDate: "" };
+    
     appData.students.unshift(newStudent);
+    firebase.database().ref('students').set(appData.students);
+    
     recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
     renderStudentList(); 
-    syncToBothDatabases('add_student', newStudent); 
     return id;
 }
 
@@ -1157,8 +1065,11 @@ function recordTransaction(type, title, amount, dateStr, desc = "") {
     appData.transactions.push(newTx);
     appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
     recalculateStats(); 
+    
+    firebase.database().ref('transactions').set(appData.transactions);
+    firebase.database().ref('stats').set(appData.stats);
+    
     refreshAllUI(); 
-    syncToBothDatabases('log_transaction', newTx);
 }
 
 function submitRegistration(e) {
@@ -1173,6 +1084,7 @@ function submitRegistration(e) {
     const finishReg = function(base64Image) {
         const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image, duration);
         
+        // 🔐 AUTO-CREATE FIREBASE AUTH ACCOUNT FOR NEW STUDENT
         try {
             let secondaryApp;
             if (firebase.apps.length < 2) {
@@ -1195,7 +1107,15 @@ function submitRegistration(e) {
         e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
     };
 
-    if(croppedImages.reg) { finishReg(croppedImages.reg); } else { compressImage(fileInput.files[0], finishReg); }
+    if(croppedImages.reg) { finishReg(croppedImages.reg); } else { 
+        if(fileInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(evt) { finishReg(evt.target.result); };
+            reader.readAsDataURL(fileInput.files[0]);
+        } else {
+            finishReg(null);
+        }
+    }
 }
 
 function renderStudentList() {
@@ -1502,14 +1422,17 @@ function submitEditStudent(e) {
     if(croppedImages.edit) {
         student.image = croppedImages.edit; croppedImages.edit = null; finalizeEdit(student);
     } else if(fileInput.files && fileInput.files[0]) {
-        compressImage(fileInput.files[0], function(base64Image) { student.image = base64Image; finalizeEdit(student); });
+        const reader = new FileReader();
+        reader.onload = function(evt) { student.image = evt.target.result; finalizeEdit(student); };
+        reader.readAsDataURL(fileInput.files[0]);
     } else { finalizeEdit(student); }
 }
 
 function finalizeEdit(student) { 
     closeEditModal(); 
     recalculateStats(); 
-    syncToBothDatabases('update_student', student);
+    firebase.database().ref('students').set(appData.students);
+    firebase.database().ref('transactions').set(appData.transactions);
     refreshAllUI(); 
     alert("Profile updated successfully!"); 
 }
@@ -1578,7 +1501,10 @@ function submitEditTransaction(e) {
     if(!tx) return;
     tx.date = document.getElementById('edit-tx-date').value; tx.title = document.getElementById('edit-tx-title').value;
     tx.amount = parseFloat(document.getElementById('edit-tx-amount').value); tx.description = document.getElementById('edit-tx-desc').value;
-    recalculateStats(); saveDatabase(); refreshAllUI(); closeEditTransactionModal(); alert("Record updated successfully!");
+    recalculateStats(); 
+    firebase.database().ref('transactions').set(appData.transactions);
+    firebase.database().ref('stats').set(appData.stats);
+    refreshAllUI(); closeEditTransactionModal(); alert("Record updated successfully!");
 }
 
 function deleteTransaction(txId) { openDeleteModal(txId, false); }
@@ -1646,7 +1572,13 @@ async function executeDelete() {
                     alert("Record deleted successfully.");
                 }
             }
-            recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal(); btnText.innerHTML = 'Confirm Delete';
+            recalculateStats(); 
+            firebase.database().ref('students').set(appData.students);
+            firebase.database().ref('transactions').set(appData.transactions);
+            firebase.database().ref('stats').set(appData.stats);
+            refreshAllUI(); 
+            closeDeleteModal(); 
+            btnText.innerHTML = 'Confirm Delete';
         }, 300);
 
     } catch (e) {
@@ -1665,26 +1597,17 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
         date: new Date().toISOString().split('T')[0], folder: folderName
     };
     
-    // Route to proper vault based on the category
     const isPublicMaterial = (category === 'Material' || category === 'Assignment');
     
     if (isPublicMaterial) {
         if (!appData.materials) appData.materials = [];
         appData.materials.push(newFile);
-        if (typeof firebase !== 'undefined' && firebase.database) firebase.database().ref('materials').set(appData.materials);
+        firebase.database().ref('materials').set(appData.materials);
     } else {
         if (!appData.files) appData.files = [];
         appData.files.push(newFile);
-        if (typeof firebase !== 'undefined' && firebase.database) firebase.database().ref('files').set(appData.files);
+        firebase.database().ref('files').set(appData.files);
     }
-
-    // LEGACY SHEET PROTECTOR: We STILL tell Google Sheets it's an 'add_file' command.
-    const payload = { action: 'add_file', pass: sessionPassword, data: newFile };
-    fetch(GOOGLE_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "text/plain;charset=utf-8" }
-    });
 
     if(callback) {
         callback();
@@ -1694,67 +1617,48 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
     }
 }
 
-function compressDocumentImage(file, callback) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas'); 
-            const ctx = canvas.getContext('2d');
-            const MAX_SIZE = 800;
-            let width = img.width, height = img.height;
-            if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
-            canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
-            canvas.toBlob((blob) => { const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }); callback(compressedFile); }, 'image/jpeg', 0.6); 
-        }
-        img.src = e.target.result;
-    }
-    reader.readAsDataURL(file);
-}
-
 function handleStudentFileUpload(event) {
-    const originalFile = event.target.files[0];
-    if (!originalFile) return;
+    const fileToUpload = event.target.files[0];
+    if (!fileToUpload) return;
     
     const stId = document.getElementById('tuition-student-id').value;
     const student = appData.students.find(s => s.id === stId);
     if (!student) return;
 
-    const uploadToFirebase = (fileToUpload) => {
-        const storageRef = firebase.storage().ref();
-        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filePath = `vault/${Date.now()}_${safeName}`;
-        const fileRef = storageRef.child(filePath);
+    const storageRef = firebase.storage().ref();
+    const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const filePath = `vault/${Date.now()}_${safeName}`;
+    const fileRef = storageRef.child(filePath);
 
-        const progressBar = document.getElementById('upload-progress-bar');
-        const progressContainer = document.getElementById('upload-progress-container');
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
+    const progressBar = document.getElementById('upload-progress-bar');
+    const progressContainer = document.getElementById('upload-progress-container');
+    progressContainer.classList.remove('hidden');
+    progressBar.style.width = '0%';
 
-        const uploadTask = fileRef.put(fileToUpload);
+    const uploadTask = fileRef.put(fileToUpload);
 
-        uploadTask.on('state_changed', 
-            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => { alert("File upload failed!\n\nMessage: " + error.message); progressContainer.classList.add('hidden'); document.getElementById('student-doc-upload').value = ''; }, 
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    progressContainer.classList.add('hidden');
-                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                    const targetVal = (student.phone && student.phone.toString().trim() !== "") ? String(student.phone).trim() : student.id;
-                    const formattedFileName = "Certificate - " + student.name;
-                    
-                    saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
-                        renderStudentFiles(stId);
-                        alert("Document saved securely to Private Vault!");
-                    });
-                    document.getElementById('student-doc-upload').value = '';
+    uploadTask.on('state_changed', 
+        (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
+        (error) => {
+            alert("File upload to Vault failed!\n\nFirebase Error: " + error.code + "\nMessage: " + error.message);
+            progressContainer.classList.add('hidden');
+            document.getElementById('student-doc-upload').value = '';
+        }, 
+        () => {
+            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                progressContainer.classList.add('hidden');
+                const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
+                const targetVal = (student.phone && student.phone.toString().trim() !== "") ? String(student.phone).trim() : student.id;
+                const formattedFileName = "Certificate - " + student.name;
+                
+                saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
+                    renderStudentFiles(stId);
+                    alert("Document saved securely to Private Vault!");
                 });
-            }
-        );
-    };
-
-    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else uploadToFirebase(originalFile);
+                document.getElementById('student-doc-upload').value = '';
+            });
+        }
+    );
 }
 
 function submitMaterialUpload(e) {
@@ -1763,45 +1667,49 @@ function submitMaterialUpload(e) {
     const folder = document.getElementById('hub-mat-folder').value.trim() || 'General';
     const target = document.getElementById('hub-mat-target').value.trim();
     const fileInput = document.getElementById('hub-mat-file');
-    const originalFile = fileInput.files[0];
+    const fileToUpload = fileInput.files[0];
     
-    if (!originalFile) return alert("Please select a file.");
+    if (!fileToUpload) return alert("Please select a file.");
 
     const btn = document.getElementById('btn-mat-upload');
     const originalBtnText = btn.innerHTML;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
     btn.disabled = true;
 
-    const uploadToFirebase = (fileToUpload) => {
-        const storageRef = firebase.storage().ref();
-        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filePath = `vault/${Date.now()}_${safeName}`;
-        const fileRef = storageRef.child(filePath);
+    const storageRef = firebase.storage().ref();
+    const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const filePath = `vault/${Date.now()}_${safeName}`;
+    const fileRef = storageRef.child(filePath);
 
-        const progressBar = document.getElementById('mat-progress-bar');
-        const progressContainer = document.getElementById('mat-progress-container');
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
+    const progressBar = document.getElementById('mat-progress-bar');
+    const progressContainer = document.getElementById('mat-progress-container');
+    progressContainer.classList.remove('hidden');
+    progressBar.style.width = '0%';
 
-        const uploadTask = fileRef.put(fileToUpload);
+    const uploadTask = fileRef.put(fileToUpload);
 
-        uploadTask.on('state_changed', 
-            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => { alert("Upload failed: " + error.message); progressContainer.classList.add('hidden'); btn.innerHTML = originalBtnText; btn.disabled = false; }, 
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    progressContainer.classList.add('hidden');
-                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                    saveFileToDatabase(title, "Material", target.toUpperCase(), downloadURL, filePath, sizeMB, folder, () => {
-                        e.target.reset(); btn.innerHTML = originalBtnText; btn.disabled = false; renderHubFiles(); alert("Material Published Successfully to Public Vault!");
-                    });
+    uploadTask.on('state_changed', 
+        (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
+        (error) => {
+            alert("Upload failed: " + error.message);
+            progressContainer.classList.add('hidden');
+            btn.innerHTML = originalBtnText;
+            btn.disabled = false;
+        }, 
+        () => {
+            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                progressContainer.classList.add('hidden');
+                const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
+                saveFileToDatabase(title, "Material", target.toUpperCase(), downloadURL, filePath, sizeMB, folder, () => {
+                    e.target.reset();
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                    renderHubFiles();
+                    alert("Material Published Successfully to Public Vault!");
                 });
-            }
-        );
-    };
-
-    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else uploadToFirebase(originalFile);
+            });
+        }
+    );
 }
 
 function submitAssignmentUpload(e) {
@@ -1809,45 +1717,49 @@ function submitAssignmentUpload(e) {
     const title = document.getElementById('hub-ass-title').value.trim();
     const target = document.getElementById('hub-ass-target').value.trim();
     const fileInput = document.getElementById('hub-ass-file');
-    const originalFile = fileInput.files[0];
+    const fileToUpload = fileInput.files[0];
     
-    if (!originalFile) return alert("Please select a file.");
+    if (!fileToUpload) return alert("Please select a file.");
 
     const btn = document.getElementById('btn-ass-upload');
     const originalBtnText = btn.innerHTML;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
     btn.disabled = true;
 
-    const uploadToFirebase = (fileToUpload) => {
-        const storageRef = firebase.storage().ref();
-        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const filePath = `vault/${Date.now()}_${safeName}`;
-        const fileRef = storageRef.child(filePath);
+    const storageRef = firebase.storage().ref();
+    const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const filePath = `vault/${Date.now()}_${safeName}`;
+    const fileRef = storageRef.child(filePath);
 
-        const progressBar = document.getElementById('ass-progress-bar');
-        const progressContainer = document.getElementById('ass-progress-container');
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
+    const progressBar = document.getElementById('ass-progress-bar');
+    const progressContainer = document.getElementById('ass-progress-container');
+    progressContainer.classList.remove('hidden');
+    progressBar.style.width = '0%';
 
-        const uploadTask = fileRef.put(fileToUpload);
+    const uploadTask = fileRef.put(fileToUpload);
 
-        uploadTask.on('state_changed', 
-            (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => { alert("Upload failed: " + error.message); progressContainer.classList.add('hidden'); btn.innerHTML = originalBtnText; btn.disabled = false; }, 
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    progressContainer.classList.add('hidden');
-                    const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                    saveFileToDatabase(title, "Assignment", target.toUpperCase(), downloadURL, filePath, sizeMB, "Assignments", () => {
-                        e.target.reset(); btn.innerHTML = originalBtnText; btn.disabled = false; renderHubFiles(); alert("Assignment Published Successfully to Public Vault!");
-                    });
+    uploadTask.on('state_changed', 
+        (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
+        (error) => {
+            alert("Upload failed: " + error.message);
+            progressContainer.classList.add('hidden');
+            btn.innerHTML = originalBtnText;
+            btn.disabled = false;
+        }, 
+        () => {
+            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                progressContainer.classList.add('hidden');
+                const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
+                saveFileToDatabase(title, "Assignment", target.toUpperCase(), downloadURL, filePath, sizeMB, "Assignments", () => {
+                    e.target.reset();
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                    renderHubFiles();
+                    alert("Assignment Published Successfully to Public Vault!");
                 });
-            }
-        );
-    };
-
-    if (originalFile.type.startsWith('image/')) compressDocumentImage(originalFile, uploadToFirebase);
-    else uploadToFirebase(originalFile);
+            });
+        }
+    );
 }
 
 function renderStudentFiles(stId) {
@@ -1890,12 +1802,23 @@ function renderHubFiles() {
     listEl.innerHTML = '';
     
     if (!appData.materials) appData.materials = [];
-    if (appData.materials.length === 0) {
+    
+    // Safety Catch: Combine both arrays visually so you can see unmigrated files before clicking the Split tool
+    let displayList = [...appData.materials];
+    if (appData.files && appData.files.length > 0) {
+        appData.files.forEach(f => {
+            if ((f.category === 'Material' || f.category === 'Assignment') && !displayList.some(m => m.id === f.id)) {
+                displayList.push(f);
+            }
+        });
+    }
+    
+    if (displayList.length === 0) {
         listEl.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No hub files found.</td></tr>';
         return;
     }
     
-    appData.materials.slice().reverse().forEach(f => {
+    displayList.slice().reverse().forEach(f => {
         listEl.innerHTML += `
             <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
                 <td class="py-3 px-4 text-slate-500 font-bold text-xs">${f.date}</td>
@@ -1920,23 +1843,17 @@ function deleteStudentFile(path, fileId) {
     
     fileRef.delete().then(() => {
         appData.files = appData.files.filter(f => f.id !== fileId);
-        
-        if (typeof firebase !== 'undefined' && firebase.database) {
-            firebase.database().ref('files').set(appData.files.length > 0 ? appData.files : null);
-        }
-        
-        const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+        firebase.database().ref('files').set(appData.files);
         
         const stId = document.getElementById('tuition-student-id').value;
         renderStudentFiles(stId);
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
         
-        // Safety Fallback
+        // Ensure database record is deleted even if file is missing in storage
         appData.files = appData.files.filter(f => f.id !== fileId);
-        const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+        firebase.database().ref('files').set(appData.files);
+        
         const stId = document.getElementById('tuition-student-id').value;
         renderStudentFiles(stId);
     });
@@ -1950,22 +1867,22 @@ function deleteHubFile(path, fileId) {
     
     fileRef.delete().then(() => {
         appData.materials = appData.materials.filter(f => f.id !== fileId);
+        firebase.database().ref('materials').set(appData.materials);
         
-        if (typeof firebase !== 'undefined' && firebase.database) {
-            firebase.database().ref('materials').set(appData.materials.length > 0 ? appData.materials : null);
-        }
-        
-        const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+        // Safety wipe from files array just in case it wasn't migrated
+        appData.files = appData.files.filter(f => f.id !== fileId);
+        firebase.database().ref('files').set(appData.files);
         
         renderHubFiles();
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
         
-        // Safety Fallback
         appData.materials = appData.materials.filter(f => f.id !== fileId);
-        const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+        firebase.database().ref('materials').set(appData.materials);
+        
+        appData.files = appData.files.filter(f => f.id !== fileId);
+        firebase.database().ref('files').set(appData.files);
+        
         renderHubFiles();
     });
 }
@@ -1993,8 +1910,8 @@ function submitBroadcast(e) {
     };
 
     appData.notices.unshift(newNotice);
+    firebase.database().ref('notices').set(appData.notices);
     
-    syncToBothDatabases('add_notice', newNotice);
     renderBroadcastList();
     e.target.reset();
     alert("Broadcast Alert Sent!");
@@ -2026,13 +1943,7 @@ function renderBroadcastList() {
 
 function deleteBroadcast(index) {
     if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
-    const notice = appData.notices[index];
     appData.notices.splice(index, 1);
-    
-    if (notice && notice.id) {
-        syncToBothDatabases('delete_notice', {id: notice.id});
-    } else {
-        saveDatabase(); 
-    }
+    firebase.database().ref('notices').set(appData.notices);
     renderBroadcastList();
 }
