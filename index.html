@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     
     <!-- Firebase SDKs for Auth, Database, and Storage Vault -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -77,7 +78,13 @@
             
             <nav class="flex-1 px-4 py-8 overflow-y-auto custom-scrollbar">
                 <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p><div onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active"><i class="fa-solid fa-layer-group w-8 text-lg"></i> <span>Dashboard</span></div></div>
-                <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics</p><div onclick="switchTab('registration')" id="nav-registration" class="nav-btn"><i class="fa-solid fa-user-plus w-8 text-lg"></i> <span>New Admission</span></div><div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn"><i class="fa-solid fa-graduation-cap w-8 text-lg"></i> <span>Student Database</span></div></div>
+                <div class="mb-6">
+                    <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics</p>
+                    <div onclick="switchTab('registration')" id="nav-registration" class="nav-btn"><i class="fa-solid fa-user-plus w-8 text-lg"></i> <span>New Admission</span></div>
+                    <div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn"><i class="fa-solid fa-graduation-cap w-8 text-lg"></i> <span>Student Database</span></div>
+                    <!-- NEW SEATING & BATCH TAB -->
+                    <div onclick="switchTab('seating')" id="nav-seating" class="nav-btn"><i class="fa-solid fa-chair w-8 text-lg text-emerald-400"></i> <span>Batch & Seating</span></div>
+                </div>
                 
                 <div class="mb-6">
                     <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics & Comms</p>
@@ -143,6 +150,7 @@
 
             <div class="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 pb-24 w-full scroll-smooth relative z-0 custom-scrollbar" onclick="closeNotificationsIfOpen(event)">
                 
+                <!-- DASHBOARD VIEW -->
                 <div id="view-dashboard" class="view-section active space-y-8 max-w-7xl mx-auto">
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                         <div class="flex items-center flex-wrap gap-3 text-slate-600 text-sm font-bold w-full sm:w-auto">
@@ -300,21 +308,12 @@
                     </div>
                 </div>
 
+                <!-- SETTINGS VIEW -->
                 <div id="view-settings" class="view-section max-w-4xl mx-auto">
                     <div class="premium-card p-8 bg-white border border-slate-200">
                         <h3 class="text-xl font-black text-slate-800 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-indigo-500/30"><i class="fa-solid fa-gear text-xl"></i></div>System Settings</h3>
                         
                         <form id="settings-form" onsubmit="submitSettings(event)" class="space-y-8">
-                            
-                            <!-- SYSTEM MIGRATION TOOLS (Static HTML for guaranteed visibility) -->
-                            <div class="bg-rose-50 p-6 rounded-2xl border border-rose-200 mb-6">
-                                <h4 class="font-bold text-rose-900 mb-4 flex items-center"><i class="fa-solid fa-shield-halved mr-2 text-rose-600"></i> Enterprise Database Migration</h4>
-                                <p class="text-sm text-rose-700 mb-4 font-medium">Run these tools once to upgrade your legacy database to the new high-speed, secure Firebase infrastructure.</p>
-                                <div class="flex flex-col sm:flex-row gap-4">
-                                    <button type="button" onclick="runStudentAuthMigration()" class="flex-1 py-3 px-4 bg-rose-600 text-white font-bold rounded-xl shadow-md hover:bg-rose-700 transition-all transform hover:-translate-y-1"><i class="fa-solid fa-users mr-2"></i> 1. Migrate Auth</button>
-                                    <button type="button" onclick="runFileMigration()" class="flex-1 py-3 px-4 bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 transition-all transform hover:-translate-y-1"><i class="fa-solid fa-folder-tree mr-2"></i> 2. Split Vaults</button>
-                                </div>
-                            </div>
 
                             <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                                 <h4 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-qrcode mr-2 text-indigo-500"></i> UPI & Payment QR Code</h4>
@@ -358,6 +357,7 @@
                     </div>
                 </div>
 
+                <!-- ANALYTICS VIEW -->
                 <div id="view-analytics" class="view-section max-w-7xl mx-auto">
                     
                     <div class="premium-card p-6 md:p-8 mb-6 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -448,6 +448,7 @@
                     </div>
                 </div>
 
+                <!-- REGISTRATION VIEW -->
                 <div id="view-registration" class="view-section max-w-5xl mx-auto">
                     <form id="reg-form" onsubmit="submitRegistration(event)" class="premium-card overflow-hidden">
                         <div class="bg-slate-900 p-8 md:p-10 text-white relative overflow-hidden">
@@ -461,12 +462,33 @@
                                 <div><label class="form-label text-indigo-600">Admission Date</label><input type="date" id="reg-date" class="form-input bg-white shadow-sm border-indigo-100" required></div>
                                 <div><label class="form-label text-indigo-600">Student Photo (Optional)</label><input type="file" id="reg-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer bg-white border border-indigo-100 rounded-xl shadow-sm transition-all" onchange="openCropModal(event, 'reg')"></div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            <!-- UPDATED: 3-Column Grid to fit new fields perfectly -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div><label class="form-label">Full Name</label><input type="text" id="reg-name" class="form-input" placeholder="e.g. Rahul Sharma" required></div>
                                 <div><label class="form-label">Mobile Number</label><input type="tel" id="reg-phone" class="form-input" placeholder="+91"></div>
                                 <div><label class="form-label">Gender</label><select id="reg-gender" class="form-input cursor-pointer" required><option value="" disabled selected>Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                                
                                 <div><label class="form-label">Course Enrolled</label><input type="text" id="reg-course" class="form-input" placeholder="e.g. PGDCA" required></div>
+                                <!-- NEW: Parent Phone Field -->
+                                <div><label class="form-label text-indigo-600">Parent's Number</label><input type="tel" id="reg-parent-phone" class="form-input border-indigo-100 bg-indigo-50/30" placeholder="+91"></div>
+                                <!-- NEW: Batch Selection Field -->
+                                <div>
+                                    <label class="form-label text-indigo-600">Assign Batch</label>
+                                    <select id="reg-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700">
+                                        <option value="Unassigned" selected>Unassigned</option>
+                                        <option value="1st">1st Batch (08:00 AM)</option>
+                                        <option value="2nd">2nd Batch (08:45 AM)</option>
+                                        <option value="3rd">3rd Batch (09:30 AM)</option>
+                                        <option value="4th">4th Batch (10:15 AM)</option>
+                                        <option value="5th">5th Batch (03:00 PM)</option>
+                                        <option value="6th">6th Batch (03:45 PM)</option>
+                                        <option value="7th">7th Batch (04:30 PM)</option>
+                                        <option value="8th">8th Batch (05:15 PM)</option>
+                                    </select>
+                                </div>
                             </div>
+                            
                             <hr class="border-slate-200">
                             <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-[1.5rem] p-6 md:p-8 border border-emerald-100 shadow-sm">
                                 <h3 class="text-emerald-800 font-black mb-6 flex items-center text-lg"><i class="fa-solid fa-money-check-dollar mr-3 text-2xl text-emerald-500"></i> Financial Commitment</h3>
@@ -482,6 +504,7 @@
                     </form>
                 </div>
 
+                <!-- TUITION VIEW -->
                 <div id="view-tuition" class="view-section h-full max-w-7xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
                         
@@ -554,10 +577,7 @@
                                     </div>
                                 </div>
 
-                                <!-- UPDATED: 2 CARDS TOP, 1 CARD BOTTOM LAYOUT -->
                                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 overflow-visible">
-                                    
-                                    <!-- Card 1 -->
                                     <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px]">
                                         <div class="p-4 border-b border-slate-100 bg-slate-50 shrink-0"><h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-plus-circle mr-2 text-emerald-500"></i> Record New Payment</h3></div>
                                         <form onsubmit="submitTuitionFee(event)" class="p-6 flex-1 flex flex-col justify-between overflow-y-auto custom-scrollbar">
@@ -580,7 +600,6 @@
                                         </form>
                                     </div>
 
-                                    <!-- Card 2 -->
                                     <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px]">
                                         <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0"><h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-500"></i> Payment History</h3></div>
                                         <div class="overflow-y-auto overflow-x-auto flex-1 custom-scrollbar p-2">
@@ -591,7 +610,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Card 3 (Now spans full width on bottom) -->
                                     <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px] lg:col-span-2">
                                         <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
                                             <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-folder-open mr-2 text-indigo-500"></i> Documents</h3>
@@ -610,7 +628,84 @@
                                             </table>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- NEW SEATING & BATCH MANAGEMENT VIEW -->
+                <div id="view-seating" class="view-section max-w-7xl mx-auto h-[85vh]">
+                    <div class="flex flex-col lg:flex-row gap-6 h-full">
+                        <!-- Left: Draggable Students List -->
+                        <div class="w-full lg:w-1/3 premium-card flex flex-col bg-white overflow-hidden shadow-md">
+                            <div class="p-6 border-b border-slate-100 bg-slate-50 shrink-0">
+                                <h3 class="font-black text-slate-800 text-lg flex items-center"><i class="fa-solid fa-users text-indigo-500 mr-2 text-xl"></i> Active Students</h3>
+                                <p class="text-xs text-slate-500 mt-1 mb-4 font-medium">Drag and drop students to assign seats.</p>
+                                <div class="relative">
+                                    <i class="fa-solid fa-search absolute left-3 top-3.5 text-slate-400 text-sm"></i>
+                                    <input type="text" id="seating-search" placeholder="Search unassigned students..." class="w-full rounded-xl border border-slate-200 pl-9 py-2.5 text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white" onkeyup="filterSeatingStudents()">
+                                </div>
+                            </div>
+                            <div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-50/50" id="draggable-students-list">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Right: Seating Arrangement & Inbox -->
+                        <div class="w-full lg:w-2/3 flex flex-col gap-6">
+                            <!-- Batch Selector & Rooms -->
+                            <div class="premium-card flex-1 bg-white flex flex-col shadow-md overflow-hidden">
+                                <div class="p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap justify-between items-center gap-4 shrink-0">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shadow-inner shrink-0"><i class="fa-solid fa-layer-group"></i></div>
+                                        <div>
+                                            <h3 class="font-black text-slate-800 text-sm md:text-base leading-tight">Room Layout Manager</h3>
+                                            <select id="active-seating-batch" class="bg-transparent text-xs font-bold text-indigo-600 mt-1 cursor-pointer outline-none border-none p-0 focus:ring-0" onchange="renderSeatingLayout()">
+                                                <option value="1st">1st Batch (08:00 AM)</option>
+                                                <option value="2nd">2nd Batch (08:45 AM)</option>
+                                                <option value="3rd">3rd Batch (09:30 AM)</option>
+                                                <option value="4th">4th Batch (10:15 AM)</option>
+                                                <option value="5th">5th Batch (03:00 PM)</option>
+                                                <option value="6th">6th Batch (03:45 PM)</option>
+                                                <option value="7th">7th Batch (04:30 PM)</option>
+                                                <option value="8th">8th Batch (05:15 PM)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button onclick="saveSeatingArrangement()" class="bg-indigo-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30 transform hover:-translate-y-0.5"><i class="fa-solid fa-floppy-disk mr-1.5"></i>Save Layout</button>
+                                </div>
+                                
+                                <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/80 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                                    <!-- Theory Room -->
+                                    <div class="flex flex-col h-full">
+                                        <div class="bg-indigo-100 text-indigo-800 font-black text-center py-2.5 rounded-t-xl border border-indigo-200 uppercase tracking-widest text-xs flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid fa-chalkboard mr-2"></i> Theory Room (10 Seats)</div>
+                                        <div class="border-x border-b border-indigo-100 bg-white p-4 rounded-b-xl flex-1 shadow-sm" id="theory-room-container">
+                                            <div class="grid grid-cols-2 gap-3 h-full" id="theory-room-seats">
+                                                <!-- Dropzones generated by JS -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Practical Lab -->
+                                    <div class="flex flex-col h-full">
+                                        <div class="bg-emerald-100 text-emerald-800 font-black text-center py-2.5 rounded-t-xl border border-emerald-200 uppercase tracking-widest text-xs flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid fa-desktop mr-2"></i> Practical Lab (10 Seats)</div>
+                                        <div class="border-x border-b border-emerald-100 bg-white p-4 rounded-b-xl flex-1 shadow-sm" id="practical-room-container">
+                                            <div class="grid grid-cols-2 gap-3 h-full" id="practical-room-seats">
+                                                <!-- Dropzones generated by JS -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Inbox for Batch Change Requests -->
+                            <div class="premium-card h-48 md:h-64 bg-white flex flex-col shadow-md overflow-hidden shrink-0">
+                                <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+                                    <h3 class="font-bold text-slate-800 text-sm flex items-center"><i class="fa-solid fa-inbox text-amber-500 mr-2 text-lg"></i> Student Batch Requests</h3>
+                                    <span class="bg-rose-100 text-rose-600 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-rose-200" id="batch-request-count">0 Pending</span>
+                                </div>
+                                <div class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3 bg-slate-50/30" id="batch-requests-list">
+                                    <!-- JS populated -->
                                 </div>
                             </div>
                         </div>
@@ -727,22 +822,48 @@
                         <p class="text-[10px] text-slate-500 mt-4"><i class="fa-solid fa-circle-info"></i> Safely corrects original transactions without duplicate entries. Edit rewards manually if needed.</p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- UPDATED: 3-Column Grid to fit new fields perfectly -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div><label class="form-label">Full Name</label><input type="text" id="edit-name" class="form-input" required></div>
                         <div><label class="form-label">Admission Date</label><input type="date" id="edit-date" class="form-input" required></div>
                         <div><label class="form-label">Mobile Number</label><input type="tel" id="edit-phone" class="form-input"></div>
                         <div><label class="form-label">Gender</label><select id="edit-gender" class="form-input font-medium"><option value="Male">Male</option><option value="Female">Female</option></select></div>
                         <div><label class="form-label">Course</label><input type="text" id="edit-course" class="form-input" required></div>
                         <div><label class="form-label">Course Duration (Months)</label><input type="number" id="edit-duration" class="form-input" required></div>
-                        <div><label class="form-label">Fee Structure</label><select id="edit-feetype" class="form-input font-medium"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
+                        
                         <div><label class="form-label text-indigo-600">Student Status</label><select id="edit-status" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200"><option value="Active">Active Student</option><option value="Graduated">Graduated / Alumni</option></select></div>
-                        <div class="md:col-span-2">
+                        <!-- NEW: Parent Phone Field -->
+                        <div><label class="form-label text-indigo-600">Parent's Number</label><input type="tel" id="edit-parent-phone" class="form-input border-indigo-100 bg-indigo-50/30" placeholder="+91"></div>
+                        <!-- NEW: Batch Selection Field -->
+                        <div>
+                            <label class="form-label text-indigo-600">Assigned Batch</label>
+                            <select id="edit-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700">
+                                <option value="Unassigned">Unassigned</option>
+                                <option value="1st">1st Batch (08:00 AM)</option>
+                                <option value="2nd">2nd Batch (08:45 AM)</option>
+                                <option value="3rd">3rd Batch (09:30 AM)</option>
+                                <option value="4th">4th Batch (10:15 AM)</option>
+                                <option value="5th">5th Batch (03:00 PM)</option>
+                                <option value="6th">6th Batch (03:45 PM)</option>
+                                <option value="7th">7th Batch (04:30 PM)</option>
+                                <option value="8th">8th Batch (05:15 PM)</option>
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-3">
                             <label class="form-label">Update Photo (Leave blank to keep current)</label>
                             <input type="file" id="edit-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl" onchange="openCropModal(event, 'edit')">
                         </div>
                         
+                        <div class="col-span-1 md:col-span-3 flex flex-wrap gap-6">
+                            <div class="flex-1 min-w-[200px]">
+                                <label class="form-label">Fee Structure</label>
+                                <select id="edit-feetype" class="form-input font-medium"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select>
+                            </div>
+                        </div>
+
                         <!-- NEW DUE OVERRIDES SECTION -->
-                        <div class="col-span-1 md:col-span-2 bg-rose-50/50 p-5 rounded-xl border border-rose-100 mt-2">
+                        <div class="col-span-1 md:col-span-3 bg-rose-50/50 p-5 rounded-xl border border-rose-100 mt-2">
                             <h4 class="text-xs font-bold text-rose-600 mb-4 uppercase tracking-wider"><i class="fa-solid fa-lock mr-2"></i> Current Due Overrides (Optional)</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div><label class="form-label text-rose-800">Custom Due Amount (₹)</label><input type="number" id="edit-custom-due" class="form-input bg-white border-rose-200" placeholder="e.g. 1000"></div>
