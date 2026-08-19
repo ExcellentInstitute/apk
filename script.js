@@ -2,7 +2,6 @@
 // 🌐 ENTERPRISE DUAL-WRITE PIPELINE & SERVER SWITCH 🌐
 // Read source is dynamic. Write source is ALWAYS BOTH.
 // =========================================================
-// FIX: Force Firebase as the default server for all users unless explicitly set to false
 let savedPref = localStorage.getItem('useFirebaseServer');
 let USE_FIREBASE_SERVER = (savedPref === null) ? true : (savedPref === 'true');
 
@@ -24,7 +23,8 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], notices: [] };
+// NEW: 'materials' array added to standard app state
+let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [] };
 let sessionPassword = ""; 
 let cropper = null;
 let currentCropTarget = null;
@@ -63,9 +63,8 @@ async function syncToBothDatabases(action, payload) {
                 await firebase.database().ref('students').set(appData.students); 
             } else if (action === 'add_notice' || action === 'delete_notice') {
                 await firebase.database().ref('notices').set(appData.notices);
-            } else if (action === 'add_file' || action === 'delete_file' || action === 'move_file') {
-                await firebase.database().ref('files').set(appData.files);
             }
+            // Note: Files and Materials are handled directly within their specific functions below
         }
 
         const bodyPayload = { action: action, pass: sessionPassword, data: payload };
@@ -89,6 +88,7 @@ async function saveDatabase() {
                 transactions: appData.transactions || [],
                 stats: appData.stats || { income: 0, expense: 0, balance: 0 },
                 files: appData.files || [],
+                materials: appData.materials || [],
                 notices: appData.notices || [],
                 settings: appData.settings || {}
             });
@@ -144,6 +144,7 @@ async function handleLogin(e) {
                 transactions: parseFbList(dbData.transactions),
                 stats: dbData.stats || { income: 0, expense: 0, balance: 0 },
                 files: parseFbList(dbData.files),
+                materials: parseFbList(dbData.materials),
                 notices: parseFbList(dbData.notices),
                 settings: dbData.settings || {}
             };
@@ -151,7 +152,6 @@ async function handleLogin(e) {
             let response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
             const rawText = await response.text();
             
-            // FIX: The HTML Shield
             if (rawText.trim().startsWith('<')) {
                 throw new Error("Google Apps Script returned an HTML error. The script URL may be broken or requires re-authorization.");
             }
@@ -159,6 +159,24 @@ async function handleLogin(e) {
             let parsed = JSON.parse(rawText);
             if(parsed.error) throw new Error(parsed.error);
             appData = parsed.data || parsed; 
+
+            // 🛡️ SHEETS FALLBACK PROTECTOR:
+            // Since Google Sheets bundles all files into one sheet, we must manually split them upon loading 
+            // so the Two-Vault UI doesn't crash while in Offline/Sheets mode.
+            if (!appData.materials) appData.materials = [];
+            if (appData.files && appData.files.length > 0) {
+                let tempFiles = [];
+                let tempMaterials = [];
+                appData.files.forEach(f => {
+                    if (f.category === 'Material' || f.category === 'Assignment') {
+                        tempMaterials.push(f);
+                    } else {
+                        tempFiles.push(f);
+                    }
+                });
+                appData.files = tempFiles;
+                appData.materials = tempMaterials;
+            }
         }
 
         sessionPassword = pass; 
@@ -191,7 +209,7 @@ async function handleLogin(e) {
 }
 
 // =========================================================
-// ⚙️ AUTOMATED FIREBASE AUTH MIGRATION TOOL
+// ⚙️ AUTOMATED MIGRATION TOOLS
 // =========================================================
 function _injectMigrationTool() {
     setTimeout(() => {
@@ -199,9 +217,12 @@ function _injectMigrationTool() {
         if(settingsForm) {
             const migrationHTML = `
             <div class="bg-rose-50 p-6 rounded-2xl border border-rose-200 mb-6 mt-6">
-                <h4 class="font-bold text-rose-900 mb-2 flex items-center"><i class="fa-solid fa-shield-halved mr-2 text-rose-600"></i> Auth Migration Tool</h4>
-                <p class="text-xs text-rose-700 mb-4">Generates secure Firebase Auth accounts (@ei.com) for all existing students.</p>
-                <button type="button" onclick="runStudentAuthMigration()" class="px-4 py-2 bg-rose-600 text-white font-bold rounded-lg shadow hover:bg-rose-700 transition-colors text-sm">Run Migration Process</button>
+                <h4 class="font-bold text-rose-900 mb-2 flex items-center"><i class="fa-solid fa-shield-halved mr-2 text-rose-600"></i> System Migration Tools</h4>
+                <p class="text-xs text-rose-700 mb-4">Run these tools once to upgrade your database to the new enterprise security architecture.</p>
+                <div class="flex flex-col gap-3">
+                    <button type="button" onclick="runStudentAuthMigration()" class="px-4 py-2 bg-rose-600 text-white font-bold rounded-lg shadow hover:bg-rose-700 transition-colors text-sm text-left"><i class="fa-solid fa-users mr-2"></i> 1. Migrate Student Auth</button>
+                    <button type="button" onclick="runFileMigration()" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow hover:bg-indigo-700 transition-colors text-sm text-left"><i class="fa-solid fa-folder-tree mr-2"></i> 2. Split File Vaults (Security Upgrade)</button>
+                </div>
             </div>`;
             settingsForm.insertAdjacentHTML('beforeend', migrationHTML);
         }
@@ -248,6 +269,43 @@ async function runStudentAuthMigration() {
         alert(`Migration Complete!\n✅ Accounts Created: ${successCount}\n⏭️ Already Existed (Skipped): ${skipCount}`);
     } catch (err) {
         alert("Migration encountered an error: " + err.message);
+    }
+}
+
+// 🗂️ THE NEW TWO-VAULT DATA SPLITTER
+async function runFileMigration() {
+    if(!confirm("Start File Vault Split? This will safely move Study Materials to the public node while keeping Certificates locked.")) return;
+    
+    try {
+        let newPrivateFiles = [];
+        let newPublicMaterials = appData.materials ? [...appData.materials] : [];
+
+        if (appData.files && appData.files.length > 0) {
+            appData.files.forEach(f => {
+                if (f.category === 'Material' || f.category === 'Assignment') {
+                    // Prevent duplicates
+                    if (!newPublicMaterials.some(m => m.id === f.id)) {
+                        newPublicMaterials.push(f);
+                    }
+                } else {
+                    newPrivateFiles.push(f);
+                }
+            });
+        }
+
+        appData.files = newPrivateFiles;
+        appData.materials = newPublicMaterials;
+
+        if (USE_FIREBASE_SERVER && typeof firebase !== 'undefined') {
+            await firebase.database().ref('files').set(appData.files.length > 0 ? appData.files : null);
+            await firebase.database().ref('materials').set(appData.materials.length > 0 ? appData.materials : null);
+        }
+        
+        saveDatabase(); 
+        renderHubFiles();
+        alert("File Migration Complete! Database successfully split into two secure vaults.");
+    } catch(e) {
+        alert("Error during file migration: " + e.message);
     }
 }
 
@@ -1108,7 +1166,6 @@ function submitRegistration(e) {
     const finishReg = function(base64Image) {
         const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image, duration);
         
-        // 🔐 AUTO-CREATE FIREBASE AUTH ACCOUNT FOR NEW STUDENT
         try {
             let secondaryApp;
             if (firebase.apps.length < 2) {
@@ -1546,12 +1603,10 @@ async function executeDelete() {
 
     if(!pass) return;
     
-    // Attempt to authenticate deletion with Firebase Auth directly.
     try {
         errorMsg.classList.add('hidden'); 
         btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
         
-        // Use a dummy login call to verify the admin password against the server
         await firebase.auth().signInWithEmailAndPassword('admin@ei.com', pass);
         
         btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
@@ -1595,8 +1650,43 @@ async function executeDelete() {
 }
 
 // =========================================
-// FIREBASE & COMPRESSION LOGIC
+// 🗂️ THE SMART-SPLIT FILE UPLOADER
 // =========================================
+function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
+    const newFile = {
+        id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
+        date: new Date().toISOString().split('T')[0], folder: folderName
+    };
+    
+    // Route to proper vault based on the category
+    const isPublicMaterial = (category === 'Material' || category === 'Assignment');
+    
+    if (isPublicMaterial) {
+        if (!appData.materials) appData.materials = [];
+        appData.materials.push(newFile);
+        if (typeof firebase !== 'undefined' && firebase.database) firebase.database().ref('materials').set(appData.materials);
+    } else {
+        if (!appData.files) appData.files = [];
+        appData.files.push(newFile);
+        if (typeof firebase !== 'undefined' && firebase.database) firebase.database().ref('files').set(appData.files);
+    }
+
+    // LEGACY SHEET PROTECTOR: We STILL tell Google Sheets it's an 'add_file' command.
+    // This tricks the backend script into backing it up seamlessly without needing to rewrite Google Apps Script.
+    const payload = { action: 'add_file', pass: sessionPassword, data: newFile };
+    fetch(GOOGLE_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "text/plain;charset=utf-8" }
+    });
+
+    if(callback) {
+        callback();
+    } else {
+        const stId = document.getElementById('tuition-student-id').value;
+        renderStudentFiles(stId);
+    }
+}
 
 function compressDocumentImage(file, callback) {
     const reader = new FileReader();
@@ -1607,21 +1697,9 @@ function compressDocumentImage(file, callback) {
             const ctx = canvas.getContext('2d');
             const MAX_SIZE = 800;
             let width = img.width, height = img.height;
-            
-            if (width > height) { 
-                if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } 
-            } else { 
-                if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } 
-            }
-            
-            canvas.width = width; 
-            canvas.height = height; 
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            canvas.toBlob((blob) => {
-                const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
-                callback(compressedFile);
-            }, 'image/jpeg', 0.6); 
+            if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+            canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => { const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }); callback(compressedFile); }, 'image/jpeg', 0.6); 
         }
         img.src = e.target.result;
     }
@@ -1693,33 +1771,6 @@ async function compressPDF(file, callback, buttonSelector = 'label[for="student-
     }
 }
 
-function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
-    const newFile = {
-        id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
-        date: new Date().toISOString().split('T')[0], folder: folderName
-    };
-    if (!appData.files) appData.files = [];
-    appData.files.push(newFile);
-
-    // FORCE DUAL WRITE
-    if (typeof firebase !== 'undefined' && firebase.database) {
-        firebase.database().ref('files').set(appData.files);
-    }
-    const payload = { action: 'add_file', pass: sessionPassword, data: newFile };
-    fetch(GOOGLE_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "text/plain;charset=utf-8" }
-    });
-
-    if(callback) {
-        callback();
-    } else {
-        const stId = document.getElementById('tuition-student-id').value;
-        renderStudentFiles(stId);
-    }
-}
-
 function handleStudentFileUpload(event) {
     const originalFile = event.target.files[0];
     if (!originalFile) return;
@@ -1743,11 +1794,7 @@ function handleStudentFileUpload(event) {
 
         uploadTask.on('state_changed', 
             (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => {
-                alert("File upload to Vault failed!\n\nFirebase Error: " + error.code + "\nMessage: " + error.message);
-                progressContainer.classList.add('hidden');
-                document.getElementById('student-doc-upload').value = '';
-            }, 
+            (error) => { alert("File upload failed!\n\nMessage: " + error.message); progressContainer.classList.add('hidden'); document.getElementById('student-doc-upload').value = ''; }, 
             () => {
                 uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                     progressContainer.classList.add('hidden');
@@ -1757,7 +1804,7 @@ function handleStudentFileUpload(event) {
                     
                     saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
                         renderStudentFiles(stId);
-                        alert("Document saved securely to Vault!");
+                        alert("Document saved securely to Private Vault!");
                     });
                     document.getElementById('student-doc-upload').value = '';
                 });
@@ -1799,22 +1846,13 @@ function submitMaterialUpload(e) {
 
         uploadTask.on('state_changed', 
             (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => {
-                alert("Upload failed: " + error.message);
-                progressContainer.classList.add('hidden');
-                btn.innerHTML = originalBtnText;
-                btn.disabled = false;
-            }, 
+            (error) => { alert("Upload failed: " + error.message); progressContainer.classList.add('hidden'); btn.innerHTML = originalBtnText; btn.disabled = false; }, 
             () => {
                 uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                     progressContainer.classList.add('hidden');
                     const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
                     saveFileToDatabase(title, "Material", target.toUpperCase(), downloadURL, filePath, sizeMB, folder, () => {
-                        e.target.reset();
-                        btn.innerHTML = originalBtnText;
-                        btn.disabled = false;
-                        renderHubFiles();
-                        alert("Material Published Successfully!");
+                        e.target.reset(); btn.innerHTML = originalBtnText; btn.disabled = false; renderHubFiles(); alert("Material Published Successfully to Public Vault!");
                     });
                 });
             }
@@ -1854,22 +1892,13 @@ function submitAssignmentUpload(e) {
 
         uploadTask.on('state_changed', 
             (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-            (error) => {
-                alert("Upload failed: " + error.message);
-                progressContainer.classList.add('hidden');
-                btn.innerHTML = originalBtnText;
-                btn.disabled = false;
-            }, 
+            (error) => { alert("Upload failed: " + error.message); progressContainer.classList.add('hidden'); btn.innerHTML = originalBtnText; btn.disabled = false; }, 
             () => {
                 uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                     progressContainer.classList.add('hidden');
                     const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
                     saveFileToDatabase(title, "Assignment", target.toUpperCase(), downloadURL, filePath, sizeMB, "Assignments", () => {
-                        e.target.reset();
-                        btn.innerHTML = originalBtnText;
-                        btn.disabled = false;
-                        renderHubFiles();
-                        alert("Assignment Published Successfully!");
+                        e.target.reset(); btn.innerHTML = originalBtnText; btn.disabled = false; renderHubFiles(); alert("Assignment Published Successfully to Public Vault!");
                     });
                 });
             }
@@ -1919,15 +1948,13 @@ function renderHubFiles() {
     if(!listEl) return;
     listEl.innerHTML = '';
     
-    if (!appData.files) appData.files = [];
-    const hubFiles = appData.files.filter(f => f.category === 'Material' || f.category === 'Assignment');
-    
-    if (hubFiles.length === 0) {
+    if (!appData.materials) appData.materials = [];
+    if (appData.materials.length === 0) {
         listEl.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No hub files found.</td></tr>';
         return;
     }
     
-    hubFiles.slice().reverse().forEach(f => {
+    appData.materials.slice().reverse().forEach(f => {
         listEl.innerHTML += `
             <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
                 <td class="py-3 px-4 text-slate-500 font-bold text-xs">${f.date}</td>
@@ -1953,10 +1980,10 @@ function deleteStudentFile(path, fileId) {
     fileRef.delete().then(() => {
         appData.files = appData.files.filter(f => f.id !== fileId);
         
-        // FORCE DUAL WRITE
         if (typeof firebase !== 'undefined' && firebase.database) {
-            firebase.database().ref('files').set(appData.files);
+            firebase.database().ref('files').set(appData.files.length > 0 ? appData.files : null);
         }
+        
         const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
         fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
         
@@ -1965,7 +1992,7 @@ function deleteStudentFile(path, fileId) {
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
         
-        // Safety Fallback: Still delete from Sheets
+        // Safety Fallback
         appData.files = appData.files.filter(f => f.id !== fileId);
         const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
         fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
@@ -1981,12 +2008,12 @@ function deleteHubFile(path, fileId) {
     const fileRef = storageRef.child(path);
     
     fileRef.delete().then(() => {
-        appData.files = appData.files.filter(f => f.id !== fileId);
+        appData.materials = appData.materials.filter(f => f.id !== fileId);
         
-        // FORCE DUAL WRITE
         if (typeof firebase !== 'undefined' && firebase.database) {
-            firebase.database().ref('files').set(appData.files);
+            firebase.database().ref('materials').set(appData.materials.length > 0 ? appData.materials : null);
         }
+        
         const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
         fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
         
@@ -1994,8 +2021,8 @@ function deleteHubFile(path, fileId) {
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
         
-        // Safety Fallback: Still delete from Sheets
-        appData.files = appData.files.filter(f => f.id !== fileId);
+        // Safety Fallback
+        appData.materials = appData.materials.filter(f => f.id !== fileId);
         const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
         fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
         renderHubFiles();
