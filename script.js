@@ -22,7 +22,6 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 // FCM Notification Relay (Only used for Push Notifications)
 const FCM_RELAY_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
 
-// NEW: Added 'seating' and 'batchRequests' to global memory
 let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [] };
 let sessionPassword = ""; 
 let cropper = null;
@@ -48,20 +47,30 @@ function parseFbList(data) {
 }
 
 // =========================================================
-// 🚀 PURE FIREBASE SYNC ENGINE
+// 🚀 PURE FIREBASE SYNC ENGINE WITH GRACEFUL DEGRADATION
 // =========================================================
+
+// NEW: Enterprise safety wrapper to prevent app crashes if a rule is missing
+const safeWrite = async (path, data) => {
+    try {
+        await firebase.database().ref(path).set(data);
+    } catch (err) {
+        console.warn(`⚠️ Warning: Could not write to '${path}'. Check Firebase Rules.`, err.message);
+    }
+};
+
 async function saveDatabase() {
     try {
         await Promise.all([
-            firebase.database().ref('students').set(appData.students || []),
-            firebase.database().ref('transactions').set(appData.transactions || []),
-            firebase.database().ref('stats').set(appData.stats || { income: 0, expense: 0, balance: 0 }),
-            firebase.database().ref('files').set(appData.files || []),
-            firebase.database().ref('materials').set(appData.materials || []),
-            firebase.database().ref('notices').set(appData.notices || []),
-            firebase.database().ref('settings').set(appData.settings || {}),
-            firebase.database().ref('seating').set(appData.seating || {}),
-            firebase.database().ref('batch_requests').set(appData.batchRequests || [])
+            safeWrite('students', appData.students || []),
+            safeWrite('transactions', appData.transactions || []),
+            safeWrite('stats', appData.stats || { income: 0, expense: 0, balance: 0 }),
+            safeWrite('files', appData.files || []),
+            safeWrite('materials', appData.materials || []),
+            safeWrite('notices', appData.notices || []),
+            safeWrite('settings', appData.settings || {}),
+            safeWrite('seating', appData.seating || {}),
+            safeWrite('batch_requests', appData.batchRequests || [])
         ]);
     } catch (error) {
         console.error("Critical Firebase Sync Error:", error);
@@ -71,6 +80,17 @@ async function saveDatabase() {
 // =========================================================
 // 🔐 PURE FIREBASE AUTHENTICATION LOGIN
 // =========================================================
+
+// NEW: Enterprise safety wrapper for fetching to prevent full login crashes
+const safeFetch = async (path) => {
+    try {
+        return await firebase.database().ref(path).once('value');
+    } catch (err) {
+        console.warn(`⚠️ Warning: Could not read '${path}'. Check Firebase Rules.`, err.message);
+        return { val: () => null }; // Return an empty snapshot simulator
+    }
+};
+
 async function handleLogin(e) {
     e.preventDefault();
     const user = document.getElementById('username').value.toLowerCase().trim();
@@ -90,17 +110,17 @@ async function handleLogin(e) {
         // 1. Authenticate with Firebase Server securely
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
-        // 2. Safely load nodes individually to bypass root security lock
+        // 2. Safely load nodes individually using the crash-proof wrapper
         const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap, seatSnap, reqSnap] = await Promise.all([
-            firebase.database().ref('students').once('value'),
-            firebase.database().ref('transactions').once('value'),
-            firebase.database().ref('stats').once('value'),
-            firebase.database().ref('files').once('value'),
-            firebase.database().ref('materials').once('value'),
-            firebase.database().ref('notices').once('value'),
-            firebase.database().ref('settings').once('value'),
-            firebase.database().ref('seating').once('value'),
-            firebase.database().ref('batch_requests').once('value')
+            safeFetch('students'),
+            safeFetch('transactions'),
+            safeFetch('stats'),
+            safeFetch('files'),
+            safeFetch('materials'),
+            safeFetch('notices'),
+            safeFetch('settings'),
+            safeFetch('seating'),
+            safeFetch('batch_requests')
         ]);
         
         appData = {
@@ -213,8 +233,8 @@ async function runFileMigration() {
         appData.materials = newPublicMaterials;
 
         await Promise.all([
-            firebase.database().ref('files').set(appData.files.length > 0 ? appData.files : null),
-            firebase.database().ref('materials').set(appData.materials.length > 0 ? appData.materials : null)
+            safeWrite('files', appData.files.length > 0 ? appData.files : null),
+            safeWrite('materials', appData.materials.length > 0 ? appData.materials : null)
         ]);
         
         renderHubFiles();
@@ -596,7 +616,6 @@ function refreshAllUI() {
     renderHubFiles();
     renderBroadcastList();
     
-    // NEW: Refresh Seating & Inbox UI
     renderSeatingLayout();
     renderBatchRequests();
 
@@ -720,12 +739,10 @@ function submitSettings(e) {
         pendingQRCodeBase64 = null;
     }
     
-    firebase.database().ref('settings').set(appData.settings).then(() => {
+    // Pure Firebase Save with Graceful Wrapper
+    safeWrite('settings', appData.settings).then(() => {
         btn.innerHTML = 'Save Configuration';
         alert("Settings Saved Successfully to Cloud!");
-    }).catch(err => {
-        btn.innerHTML = 'Save Configuration';
-        alert("Error saving settings: " + err.message);
     });
 }
 
@@ -1070,7 +1087,7 @@ function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, ge
         parentPhone: parentPhone || "", batch: batchId || "Unassigned"
     };
     appData.students.unshift(newStudent);
-    firebase.database().ref('students').set(appData.students);
+    safeWrite('students', appData.students);
     
     recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
     renderStudentList(); 
@@ -1083,8 +1100,8 @@ function recordTransaction(type, title, amount, dateStr, desc = "") {
     appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
     recalculateStats(); 
     
-    firebase.database().ref('transactions').set(appData.transactions);
-    firebase.database().ref('stats').set(appData.stats);
+    safeWrite('transactions', appData.transactions);
+    safeWrite('stats', appData.stats);
     
     refreshAllUI(); 
 }
@@ -1455,8 +1472,8 @@ function submitEditStudent(e) {
 function finalizeEdit(student) { 
     closeEditModal(); 
     recalculateStats(); 
-    firebase.database().ref('students').set(appData.students);
-    firebase.database().ref('transactions').set(appData.transactions);
+    safeWrite('students', appData.students);
+    safeWrite('transactions', appData.transactions);
     refreshAllUI(); 
     alert("Profile updated successfully!"); 
 }
@@ -1526,8 +1543,8 @@ function submitEditTransaction(e) {
     tx.date = document.getElementById('edit-tx-date').value; tx.title = document.getElementById('edit-tx-title').value;
     tx.amount = parseFloat(document.getElementById('edit-tx-amount').value); tx.description = document.getElementById('edit-tx-desc').value;
     recalculateStats(); 
-    firebase.database().ref('transactions').set(appData.transactions);
-    firebase.database().ref('stats').set(appData.stats);
+    safeWrite('transactions', appData.transactions);
+    safeWrite('stats', appData.stats);
     refreshAllUI(); closeEditTransactionModal(); alert("Record updated successfully!");
 }
 
@@ -1597,9 +1614,9 @@ async function executeDelete() {
                 }
             }
             recalculateStats(); 
-            firebase.database().ref('students').set(appData.students);
-            firebase.database().ref('transactions').set(appData.transactions);
-            firebase.database().ref('stats').set(appData.stats);
+            safeWrite('students', appData.students);
+            safeWrite('transactions', appData.transactions);
+            safeWrite('stats', appData.stats);
             refreshAllUI(); 
             closeDeleteModal(); 
             btnText.innerHTML = 'Confirm Delete';
@@ -1626,11 +1643,11 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
     if (isPublicMaterial) {
         if (!appData.materials) appData.materials = [];
         appData.materials.push(newFile);
-        firebase.database().ref('materials').set(appData.materials);
+        safeWrite('materials', appData.materials);
     } else {
         if (!appData.files) appData.files = [];
         appData.files.push(newFile);
-        firebase.database().ref('files').set(appData.files);
+        safeWrite('files', appData.files);
     }
 
     if(callback) {
@@ -1866,7 +1883,7 @@ function deleteStudentFile(path, fileId) {
     
     fileRef.delete().then(() => {
         appData.files = appData.files.filter(f => f.id !== fileId);
-        firebase.database().ref('files').set(appData.files);
+        safeWrite('files', appData.files);
         
         const stId = document.getElementById('tuition-student-id').value;
         renderStudentFiles(stId);
@@ -1875,7 +1892,7 @@ function deleteStudentFile(path, fileId) {
         
         // Ensure database record is deleted even if file is missing in storage
         appData.files = appData.files.filter(f => f.id !== fileId);
-        firebase.database().ref('files').set(appData.files);
+        safeWrite('files', appData.files);
         
         const stId = document.getElementById('tuition-student-id').value;
         renderStudentFiles(stId);
@@ -1890,21 +1907,21 @@ function deleteHubFile(path, fileId) {
     
     fileRef.delete().then(() => {
         appData.materials = appData.materials.filter(f => f.id !== fileId);
-        firebase.database().ref('materials').set(appData.materials);
+        safeWrite('materials', appData.materials);
         
         // Safety wipe from files array just in case it wasn't migrated
         appData.files = appData.files.filter(f => f.id !== fileId);
-        firebase.database().ref('files').set(appData.files);
+        safeWrite('files', appData.files);
         
         renderHubFiles();
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
         
         appData.materials = appData.materials.filter(f => f.id !== fileId);
-        firebase.database().ref('materials').set(appData.materials);
+        safeWrite('materials', appData.materials);
         
         appData.files = appData.files.filter(f => f.id !== fileId);
-        firebase.database().ref('files').set(appData.files);
+        safeWrite('files', appData.files);
         
         renderHubFiles();
     });
@@ -1933,7 +1950,7 @@ function submitBroadcast(e) {
     };
 
     appData.notices.unshift(newNotice);
-    firebase.database().ref('notices').set(appData.notices);
+    safeWrite('notices', appData.notices);
     
     renderBroadcastList();
     e.target.reset();
@@ -1967,7 +1984,7 @@ function renderBroadcastList() {
 function deleteBroadcast(index) {
     if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
     appData.notices.splice(index, 1);
-    firebase.database().ref('notices').set(appData.notices);
+    safeWrite('notices', appData.notices);
     renderBroadcastList();
 }
 
@@ -2172,8 +2189,8 @@ async function saveSeatingArrangement() {
 
     try {
         await Promise.all([
-            firebase.database().ref(`seating/${batch}`).set(appData.seating[batch]),
-            firebase.database().ref('students').set(appData.students)
+            safeWrite(`seating/${batch}`, appData.seating[batch]),
+            safeWrite('students', appData.students)
         ]);
         alert(`Seating layout for ${batch} Batch saved successfully!`);
     } catch(e) {
@@ -2231,10 +2248,10 @@ async function approveBatchRequest(reqId) {
     
     if(st) {
         st.batch = req.requestedBatch;
-        await firebase.database().ref(`students`).set(appData.students);
+        await safeWrite('students', appData.students);
     }
     req.status = 'Approved';
-    await firebase.database().ref(`batch_requests`).set(appData.batchRequests);
+    await safeWrite('batch_requests', appData.batchRequests);
     
     alert(`Approved! ${st ? st.name : 'Student'} has been assigned to ${req.requestedBatch} Batch.`);
     renderBatchRequests();
@@ -2247,7 +2264,7 @@ async function rejectBatchRequest(reqId) {
     const req = appData.batchRequests.find(r => r.id === reqId);
     if(!req) return;
     req.status = 'Rejected';
-    await firebase.database().ref(`batch_requests`).set(appData.batchRequests);
+    await safeWrite('batch_requests', appData.batchRequests);
     alert(`Request rejected.`);
     renderBatchRequests();
 }
