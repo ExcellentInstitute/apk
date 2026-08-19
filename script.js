@@ -22,7 +22,8 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 // FCM Notification Relay (Only used for Push Notifications)
 const FCM_RELAY_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
 
-let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {} };
+// NEW: Added 'seating' and 'batchRequests' to global memory
+let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [] };
 let sessionPassword = ""; 
 let cropper = null;
 let currentCropTarget = null;
@@ -58,7 +59,9 @@ async function saveDatabase() {
             firebase.database().ref('files').set(appData.files || []),
             firebase.database().ref('materials').set(appData.materials || []),
             firebase.database().ref('notices').set(appData.notices || []),
-            firebase.database().ref('settings').set(appData.settings || {})
+            firebase.database().ref('settings').set(appData.settings || {}),
+            firebase.database().ref('seating').set(appData.seating || {}),
+            firebase.database().ref('batch_requests').set(appData.batchRequests || [])
         ]);
     } catch (error) {
         console.error("Critical Firebase Sync Error:", error);
@@ -88,14 +91,16 @@ async function handleLogin(e) {
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
         // 2. Safely load nodes individually to bypass root security lock
-        const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap] = await Promise.all([
+        const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap, seatSnap, reqSnap] = await Promise.all([
             firebase.database().ref('students').once('value'),
             firebase.database().ref('transactions').once('value'),
             firebase.database().ref('stats').once('value'),
             firebase.database().ref('files').once('value'),
             firebase.database().ref('materials').once('value'),
             firebase.database().ref('notices').once('value'),
-            firebase.database().ref('settings').once('value')
+            firebase.database().ref('settings').once('value'),
+            firebase.database().ref('seating').once('value'),
+            firebase.database().ref('batch_requests').once('value')
         ]);
         
         appData = {
@@ -105,7 +110,9 @@ async function handleLogin(e) {
             files: parseFbList(flSnap.val()),
             materials: parseFbList(matSnap.val()),
             notices: parseFbList(notSnap.val()),
-            settings: setSnap.val() || {}
+            settings: setSnap.val() || {},
+            seating: seatSnap.val() || {},
+            batchRequests: parseFbList(reqSnap.val())
         };
 
         sessionPassword = pass; 
@@ -183,7 +190,6 @@ async function runStudentAuthMigration() {
     }
 }
 
-// 🗂️ THE NEW TWO-VAULT DATA SPLITTER
 async function runFileMigration() {
     if(!confirm("Start File Vault Split? This will safely move Study Materials to the public node while keeping Certificates locked.")) return;
     
@@ -589,6 +595,10 @@ function refreshAllUI() {
     
     renderHubFiles();
     renderBroadcastList();
+    
+    // NEW: Refresh Seating & Inbox UI
+    renderSeatingLayout();
+    renderBatchRequests();
 
     const activeId = document.getElementById('tuition-student-id').value;
     if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
@@ -637,6 +647,7 @@ function switchTab(tabId) {
         'dashboard': 'System Dashboard', 
         'registration': 'New Admission', 
         'tuition': 'Student Database', 
+        'seating': 'Batch & Seating Management',
         'filehub': 'Institute File Hub', 
         'broadcast': 'Alerts & Notifications', 
         'job': 'Job Applications', 
@@ -651,14 +662,15 @@ function switchTab(tabId) {
         const sidebar = document.getElementById('sidebar');
         if(!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
     }
+    
     if(tabId === 'analytics') renderAnalytics();
+    if(tabId === 'seating') { renderSeatingLayout(); renderBatchRequests(); }
 }
 
 function populateSettings() {
     if (!appData.settings) return;
     document.getElementById('set-upi').value = appData.settings.upiId || '';
     
-    // Set default to 0 to prevent 0.25 placeholder overriding
     document.getElementById('set-reward-amt').value = appData.settings.rewardPerClick ?? 0;
     document.getElementById('set-allow-rewards').value = appData.settings.allowVideoRewards ? "true" : "false";
     
@@ -708,7 +720,6 @@ function submitSettings(e) {
         pendingQRCodeBase64 = null;
     }
     
-    // Pure Firebase Save
     firebase.database().ref('settings').set(appData.settings).then(() => {
         btn.innerHTML = 'Save Configuration';
         alert("Settings Saved Successfully to Cloud!");
@@ -1048,10 +1059,16 @@ function getDynamicPaidFee(student) {
     return Math.max(total, parseFloat(student.paidFee) || 0);
 }
 
-function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
+// 🆕 UPDATED: Added parentPhone and batchId to registration
+function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr, parentPhone, batchId) {
     const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-    const newStudent = { id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active', customDueAmount: "", customDueDate: "" };
-    
+    const newStudent = { 
+        id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), 
+        feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, 
+        duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active', 
+        customDueAmount: "", customDueDate: "",
+        parentPhone: parentPhone || "", batch: batchId || "Unassigned"
+    };
     appData.students.unshift(newStudent);
     firebase.database().ref('students').set(appData.students);
     
@@ -1072,19 +1089,20 @@ function recordTransaction(type, title, amount, dateStr, desc = "") {
     refreshAllUI(); 
 }
 
+// 🆕 UPDATED: Captures new fields for registration
 function submitRegistration(e) {
     e.preventDefault();
     const date = document.getElementById('reg-date').value; const name = document.getElementById('reg-name').value;
     const course = document.getElementById('reg-course').value; const feeType = document.getElementById('reg-feetype').value;
     const gender = document.getElementById('reg-gender').value; const phone = document.getElementById('reg-phone').value;
+    const parentPhone = document.getElementById('reg-parent-phone').value; const batch = document.getElementById('reg-batch').value;
     const totalFee = document.getElementById('reg-totalfee').value; const paid = document.getElementById('reg-paid').value;
     const duration = document.getElementById('reg-duration').value;
     const fileInput = document.getElementById('reg-image');
 
     const finishReg = function(base64Image) {
-        const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image, duration);
+        const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image, duration, parentPhone, batch);
         
-        // 🔐 AUTO-CREATE FIREBASE AUTH ACCOUNT FOR NEW STUDENT
         try {
             let secondaryApp;
             if (firebase.apps.length < 2) {
@@ -1330,6 +1348,7 @@ function renderExpenseList() { renderList('expense-list', t => t.type === 'expen
 function renderJobList() { renderList('job-list', t => String(t.title || "").includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
 function renderPrintList() { renderList('print-list', t => String(t.title || "").includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
+// 🆕 UPDATED: Populates new Parent Phone and Batch fields
 function openEditModal() {
     const stId = document.getElementById('tuition-student-id').value;
     const student = appData.students.find(s => s.id === stId);
@@ -1339,8 +1358,10 @@ function openEditModal() {
     document.getElementById('edit-name').value = student.name;
     document.getElementById('edit-date').value = student.date || new Date().toISOString().split('T')[0];
     document.getElementById('edit-phone').value = student.phone || ''; 
+    document.getElementById('edit-parent-phone').value = student.parentPhone || ''; 
     document.getElementById('edit-gender').value = student.gender || 'Male';
     document.getElementById('edit-course').value = student.course; 
+    document.getElementById('edit-batch').value = student.batch || 'Unassigned'; 
     document.getElementById('edit-feetype').value = student.feeType || 'Monthly';
     document.getElementById('edit-totalfee').value = student.totalFee; 
     document.getElementById('edit-paidfee').value = getDynamicPaidFee(student);
@@ -1368,6 +1389,7 @@ function closeEditModal() {
     }, 300);
 }
 
+// 🆕 UPDATED: Saves new Parent Phone and Batch fields
 function submitEditStudent(e) {
     e.preventDefault();
     const id = document.getElementById('edit-student-id').value; let student = appData.students.find(s => s.id === id);
@@ -1378,8 +1400,10 @@ function submitEditStudent(e) {
     student.name = newName; 
     student.date = document.getElementById('edit-date').value;
     student.phone = document.getElementById('edit-phone').value; 
+    student.parentPhone = document.getElementById('edit-parent-phone').value; 
     student.gender = document.getElementById('edit-gender').value;
     student.course = document.getElementById('edit-course').value; 
+    student.batch = document.getElementById('edit-batch').value; 
     student.feeType = document.getElementById('edit-feetype').value;
     student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
     student.duration = parseInt(document.getElementById('edit-duration').value) || 0;
@@ -1803,7 +1827,6 @@ function renderHubFiles() {
     
     if (!appData.materials) appData.materials = [];
     
-    // Safety Catch: Combine both arrays visually so you can see unmigrated files before clicking the Split tool
     let displayList = [...appData.materials];
     if (appData.files && appData.files.length > 0) {
         appData.files.forEach(f => {
@@ -1946,4 +1969,285 @@ function deleteBroadcast(index) {
     appData.notices.splice(index, 1);
     firebase.database().ref('notices').set(appData.notices);
     renderBroadcastList();
+}
+
+// =========================================
+// 🪑 SEATING & BATCH MANAGEMENT ENGINE
+// =========================================
+function renderSeatingLayout() {
+    const batch = document.getElementById('active-seating-batch').value;
+    const theoryContainer = document.getElementById('theory-room-seats');
+    const labContainer = document.getElementById('practical-room-seats');
+    
+    if(!theoryContainer || !labContainer) return;
+
+    theoryContainer.innerHTML = '';
+    labContainer.innerHTML = '';
+    
+    // Generate 10 Theory Dropzones
+    for(let i=1; i<=10; i++) {
+        theoryContainer.innerHTML += `
+            <div id="theory-seat-${i}" class="h-20 bg-indigo-50/50 border-2 border-dashed border-indigo-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'theory-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                <span class="absolute top-1 left-2 text-[9px] font-bold text-indigo-300 pointer-events-none">T-${i}</span>
+            </div>`;
+    }
+
+    // Generate 10 Lab Dropzones
+    for(let i=1; i<=10; i++) {
+        labContainer.innerHTML += `
+            <div id="practical-seat-${i}" class="h-20 bg-emerald-50/50 border-2 border-dashed border-emerald-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'practical-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                <span class="absolute top-1 left-2 text-[9px] font-bold text-emerald-300 pointer-events-none">L-${i}</span>
+            </div>`;
+    }
+
+    // Populate assigned seats
+    if(appData.seating && appData.seating[batch]) {
+        const bSeats = appData.seating[batch];
+        for(let seatId in bSeats) {
+            const stId = bSeats[seatId];
+            if(stId) {
+                const st = appData.students.find(s => s.id === stId);
+                if(st) {
+                    const seatEl = document.getElementById(seatId);
+                    if(seatEl) {
+                        seatEl.innerHTML = ''; // clear background text
+                        seatEl.appendChild(createDraggableStudentCard(st, true));
+                    }
+                }
+            }
+        }
+    }
+    filterSeatingStudents(); // Refresh left panel
+}
+
+function filterSeatingStudents() {
+    const q = document.getElementById('seating-search').value.toLowerCase();
+    const list = document.getElementById('draggable-students-list');
+    if(!list) return;
+    list.innerHTML = '';
+
+    // Find all currently seated students in the DOM
+    const seatedIds = new Set();
+    document.querySelectorAll('#theory-room-seats [id^="drag-"], #practical-room-seats [id^="drag-"]').forEach(el => {
+        seatedIds.add(el.dataset.id);
+    });
+
+    // Filter active students who are NOT currently seated
+    const activeSt = appData.students.filter(s => 
+        (s.status || 'Active') === 'Active' && 
+        !seatedIds.has(s.id) &&
+        (String(s.name).toLowerCase().includes(q) || String(s.course).toLowerCase().includes(q))
+    );
+
+    // Sort: students belonging to the active batch float to top
+    const batch = document.getElementById('active-seating-batch').value;
+    activeSt.sort((a, b) => {
+        if(a.batch === batch && b.batch !== batch) return -1;
+        if(a.batch !== batch && b.batch === batch) return 1;
+        return 0;
+    });
+
+    if(activeSt.length === 0) {
+        list.innerHTML = '<p class="text-xs text-center text-slate-400 mt-10 font-bold"><i class="fa-solid fa-chair text-2xl mb-2 text-slate-300 block"></i>No available students found.</p>';
+        return;
+    }
+
+    activeSt.forEach(st => {
+        list.appendChild(createDraggableStudentCard(st, false));
+    });
+}
+
+function createDraggableStudentCard(st, inSeat = false) {
+    const el = document.createElement('div');
+    el.id = `drag-${st.id}`;
+    el.draggable = true;
+    el.dataset.id = st.id;
+    
+    el.ondragstart = (e) => {
+        e.dataTransfer.setData("text", e.target.id);
+        setTimeout(() => e.target.classList.add('opacity-50'), 0);
+    };
+    el.ondragend = (e) => {
+        e.target.classList.remove('opacity-50');
+    };
+    
+    const avatar = st.image ? 
+        `<img src="${st.image}" class="${inSeat ? 'w-8 h-8 rounded-full mb-1' : 'w-10 h-10 rounded-xl'} object-cover shrink-0 pointer-events-none">` : 
+        `<div class="${inSeat ? 'w-8 h-8 rounded-full mb-1 text-xs' : 'w-10 h-10 rounded-xl text-lg'} bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0 pointer-events-none">${st.name.charAt(0)}</div>`;
+
+    if(inSeat) {
+        el.className = "w-full h-full bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing relative group p-1 transition-all";
+        el.innerHTML = `
+            ${avatar}
+            <p class="text-[9px] font-bold text-slate-700 truncate w-full text-center pointer-events-none">${st.name.split(' ')[0]}</p>
+            <button type="button" onclick="removeStudentFromSeat(this, '${st.id}')" class="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-rose-600 shadow-sm"><i class="fa-solid fa-xmark"></i></button>
+        `;
+    } else {
+        const batchBadge = (st.batch === document.getElementById('active-seating-batch').value) 
+            ? `<span class="bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded text-[8px] ml-1 shrink-0">THIS BATCH</span>` 
+            : '';
+            
+        el.className = "bg-white p-3 rounded-xl border border-slate-200 shadow-sm cursor-grab active:cursor-grabbing hover:border-indigo-300 transition-colors flex items-center gap-3";
+        el.innerHTML = `
+            ${avatar}
+            <div class="flex-1 min-w-0 pointer-events-none flex flex-col justify-center">
+                <p class="font-bold text-slate-800 text-sm truncate w-full">${st.name}</p>
+                <div class="flex items-center w-full overflow-hidden mt-0.5">
+                    <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider truncate">${st.batch || 'Unassigned'} • ${st.course}</p>
+                    ${batchBadge}
+                </div>
+            </div>
+        `;
+    }
+    return el;
+}
+
+function allowDrop(ev) {
+    ev.preventDefault();
+    ev.currentTarget.classList.add('border-indigo-500', 'bg-indigo-50');
+}
+
+function dragLeave(ev) {
+    ev.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-50');
+}
+
+function dropSeat(ev, seatPrefix) {
+    ev.preventDefault();
+    const target = ev.currentTarget;
+    target.classList.remove('border-indigo-500', 'bg-indigo-50');
+    
+    const dataId = ev.dataTransfer.getData("text");
+    const draggedEl = document.getElementById(dataId);
+    if(!draggedEl) return;
+    
+    const stId = draggedEl.dataset.id;
+    const st = appData.students.find(s => s.id === stId);
+    if(!st) return;
+
+    // Clear seat if occupied
+    if (target.querySelectorAll('[id^="drag-"]').length > 0) {
+        target.innerHTML = '';
+    }
+
+    target.appendChild(createDraggableStudentCard(st, true));
+    filterSeatingStudents(); // Removes them from left panel
+}
+
+function removeStudentFromSeat(btn, stId) {
+    const card = btn.closest('[id^="drag-"]');
+    if(card) {
+        const seat = card.parentElement;
+        const seatId = seat.id;
+        card.remove();
+        
+        // Restore seat background text
+        const prefix = seatId.includes('theory') ? 'T' : 'L';
+        const num = seatId.split('-')[2];
+        const color = seatId.includes('theory') ? 'text-indigo-300' : 'text-emerald-300';
+        seat.innerHTML = `<span class="absolute top-1 left-2 text-[9px] font-bold ${color} pointer-events-none">${prefix}-${num}</span>`;
+        
+        filterSeatingStudents();
+    }
+}
+
+async function saveSeatingArrangement() {
+    const batch = document.getElementById('active-seating-batch').value;
+    if(!appData.seating) appData.seating = {};
+    appData.seating[batch] = {};
+
+    const processRoom = (roomId) => {
+        const seats = document.getElementById(roomId).children;
+        for(let seat of seats) {
+            const card = seat.querySelector('[id^="drag-"]');
+            if(card) {
+                appData.seating[batch][seat.id] = card.dataset.id;
+                // Auto-update student's batch in their profile
+                const st = appData.students.find(s => s.id === card.dataset.id);
+                if(st && st.batch !== batch) { st.batch = batch; }
+            }
+        }
+    };
+    processRoom('theory-room-seats');
+    processRoom('practical-room-seats');
+
+    try {
+        await Promise.all([
+            firebase.database().ref(`seating/${batch}`).set(appData.seating[batch]),
+            firebase.database().ref('students').set(appData.students)
+        ]);
+        alert(`Seating layout for ${batch} Batch saved successfully!`);
+    } catch(e) {
+        alert("Error saving seating layout: " + e.message);
+    }
+}
+
+// =========================================
+// 📥 BATCH CHANGE REQUEST INBOX
+// =========================================
+function renderBatchRequests() {
+    const listEl = document.getElementById('batch-requests-list');
+    const countEl = document.getElementById('batch-request-count');
+    if(!listEl) return;
+    
+    if(!appData.batchRequests) appData.batchRequests = [];
+    const pendingReqs = appData.batchRequests.filter(r => r.status === 'Pending');
+    
+    countEl.innerText = `${pendingReqs.length} Pending`;
+    listEl.innerHTML = '';
+    
+    if(pendingReqs.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 mt-8"><i class="fa-solid fa-check-circle text-3xl mb-2 text-emerald-400 block"></i><p class="font-bold text-xs">Inbox is empty!</p></div>';
+        return;
+    }
+
+    pendingReqs.forEach(req => {
+        const st = appData.students.find(s => s.id === req.studentId) || {name: 'Unknown', phone: ''};
+        listEl.innerHTML += `
+            <div class="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm leading-tight">${st.name}</h4>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1">${st.phone} • Curr: ${st.batch || 'Unassigned'}</p>
+                    </div>
+                    <span class="bg-amber-100 text-amber-700 text-[8px] font-black px-2 py-1 rounded tracking-widest shrink-0">PENDING</span>
+                </div>
+                <p class="text-xs text-slate-700 mb-2 mt-2 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <i class="fa-solid fa-arrow-right-arrow-left text-indigo-500 mr-1.5"></i>
+                    Wants to switch to <strong class="text-indigo-700">${req.requestedBatch} Batch</strong>
+                </p>
+                <div class="flex gap-2 mt-auto pt-2">
+                    <button type="button" onclick="approveBatchRequest('${req.id}')" class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"><i class="fa-solid fa-check mr-1"></i> Approve</button>
+                    <button type="button" onclick="rejectBatchRequest('${req.id}')" class="flex-1 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"><i class="fa-solid fa-xmark mr-1"></i> Reject</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+async function approveBatchRequest(reqId) {
+    const req = appData.batchRequests.find(r => r.id === reqId);
+    if(!req) return;
+    const st = appData.students.find(s => s.id === req.studentId);
+    
+    if(st) {
+        st.batch = req.requestedBatch;
+        await firebase.database().ref(`students`).set(appData.students);
+    }
+    req.status = 'Approved';
+    await firebase.database().ref(`batch_requests`).set(appData.batchRequests);
+    
+    alert(`Approved! ${st ? st.name : 'Student'} has been assigned to ${req.requestedBatch} Batch.`);
+    renderBatchRequests();
+    filterSeatingStudents();
+    if(document.getElementById('view-tuition').classList.contains('active')) renderStudentList();
+}
+
+async function rejectBatchRequest(reqId) {
+    if(!confirm("Reject this batch change request?")) return;
+    const req = appData.batchRequests.find(r => r.id === reqId);
+    if(!req) return;
+    req.status = 'Rejected';
+    await firebase.database().ref(`batch_requests`).set(appData.batchRequests);
+    alert(`Request rejected.`);
+    renderBatchRequests();
 }
