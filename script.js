@@ -6,12 +6,19 @@ let USE_FIREBASE_SERVER = localStorage.getItem('useFirebaseServer') === 'true';
 
 const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
 
-// Initialize Firebase App
+// Initialize Firebase App (CDN Compat Method)
 const firebaseConfig = {
+    apiKey: "AIzaSyAPJ28Y1jBL30phxN-8yV-4X0raSEuBkx4",
+    authDomain: "excellent-institute-vault.firebaseapp.com",
+    databaseURL: "https://excellent-institute-vault-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "excellent-institute-vault",
     storageBucket: "excellent-institute-vault.firebasestorage.app",
-    databaseURL: "https://excellent-institute-vault-default-rtdb.asia-southeast1.firebasedatabase.app"
+    messagingSenderId: "132693034261",
+    appId: "1:132693034261:web:90db93c407607bd3c5951c",
+    measurementId: "G-CTLW9E7MYK"
 };
-if (!firebase.apps.length) {
+
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
@@ -142,7 +149,7 @@ async function handleLogin(e) {
             let response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
             const rawText = await response.text();
             let parsed = JSON.parse(rawText);
-            if(parsed.error) throw new Error("Invalid Password");
+            if(parsed.error) throw new Error(parsed.error);
             appData = parsed.data || parsed; 
         }
 
@@ -169,7 +176,8 @@ async function handleLogin(e) {
 
     } catch(err) {
         console.error("Login System Error:", err);
-        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect ID or Password.';
+        // Explicit Error Display
+        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i> Error: ' + err.message;
         showError(errorMsg);
         btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
     }
@@ -1530,40 +1538,53 @@ async function executeDelete() {
     const isStudent = document.getElementById('delete-student-flag').value === 'true';
 
     if(!pass) return;
-    if (pass !== 'admin') { errorMsg.classList.remove('hidden'); return; }
+    
+    // NEW: Attempt to authenticate deletion with Firebase Auth directly.
+    try {
+        errorMsg.classList.add('hidden'); 
+        btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
+        
+        // Use a dummy login call to verify the admin password against the server
+        await firebase.auth().signInWithEmailAndPassword('admin@ei.com', pass);
+        
+        btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
 
-    errorMsg.classList.add('hidden'); btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
-
-    setTimeout(() => {
-        if(isStudent) {
-            const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
-            if(student) {
-                appData.students = appData.students.filter(s => s.id !== stId);
-                appData.transactions = appData.transactions.filter(tx => {
-                    let title = String(tx.title || "");
-                    return !(!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU'))));
-                });
-                document.getElementById('tuition-placeholder').classList.remove('hidden'); document.getElementById('tuition-active').classList.add('hidden');
-                alert(`${student.name} deleted.`);
-            }
-        } else {
-            const txId = document.getElementById('delete-transaction-id').value; const txIndex = appData.transactions.findIndex(t => t.id === txId);
-            if(txIndex !== -1) {
-                const tx = appData.transactions[txIndex];
-                let title = String(tx.title || "");
-                if (title.includes('Tuition') || title.includes('Admission') || title.includes('Advance')) {
-                    appData.students.forEach(student => { 
-                        if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')))) { 
-                            student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
-                        } 
+        setTimeout(() => {
+            if(isStudent) {
+                const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
+                if(student) {
+                    appData.students = appData.students.filter(s => s.id !== stId);
+                    appData.transactions = appData.transactions.filter(tx => {
+                        let title = String(tx.title || "");
+                        return !(!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU'))));
                     });
+                    document.getElementById('tuition-placeholder').classList.remove('hidden'); document.getElementById('tuition-active').classList.add('hidden');
+                    alert(`${student.name} deleted.`);
                 }
-                appData.transactions.splice(txIndex, 1);
-                alert("Record deleted successfully.");
+            } else {
+                const txId = document.getElementById('delete-transaction-id').value; const txIndex = appData.transactions.findIndex(t => t.id === txId);
+                if(txIndex !== -1) {
+                    const tx = appData.transactions[txIndex];
+                    let title = String(tx.title || "");
+                    if (title.includes('Tuition') || title.includes('Admission') || title.includes('Advance')) {
+                        appData.students.forEach(student => { 
+                            if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')))) { 
+                                student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
+                            } 
+                        });
+                    }
+                    appData.transactions.splice(txIndex, 1);
+                    alert("Record deleted successfully.");
+                }
             }
-        }
-        recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal(); btnText.innerHTML = 'Confirm Delete';
-    }, 300);
+            recalculateStats(); saveDatabase(); refreshAllUI(); closeDeleteModal(); btnText.innerHTML = 'Confirm Delete';
+        }, 300);
+
+    } catch (e) {
+        errorMsg.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Admin Password!';
+        errorMsg.classList.remove('hidden');
+        btnText.innerHTML = 'Confirm Delete';
+    }
 }
 
 // =========================================
