@@ -1,13 +1,12 @@
 // =========================================================
-// SERVER SWITCH TOGGLE
-// Set to 'true' to shift the entire database to Firebase.
-// Set to 'false' to keep using Google Apps Script (Code.gs).
+// 🌐 ENTERPRISE DUAL-WRITE PIPELINE & SERVER SWITCH 🌐
+// Read source is dynamic. Write source is ALWAYS BOTH.
 // =========================================================
-const USE_FIREBASE_SERVER = false; 
+let USE_FIREBASE_SERVER = localStorage.getItem('useFirebaseServer') === 'true';
 
 const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
 
-// Initialize Firebase Storage
+// Initialize Firebase App
 const firebaseConfig = {
     storageBucket: "excellent-institute-vault.firebasestorage.app",
     databaseURL: "https://excellent-institute-vault-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -25,30 +24,220 @@ let assumptionsData = [];
 let assumptionMode = false;
 let analyticsChart = null;
 let pendingQRCodeBase64 = null;
-let isBalanceHidden = true; // Toggle state for Dashboard Privacy (Hidden by default)
+let isBalanceHidden = true;
 
 window.onload = function() {
     setDefaultDates();
+    _injectMigrationTool();
 };
 
-function shareTransactionWA(txId) {
-    const tx = appData.transactions.find(t => t.id === txId);
-    if(!tx) return;
-    const isInc = tx.type === 'income';
-    let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}\%0A*Title:*${String(tx.title || "").replace(/ \[STU.*\]/, '')}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
-    if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
-    
-    const link = document.createElement('a');
-    link.href = `https://api.whatsapp.com/send?text=${msg}`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+// =========================================================
+// 🛡️ DATA SANITIZER (PREVENTS FIREBASE OBJECT/ARRAY CRASHES)
+// =========================================================
+function parseFbList(data) {
+    if (!data) return [];
+    if (Array.isArray(data)) return data.filter(e => e !== null);
+    return Object.values(data).filter(e => e !== null);
 }
 
 // =========================================================
-// UNIFIED DUE CALCULATION ENGINE (Exact Match to Dart Code)
-// Fixes the 31st/28th Loophole & Ad Wallet Discrepancy
+// 🚀 DUAL-WRITE ENGINE: PUSHES TO BOTH SERVERS INSTANTLY
+// =========================================================
+async function syncToBothDatabases(action, payload) {
+    try {
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            if (action === 'add_student' || action === 'update_student') {
+                await firebase.database().ref('students').set(appData.students);
+            } else if (action === 'log_transaction') {
+                await firebase.database().ref('transactions').set(appData.transactions);
+                await firebase.database().ref('stats').set(appData.stats);
+                await firebase.database().ref('students').set(appData.students); 
+            } else if (action === 'add_notice' || action === 'delete_notice') {
+                await firebase.database().ref('notices').set(appData.notices);
+            } else if (action === 'add_file' || action === 'delete_file' || action === 'move_file') {
+                await firebase.database().ref('files').set(appData.files);
+            }
+        }
+
+        const bodyPayload = { action: action, pass: sessionPassword, data: payload };
+        fetch(GOOGLE_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify(bodyPayload),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        }).catch(err => console.error("Sheets Targeted Sync Error:", err));
+        
+    } catch (error) {
+        console.error("Dual-Sync Engine Error:", error);
+    }
+}
+
+// Global Bulk Fallback for Settings & Master Edits
+async function saveDatabase() {
+    try {
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            await firebase.database().ref('/').set({
+                students: appData.students || [],
+                transactions: appData.transactions || [],
+                stats: appData.stats || { income: 0, expense: 0, balance: 0 },
+                files: appData.files || [],
+                notices: appData.notices || [],
+                settings: appData.settings || {}
+            });
+        }
+
+        const payload = { action: 'bulk_sync', password: sessionPassword, data: appData };
+        fetch(GOOGLE_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        }).catch(err => console.error("Sheets Bulk Sync Error:", err));
+        
+    } catch (error) {
+        console.error("Critical Bulk Sync Error:", error);
+    }
+}
+
+function updateServerReadSource(useFirebase) {
+    localStorage.setItem('useFirebaseServer', useFirebase ? 'true' : 'false');
+    alert("Read source switched! The app will now reload to fetch from the new source.");
+    location.reload();
+}
+
+// =========================================================
+// 🔐 PURE FIREBASE AUTHENTICATION LOGIN
+// =========================================================
+async function handleLogin(e) {
+    e.preventDefault();
+    const user = document.getElementById('username').value.toLowerCase().trim();
+    const pass = document.getElementById('password').value.trim(); 
+    const errorMsg = document.getElementById('login-error');
+    const btnText = document.getElementById('login-btn-text');
+
+    errorMsg.classList.add('hidden');
+    btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
+    
+    try {
+        let email = user;
+        if (!email.includes('@')) {
+            email = `${user}@ei.com`;
+        }
+
+        // 1. Authenticate with Firebase Server securely
+        await firebase.auth().signInWithEmailAndPassword(email, pass);
+
+        // 2. Load the App Data
+        if (USE_FIREBASE_SERVER) {
+            const snapshot = await firebase.database().ref('/').once('value');
+            const dbData = snapshot.val() || {};
+            
+            appData = {
+                students: parseFbList(dbData.students),
+                transactions: parseFbList(dbData.transactions),
+                stats: dbData.stats || { income: 0, expense: 0, balance: 0 },
+                files: parseFbList(dbData.files),
+                notices: parseFbList(dbData.notices),
+                settings: dbData.settings || {}
+            };
+        } else {
+            let response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
+            const rawText = await response.text();
+            let parsed = JSON.parse(rawText);
+            if(parsed.error) throw new Error("Invalid Password");
+            appData = parsed.data || parsed; 
+        }
+
+        sessionPassword = pass; 
+        
+        // Safety ID Generator for newly migrated data
+        appData.transactions.forEach(tx => { if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000); });
+        appData.students.forEach(st => { if(!st.id) st.id = 'STU' + Math.floor(Math.random() * 90000 + 10000); if(!st.status) st.status = 'Active'; });
+
+        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+        
+        setDefaultDates();
+        refreshAllUI();
+        
+        document.getElementById('login-screen').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('flex');
+            document.getElementById('password').value = '';
+            btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+            document.getElementById('login-screen').style.opacity = '1';
+        }, 500);
+
+    } catch(err) {
+        console.error("Login System Error:", err);
+        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect ID or Password.';
+        showError(errorMsg);
+        btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+    }
+}
+
+// =========================================================
+// ⚙️ AUTOMATED FIREBASE AUTH MIGRATION TOOL
+// =========================================================
+function _injectMigrationTool() {
+    setTimeout(() => {
+        const settingsForm = document.getElementById('settings-form');
+        if(settingsForm) {
+            const migrationHTML = `
+            <div class="bg-rose-50 p-6 rounded-2xl border border-rose-200 mb-6 mt-6">
+                <h4 class="font-bold text-rose-900 mb-2 flex items-center"><i class="fa-solid fa-shield-halved mr-2 text-rose-600"></i> Auth Migration Tool</h4>
+                <p class="text-xs text-rose-700 mb-4">Generates secure Firebase Auth accounts (@ei.com) for all existing students.</p>
+                <button type="button" onclick="runStudentAuthMigration()" class="px-4 py-2 bg-rose-600 text-white font-bold rounded-lg shadow hover:bg-rose-700 transition-colors text-sm">Run Migration Process</button>
+            </div>`;
+            settingsForm.insertAdjacentHTML('beforeend', migrationHTML);
+        }
+    }, 1000);
+}
+
+async function runStudentAuthMigration() {
+    if(!confirm("Start automated Auth Migration? This will create secure Firebase accounts for all students without logging you out.")) return;
+    
+    try {
+        let secondaryApp;
+        if (firebase.apps.length < 2) {
+            secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
+        } else {
+            secondaryApp = firebase.app("SecondaryApp");
+        }
+
+        let successCount = 0;
+        let skipCount = 0;
+
+        for (let student of appData.students) {
+            let phone = String(student.phone).trim();
+            if(phone) {
+                let email = `${phone}@ei.com`;
+                let firstName = String(student.name || "").trim().split(/\s+/)[0];
+                let dateStr = student.date || "";
+                let regYear = dateStr.length >= 4 ? dateStr.substring(0, 4) : new Date().getFullYear().toString();
+                let password = `EI${firstName}${regYear}`;
+                
+                try {
+                    await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+                    successCount++;
+                    console.log(`Created: ${email}`);
+                } catch(e) {
+                    if(e.code === 'auth/email-already-in-use') {
+                        skipCount++;
+                    } else {
+                        console.error(`Error creating ${email}:`, e);
+                    }
+                }
+                await secondaryApp.auth().signOut();
+            }
+        }
+        alert(`Migration Complete!\n✅ Accounts Created: ${successCount}\n⏭️ Already Existed (Skipped): ${skipCount}`);
+    } catch (err) {
+        alert("Migration encountered an error: " + err.message);
+    }
+}
+
+// =========================================================
+// 🧮 UNIFIED DYNAMIC FLOATING EMI MATH
 // =========================================================
 function calculateExactDues(student) {
     let safeParse = (val) => {
@@ -59,11 +248,11 @@ function calculateExactDues(student) {
     let totalFee = safeParse(student.totalFee);
     if (totalFee === 0) totalFee = safeParse(student['Total Course Fee']);
     
-    let paidFee = 0.0;
+    let storedPaidFee = 0.0;
     const paidKeys = ['paidFee', 'Advance/Paid', 'advance/paid', 'Advance', 'paid'];
     for (let key of paidKeys) {
-        paidFee = safeParse(student[key]);
-        if (paidFee > 0) break;
+        storedPaidFee = safeParse(student[key]);
+        if (storedPaidFee > 0) break;
     }
 
     let stTx = appData.transactions.filter(tx => {
@@ -75,10 +264,10 @@ function calculateExactDues(student) {
     let totalTxPaid = 0.0;
     stTx.forEach(tx => totalTxPaid += safeParse(tx.amount));
     
-    let actualPaid = totalTxPaid > paidFee ? totalTxPaid : paidFee;
+    let actualPaid = totalTxPaid > storedPaidFee ? totalTxPaid : storedPaidFee;
     let adWallet = safeParse(student.adWallet);
     
-    let totalOutstanding = totalFee - actualPaid - adWallet;
+    let totalOutstanding = totalFee - (actualPaid + adWallet);
     if (totalOutstanding < 0) totalOutstanding = 0.0;
 
     let feeStructure = (student.feeType || student.feeStructure || student['Fee Structure'] || student.fee_structure || 'Monthly').toString().trim();
@@ -97,17 +286,6 @@ function calculateExactDues(student) {
     if (feeStructure.toLowerCase().includes('one-time') || feeStructure.toLowerCase().includes('onetime') || feeStructure.toLowerCase().includes('lumpsum')) {
         currentMonthDue = totalOutstanding;
     } else {
-        let initialAdvance = 0.0;
-        if (stTx.length > 0) {
-            let sortedTx = [...stTx].sort((a,b) => new Date(a.date) - new Date(b.date));
-            initialAdvance = safeParse(sortedTx[0].amount);
-        } else {
-            initialAdvance = paidFee;
-        }
-
-        if (initialAdvance > actualPaid) initialAdvance = actualPaid;
-        if (initialAdvance > totalFee) initialAdvance = totalFee;
-
         let elapsedMonths = 0;
         let dateStr = (student.date || student['Admission Date'] || "").toString();
         
@@ -124,38 +302,31 @@ function calculateExactDues(student) {
 
                 if (adDate && !isNaN(adDate.getTime())) {
                     let now = new Date();
+                    elapsedMonths = (now.getFullYear() - adDate.getFullYear()) * 12 + now.getMonth() - adDate.getMonth();
                     
-                    // Exact replica of the Dart Loop logic
-                    for (let m = 1; m < durationMonths; m++) {
-                        let targetYear = adDate.getFullYear() + Math.floor((adDate.getMonth() + m) / 12);
-                        let targetMonth = (adDate.getMonth() + m) % 12; 
-                        
-                        let maxDaysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-                        let targetDay = adDate.getDate() > maxDaysInTargetMonth ? maxDaysInTargetMonth : adDate.getDate();
-                        
-                        let targetDate = new Date(targetYear, targetMonth, targetDay);
-                        let todayClean = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                        
-                        if (todayClean >= targetDate) {
-                            elapsedMonths++;
-                        }
-                    }
+                    let targetDay = adDate.getDate();
+                    let daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                    if (targetDay > daysInCurrentMonth) targetDay = daysInCurrentMonth;
+                    
+                    if (now.getDate() < targetDay) elapsedMonths--;
+                    if (elapsedMonths < 0) elapsedMonths = 0;
                 }
             }
         } catch (e) {
-            elapsedMonths = stTx.length > 0 ? stTx.length : 0;
+            elapsedMonths = stTx.length > 0 ? 1 : 0;
         }
 
-        let emi = 0.0;
-        if (durationMonths > 1) {
-            emi = (totalFee - initialAdvance) / (durationMonths - 1);
-        } else {
-            emi = totalFee - initialAdvance;
-        }
-
-        let expectedPaidSoFar = initialAdvance + (emi * elapsedMonths);
-        currentMonthDue = Math.ceil(expectedPaidSoFar - actualPaid - adWallet);
+        let totalInstallments = durationMonths - 1;
+        if (totalInstallments < 1) totalInstallments = 1;
         
+        let remainingInstallments = totalInstallments - elapsedMonths;
+        if (remainingInstallments < 1) remainingInstallments = 1;
+
+        if (elapsedMonths >= totalInstallments) {
+            currentMonthDue = totalOutstanding;
+        } else {
+            currentMonthDue = Math.ceil(totalOutstanding / remainingInstallments);
+        }
         if (currentMonthDue < 0) currentMonthDue = 0.0;
         if (currentMonthDue > totalOutstanding) currentMonthDue = totalOutstanding;
     }
@@ -168,9 +339,22 @@ function calculateExactDues(student) {
     };
 }
 
-// =========================================================
-// NEW: INDIVIDUAL STUDENT CUSTOM PUSH NOTIFICATION
-// =========================================================
+
+function shareTransactionWA(txId) {
+    const tx = appData.transactions.find(t => t.id === txId);
+    if(!tx) return;
+    const isInc = tx.type === 'income';
+    let msg = `${isInc ? '🟢' : '🔴'} *TRANSACTION RECORD*%0A*Date:* ${tx.date}\%0A*Title:*${String(tx.title || "").replace(/ \[STU.*\]/, '')}%0A*Amount:* ${isInc ? '+' : '-'}₹${tx.amount}`;
+    if(tx.description && tx.description !== "N/A" && tx.description !== "-") msg += `%0A*Details:* ${tx.description}`;
+    
+    const link = document.createElement('a');
+    link.href = `https://api.whatsapp.com/send?text=${msg}`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 async function sendCustomPushNotification() {
     const stId = document.getElementById('tuition-student-id').value;
     const student = appData.students.find(s => s.id === stId);
@@ -369,142 +553,6 @@ function confirmCrop() {
     closeCropModal();
 }
 
-// =========================================
-// REVERTED TO SAFE LOGIN LOGIC
-// =========================================
-async function handleLogin(e) {
-    e.preventDefault();
-    const user = document.getElementById('username').value.toLowerCase().trim();
-    const pass = document.getElementById('password').value.trim(); 
-    const errorMsg = document.getElementById('login-error');
-    const btnText = document.getElementById('login-btn-text');
-
-    if (user !== 'excellent') { 
-        errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Username.';
-        showError(errorMsg); 
-        return; 
-    }
-
-    errorMsg.classList.add('hidden');
-    btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
-    
-    try {
-        let data;
-        
-        if (USE_FIREBASE_SERVER) {
-            if (typeof firebase === 'undefined' || !firebase.database) {
-                throw new Error("Firebase SDK missing! Please check index.html");
-            }
-            const snapshot = await firebase.database().ref('/').once('value');
-            const dbData = snapshot.val() || {};
-            
-            let fullData = {
-                students: dbData.students || [],
-                transactions: dbData.transactions || [],
-                stats: dbData.stats || { income: 0, expense: 0, balance: 0 },
-                files: dbData.files || [],
-                notices: dbData.notices || [],
-                settings: dbData.settings || {}
-            };
-            
-            let masterPass = "excellent@9658"; 
-            let role = null;
-            let userProfile = null;
-            
-            if (user === 'excellent' && pass === masterPass) {
-                role = 'admin';
-            } else if (user === 'excellent' && (pass === '9658' || pass === masterPass)) {
-                role = 'staff';
-            } else {
-                const student = fullData.students.find(s => {
-                    let phoneMatch = String(s.phone).trim() === user;
-                    if(phoneMatch) {
-                        let firstName = String(s.name || "").trim().split(/\s+/)[0];
-                        let regYear = (s.date && s.date.length >= 4) ? s.date.substring(0, 4) : new Date().getFullYear().toString();
-                        let expectedPass = "EI" + firstName + regYear;
-                        return pass === expectedPass || pass === masterPass;
-                    }
-                    return false;
-                });
-                if (student) {
-                    role = 'student';
-                    userProfile = student;
-                }
-            }
-            
-            if (!role) throw new Error("Invalid Password");
-            
-            data = { role: role, data: fullData };
-            if (userProfile) data.userProfile = userProfile;
-
-        } else {
-            let response;
-            let retries = 3; 
-            while(retries > 0) {
-                try {
-                    response = await fetch(GOOGLE_APP_URL + "?pass=" + encodeURIComponent(pass));
-                    if (response.ok) break; 
-                    throw new Error("Server response not OK");
-                } catch (netErr) {
-                    retries--;
-                    if (retries === 0) throw netErr;
-                    await new Promise(r => setTimeout(r, 1000)); 
-                }
-            }
-            const rawText = await response.text();
-            try {
-                data = JSON.parse(rawText);
-            } catch (jsonErr) {
-                throw new Error("Server returned invalid data format.");
-            }
-            if(data.error) throw new Error("Invalid Password");
-        }
-
-        sessionPassword = pass;
-        appData = data.data || data; 
-        
-        // CRITICAL SAFETY CHECKS (Prevents crash if Database is empty/missing properties)
-        if(!appData.students) appData.students = [];
-        if(!appData.transactions) appData.transactions = [];
-        if(!appData.notices) appData.notices = [];
-        if(!appData.files) appData.files = [];
-        if(!appData.stats) appData.stats = { income: 0, expense: 0, balance: 0 };
-        
-        appData.transactions.forEach(tx => {
-            if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000);
-        });
-        appData.students.forEach(st => {
-            if(!st.id) st.id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-            if(!st.status) st.status = 'Active'; 
-        });
-
-        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-        
-        setDefaultDates();
-        refreshAllUI();
-        
-        document.getElementById('login-screen').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            document.getElementById('app-screen').classList.add('flex');
-            document.getElementById('password').value = '';
-            btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
-            document.getElementById('login-screen').style.opacity = '1';
-        }, 500);
-
-    } catch(err) {
-        console.error("Login System Error:", err);
-        if(err.message !== "Invalid Password") {
-            errorMsg.innerHTML = '<i class="fa-solid fa-wifi mr-2"></i>Connection Error! Server is busy. Try again.';
-        } else {
-            errorMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.';
-        }
-        showError(errorMsg);
-        btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
-    }
-}
-
 function showError(el) {
     el.classList.remove('hidden');
     document.getElementById('login-screen').animate([{ transform: 'translateX(0px)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0px)' }], { duration: 300 });
@@ -613,7 +661,8 @@ function switchTab(tabId) {
         'print': 'Print & Copy Desk', 
         'expenditure': 'Expenditures', 
         'analytics': 'Profit & Loss Analytics', 
-        'settings': 'System Settings' 
+        'settings': 'System Settings',
+        'exam': 'MCQ Exam Portal'
     };
     document.getElementById('page-title').innerText = titles[tabId] || 'Dashboard';
     if(window.innerWidth < 768) {
@@ -679,7 +728,7 @@ function submitSettings(e) {
     
     setTimeout(() => {
         btn.innerHTML = 'Save Configuration';
-        alert("Settings queued for synchronization! Apps Script will save this directly into your JSON payload.");
+        alert("Settings Saved Successfully to Cloud!");
     }, 1000);
 }
 
@@ -1015,15 +1064,21 @@ function getDynamicPaidFee(student) {
 
 function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr) {
     const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
-    appData.students.unshift({ id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active', customDueAmount: "", customDueDate: "" });
+    const newStudent = { id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active', customDueAmount: "", customDueDate: "" };
+    appData.students.unshift(newStudent);
     recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
-    renderStudentList(); saveDatabase(); return id;
+    renderStudentList(); 
+    syncToBothDatabases('add_student', newStudent); 
+    return id;
 }
 
 function recordTransaction(type, title, amount, dateStr, desc = "") {
-    appData.transactions.push({ id: 'TXN' + Math.floor(Math.random() * 9000 + 1000), type: type, title: title, amount: parseFloat(amount), date: dateStr, description: desc });
+    const newTx = { id: 'TXN' + Math.floor(Math.random() * 9000 + 1000), type: type, title: title, amount: parseFloat(amount), date: dateStr, description: desc };
+    appData.transactions.push(newTx);
     appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
-    recalculateStats(); refreshAllUI(); saveDatabase();
+    recalculateStats(); 
+    refreshAllUI(); 
+    syncToBothDatabases('log_transaction', newTx);
 }
 
 function submitRegistration(e) {
@@ -1037,7 +1092,28 @@ function submitRegistration(e) {
 
     const finishReg = function(base64Image) {
         const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image, duration);
-        alert(`Success! ${name} registered.`); e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
+        
+        // 🔐 AUTO-CREATE FIREBASE AUTH ACCOUNT FOR NEW STUDENT
+        try {
+            let secondaryApp;
+            if (firebase.apps.length < 2) {
+                secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
+            } else {
+                secondaryApp = firebase.app("SecondaryApp");
+            }
+            let email = `${phone}@ei.com`;
+            let firstName = String(name || "").trim().split(/\s+/)[0];
+            let regYear = date.length >= 4 ? date.substring(0, 4) : new Date().getFullYear().toString();
+            let password = `EI${firstName}${regYear}`;
+            secondaryApp.auth().createUserWithEmailAndPassword(email, password).then(() => {
+                secondaryApp.auth().signOut();
+            }).catch(err => console.error("Auto-Auth creation failed:", err));
+        } catch(e) {
+            console.error("Auto-Auth execution error:", e);
+        }
+
+        alert(`Success! ${name} registered securely.`); 
+        e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
     };
 
     if(croppedImages.reg) { finishReg(croppedImages.reg); } else { compressImage(fileInput.files[0], finishReg); }
@@ -1351,7 +1427,13 @@ function submitEditStudent(e) {
     } else { finalizeEdit(student); }
 }
 
-function finalizeEdit(student) { closeEditModal(); recalculateStats(); saveDatabase(); refreshAllUI(); alert("Profile updated successfully!"); }
+function finalizeEdit(student) { 
+    closeEditModal(); 
+    recalculateStats(); 
+    syncToBothDatabases('update_student', student);
+    refreshAllUI(); 
+    alert("Profile updated successfully!"); 
+}
 
 function submitTuitionFee(e) {
     e.preventDefault();
@@ -1584,61 +1666,30 @@ async function compressPDF(file, callback, buttonSelector = 'label[for="student-
 }
 
 function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
-    if (USE_FIREBASE_SERVER) {
-        if (!appData.files) appData.files = [];
-        appData.files.push({
-            id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
-            date: new Date().toISOString().split('T')[0], folder: folderName
-        });
-        saveDatabase();
-        if(callback) {
-            callback();
-        } else {
-            const stId = document.getElementById('tuition-student-id').value;
-            renderStudentFiles(stId);
-        }
-        return;
-    }
-
-    const payload = { 
-        action: 'add_file', 
-        pass: sessionPassword, 
-        name: name, 
-        category: category, 
-        target: target, 
-        url: url, 
-        path: path, 
-        size: size, 
-        folder: folderName 
+    const newFile = {
+        id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
+        date: new Date().toISOString().split('T')[0], folder: folderName
     };
-    
+    if (!appData.files) appData.files = [];
+    appData.files.push(newFile);
+
+    // FORCE DUAL WRITE
+    if (typeof firebase !== 'undefined' && firebase.database) {
+        firebase.database().ref('files').set(appData.files);
+    }
+    const payload = { action: 'add_file', pass: sessionPassword, data: newFile };
     fetch(GOOGLE_APP_URL, {
         method: 'POST',
         body: JSON.stringify(payload),
         headers: { "Content-Type": "text/plain;charset=utf-8" }
-    })
-    .then(res => res.json())
-    .then(result => {
-        if(result.success) {
-            if (!appData.files) appData.files = [];
-            appData.files.push({
-                id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
-                date: new Date().toISOString().split('T')[0], folder: folderName
-            });
-            if(callback) {
-                callback();
-            } else {
-                const stId = document.getElementById('tuition-student-id').value;
-                renderStudentFiles(stId);
-            }
-        } else {
-            alert("Error saving file record to database: " + result.error);
-        }
-    })
-    .catch(error => {
-        console.error("Database save failed:", error);
-        alert("Database connection failed while saving file record.");
     });
+
+    if(callback) {
+        callback();
+    } else {
+        const stId = document.getElementById('tuition-student-id').value;
+        renderStudentFiles(stId);
+    }
 }
 
 function handleStudentFileUpload(event) {
@@ -1872,36 +1923,26 @@ function deleteStudentFile(path, fileId) {
     const fileRef = storageRef.child(path);
     
     fileRef.delete().then(() => {
-        if (USE_FIREBASE_SERVER) {
-            appData.files = appData.files.filter(f => f.id !== fileId);
-            saveDatabase();
-            const stId = document.getElementById('tuition-student-id').value;
-            renderStudentFiles(stId);
-            return;
+        appData.files = appData.files.filter(f => f.id !== fileId);
+        
+        // FORCE DUAL WRITE
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            firebase.database().ref('files').set(appData.files);
         }
-
-        const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } })
-        .then(res => res.json())
-        .then(result => {
-            if(result.success) {
-                appData.files = appData.files.filter(f => f.id !== fileId);
-                const stId = document.getElementById('tuition-student-id').value;
-                renderStudentFiles(stId);
-            }
-        });
+        const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
+        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+        
+        const stId = document.getElementById('tuition-student-id').value;
+        renderStudentFiles(stId);
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
-        if (!USE_FIREBASE_SERVER) {
-            const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-            fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
-            .then(res => res.json())
-            .then(result => {
-                appData.files = appData.files.filter(f => f.id !== fileId);
-                const stId = document.getElementById('tuition-student-id').value;
-                renderStudentFiles(stId);
-            });
-        }
+        
+        // Safety Fallback: Still delete from Sheets
+        appData.files = appData.files.filter(f => f.id !== fileId);
+        const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
+        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+        const stId = document.getElementById('tuition-student-id').value;
+        renderStudentFiles(stId);
     });
 }
 
@@ -1912,33 +1953,24 @@ function deleteHubFile(path, fileId) {
     const fileRef = storageRef.child(path);
     
     fileRef.delete().then(() => {
-        if (USE_FIREBASE_SERVER) {
-            appData.files = appData.files.filter(f => f.id !== fileId);
-            saveDatabase();
-            renderHubFiles();
-            return;
+        appData.files = appData.files.filter(f => f.id !== fileId);
+        
+        // FORCE DUAL WRITE
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            firebase.database().ref('files').set(appData.files);
         }
-
-        const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } })
-        .then(res => res.json())
-        .then(result => {
-            if(result.success) {
-                appData.files = appData.files.filter(f => f.id !== fileId);
-                renderHubFiles();
-            }
-        });
+        const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
+        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+        
+        renderHubFiles();
     }).catch((error) => {
         console.error("Firebase deletion failed:", error);
-        if (!USE_FIREBASE_SERVER) {
-            const payload = { action: 'delete_file', pass: sessionPassword, id: fileId, path: path };
-            fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" }})
-            .then(res => res.json())
-            .then(result => {
-                appData.files = appData.files.filter(f => f.id !== fileId);
-                renderHubFiles();
-            });
-        }
+        
+        // Safety Fallback: Still delete from Sheets
+        appData.files = appData.files.filter(f => f.id !== fileId);
+        const payload = { action: 'delete_file', pass: sessionPassword, data: {id: fileId, path: path} };
+        fetch(GOOGLE_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+        renderHubFiles();
     });
 }
 
@@ -1957,13 +1989,16 @@ function submitBroadcast(e) {
     
     if (!appData.notices) appData.notices = [];
     
-    appData.notices.unshift({
+    const newNotice = {
+        id: 'NOT' + Date.now(),
         title: '📢 ' + title,
         message: 'Target: ' + target.toUpperCase() + '\n\n' + message,
         date: dateString
-    });
+    };
+
+    appData.notices.unshift(newNotice);
     
-    saveDatabase();
+    syncToBothDatabases('add_notice', newNotice);
     renderBroadcastList();
     e.target.reset();
     alert("Broadcast Alert Sent!");
@@ -1995,7 +2030,13 @@ function renderBroadcastList() {
 
 function deleteBroadcast(index) {
     if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
+    const notice = appData.notices[index];
     appData.notices.splice(index, 1);
-    saveDatabase();
+    
+    if (notice && notice.id) {
+        syncToBothDatabases('delete_notice', {id: notice.id});
+    } else {
+        saveDatabase(); 
+    }
     renderBroadcastList();
 }
