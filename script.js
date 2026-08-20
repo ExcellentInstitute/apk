@@ -50,7 +50,7 @@ function parseFbList(data) {
 // 🚀 PURE FIREBASE SYNC ENGINE WITH GRACEFUL DEGRADATION
 // =========================================================
 
-// NEW: Enterprise safety wrapper to prevent app crashes if a rule is missing
+// Enterprise safety wrapper to prevent app crashes if a rule is missing
 const safeWrite = async (path, data) => {
     try {
         await firebase.database().ref(path).set(data);
@@ -81,7 +81,7 @@ async function saveDatabase() {
 // 🔐 PURE FIREBASE AUTHENTICATION LOGIN
 // =========================================================
 
-// NEW: Enterprise safety wrapper for fetching to prevent full login crashes
+// Enterprise safety wrapper for fetching to prevent full login crashes
 const safeFetch = async (path) => {
     try {
         return await firebase.database().ref(path).once('value');
@@ -346,7 +346,6 @@ function calculateExactDues(student) {
         adDiscount: adWallet 
     };
 }
-
 
 function shareTransactionWA(txId) {
     const tx = appData.transactions.find(t => t.id === txId);
@@ -1076,7 +1075,6 @@ function getDynamicPaidFee(student) {
     return Math.max(total, parseFloat(student.paidFee) || 0);
 }
 
-// 🆕 UPDATED: Added parentPhone and batchId to registration
 function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr, parentPhone, batchId) {
     const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
     const newStudent = { 
@@ -1106,7 +1104,6 @@ function recordTransaction(type, title, amount, dateStr, desc = "") {
     refreshAllUI(); 
 }
 
-// 🆕 UPDATED: Captures new fields for registration
 function submitRegistration(e) {
     e.preventDefault();
     const date = document.getElementById('reg-date').value; const name = document.getElementById('reg-name').value;
@@ -1365,7 +1362,9 @@ function renderExpenseList() { renderList('expense-list', t => t.type === 'expen
 function renderJobList() { renderList('job-list', t => String(t.title || "").includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
 function renderPrintList() { renderList('print-list', t => String(t.title || "").includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
-// 🆕 UPDATED: Populates new Parent Phone and Batch fields
+// =========================================================
+// ✏️ EDIT STUDENT & TRANSACTION LOGIC
+// =========================================================
 function openEditModal() {
     const stId = document.getElementById('tuition-student-id').value;
     const student = appData.students.find(s => s.id === stId);
@@ -1406,7 +1405,6 @@ function closeEditModal() {
     }, 300);
 }
 
-// 🆕 UPDATED: Saves new Parent Phone and Batch fields
 function submitEditStudent(e) {
     e.preventDefault();
     const id = document.getElementById('edit-student-id').value; let student = appData.students.find(s => s.id === id);
@@ -1634,7 +1632,7 @@ async function executeDelete() {
 // =========================================
 function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
     const newFile = {
-        id: "FL" + Date.now(), name: name, category: category, target: target, url: url, path: path, size: size,
+        id: "FL" + Date.now(), name: name, category: category, target: target.toUpperCase(), url: url, path: path, size: size,
         date: new Date().toISOString().split('T')[0], folder: folderName
     };
     
@@ -1741,7 +1739,8 @@ function submitMaterialUpload(e) {
             uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                 progressContainer.classList.add('hidden');
                 const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                saveFileToDatabase(title, "Material", target.toUpperCase(), downloadURL, filePath, sizeMB, folder, () => {
+                // Target is automatically converted to uppercase here for easy mapping
+                saveFileToDatabase(title, "Material", target, downloadURL, filePath, sizeMB, folder, () => {
                     e.target.reset();
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
@@ -1791,7 +1790,7 @@ function submitAssignmentUpload(e) {
             uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                 progressContainer.classList.add('hidden');
                 const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                saveFileToDatabase(title, "Assignment", target.toUpperCase(), downloadURL, filePath, sizeMB, "Assignments", () => {
+                saveFileToDatabase(title, "Assignment", target, downloadURL, filePath, sizeMB, "Assignments", () => {
                     e.target.reset();
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
@@ -1825,9 +1824,9 @@ function renderStudentFiles(stId) {
     stFiles.forEach(f => {
         listEl.innerHTML += `
             <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
-                <td class="py-3 px-3 text-slate-500 font-bold text-[10px]">${f.date}</td>
-                <td class="py-3 px-3 text-slate-800 font-bold max-w-[150px] truncate" title="${f.name}">
-                    <a href="${f.url}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name}</a>
+                <td class="py-3 px-3 text-slate-500 font-bold text-[10px]">${f.date || '-'}</td>
+                <td class="py-3 px-3 text-slate-800 font-bold max-w-[150px] truncate" title="${f.name || f.filename}">
+                    <a href="${f.url || f.file}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name || f.filename || 'Document'}</a>
                 </td>
                 <td class="py-3 px-2 text-center">
                     <button type="button" onclick="deleteStudentFile('${f.path}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Document"><i class="fa-solid fa-trash"></i></button>
@@ -1837,9 +1836,17 @@ function renderStudentFiles(stId) {
     });
 }
 
+// 🆕 UPDATED: Integrated Filtering, Search, and Legacy Base64 Formatting
 function renderHubFiles() {
     const listEl = document.getElementById('hub-files-list');
     if(!listEl) return;
+    
+    const searchInput = document.getElementById('hub-search');
+    const visibilityFilter = document.getElementById('hub-filter-visibility');
+    
+    const searchQ = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const vis = visibilityFilter ? visibilityFilter.value : 'all';
+
     listEl.innerHTML = '';
     
     if (!appData.materials) appData.materials = [];
@@ -1853,26 +1860,125 @@ function renderHubFiles() {
         });
     }
     
+    // Apply Live Filters
+    displayList = displayList.filter(f => {
+        const name = String(f.name || f.title || f.filename || '').toLowerCase();
+        const folder = String(f.folder || f.course || '').toLowerCase();
+        const target = String(f.target || '').toUpperCase();
+        
+        // Match Search Query
+        const matchesSearch = name.includes(searchQ) || folder.includes(searchQ) || target.toLowerCase().includes(searchQ);
+        if (!matchesSearch) return false;
+        
+        // Match Visibility Dropdown
+        if (vis === 'guest') {
+            if (!target.includes('ALL')) return false; // Guest mode only sees targets with 'ALL'
+        } else if (vis === 'private') {
+            if (target.includes('ALL')) return false;  // Private files are course-specific
+        }
+        
+        return true;
+    });
+
     if (displayList.length === 0) {
-        listEl.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No hub files found.</td></tr>';
+        listEl.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No hub files match your filter.</td></tr>';
         return;
     }
     
     displayList.slice().reverse().forEach(f => {
+        // Safely extract names to support legacy Base64 files
+        const displayName = f.name || f.title || f.filename || 'Unnamed Document';
+        const displayFolder = f.folder || f.course || 'Unassigned';
+        const displayTarget = f.target || 'N/A';
+        const displayUrl = f.url || f.file || '';
+        
         listEl.innerHTML += `
             <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
-                <td class="py-3 px-4 text-slate-500 font-bold text-xs">${f.date}</td>
-                <td class="py-3 px-4 text-indigo-600 font-bold text-xs">${f.category}</td>
-                <td class="py-3 px-4 text-slate-600 font-bold text-xs">${f.target} / ${f.folder}</td>
-                <td class="py-3 px-4 text-slate-800 font-bold text-xs max-w-[150px] truncate" title="${f.name}">
-                    <a href="${f.url}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name}</a>
+                <td class="py-3 px-4 text-slate-500 font-bold text-xs">${f.date || '-'}</td>
+                <td class="py-3 px-4 text-indigo-600 font-bold text-xs">${f.category || 'Material'}</td>
+                <td class="py-3 px-4 text-slate-600 font-bold text-xs">${displayTarget} / ${displayFolder}</td>
+                <td class="py-3 px-4 text-slate-800 font-bold text-xs max-w-[150px] truncate" title="${displayName}">
+                    <a href="${displayUrl}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${displayName}</a>
                 </td>
                 <td class="py-3 px-2 text-center">
+                    <button type="button" onclick="openEditFileModal('${f.id}')" class="text-indigo-400 hover:text-indigo-600 transition-colors p-1 mr-1" title="Edit File Data"><i class="fa-solid fa-pen"></i></button>
                     <button type="button" onclick="deleteHubFile('${f.path}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
         `;
     });
+}
+
+// =========================================
+// ✏️ EDIT FILE METADATA MODAL LOGIC
+// =========================================
+function openEditFileModal(fileId) {
+    let file = appData.materials.find(f => f.id === fileId);
+    let isMaterial = true;
+    
+    if (!file) {
+        file = appData.files.find(f => f.id === fileId);
+        isMaterial = false;
+    }
+    if (!file) return;
+
+    // Support for Legacy File Fields
+    document.getElementById('edit-file-id').value = file.id;
+    document.getElementById('edit-file-category').value = isMaterial ? 'materials' : 'files';
+    document.getElementById('edit-file-name').value = file.name || file.title || file.filename || '';
+    document.getElementById('edit-file-folder').value = file.folder || file.course || '';
+    document.getElementById('edit-file-target').value = file.target || '';
+
+    const modal = document.getElementById('edit-file-modal');
+    const content = document.getElementById('edit-file-content');
+    modal.classList.remove('hidden');
+    setTimeout(() => { 
+        modal.classList.remove('opacity-0'); 
+        content.classList.remove('scale-95'); 
+    }, 10);
+}
+
+function closeEditFileModal() {
+    const modal = document.getElementById('edit-file-modal'); 
+    const content = document.getElementById('edit-file-content');
+    if(modal && content) {
+        modal.classList.add('opacity-0'); 
+        content.classList.add('scale-95');
+        setTimeout(() => { 
+            modal.classList.add('hidden'); 
+            document.getElementById('edit-file-form').reset();
+        }, 300);
+    }
+}
+
+async function submitEditFile(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-file-id').value;
+    const categoryNode = document.getElementById('edit-file-category').value;
+    
+    const newName = document.getElementById('edit-file-name').value.trim();
+    const newFolder = document.getElementById('edit-file-folder').value.trim();
+    const newTarget = document.getElementById('edit-file-target').value.trim().toUpperCase();
+
+    let fileList = categoryNode === 'materials' ? appData.materials : appData.files;
+    let file = fileList.find(f => f.id === id);
+    
+    if (file) {
+        // Update Primary Engine Fields
+        file.name = newName;
+        file.folder = newFolder;
+        file.target = newTarget;
+        
+        // Sync Legacy Engine Fields dynamically so old data doesn't break
+        if(file.title !== undefined) file.title = newName;
+        if(file.filename !== undefined) file.filename = newName;
+        if(file.course !== undefined) file.course = newFolder;
+
+        await safeWrite(categoryNode, fileList);
+        alert("File details updated successfully!");
+        closeEditFileModal();
+        renderHubFiles();
+    }
 }
 
 function deleteStudentFile(path, fileId) {
@@ -1902,29 +2008,30 @@ function deleteStudentFile(path, fileId) {
 function deleteHubFile(path, fileId) {
     if(!confirm("Are you sure you want to delete this file from the hub?")) return;
     
-    const storageRef = firebase.storage().ref();
-    const fileRef = storageRef.child(path);
+    if(path) {
+        const storageRef = firebase.storage().ref();
+        const fileRef = storageRef.child(path);
+        
+        fileRef.delete().then(() => {
+            _removeFileFromDatabase(fileId);
+        }).catch((error) => {
+            console.error("Firebase deletion failed:", error);
+            _removeFileFromDatabase(fileId);
+        });
+    } else {
+        // Handle Legacy Base64 files that do not have a Storage Path
+        _removeFileFromDatabase(fileId);
+    }
+}
+
+function _removeFileFromDatabase(fileId) {
+    appData.materials = appData.materials.filter(f => f.id !== fileId);
+    safeWrite('materials', appData.materials);
     
-    fileRef.delete().then(() => {
-        appData.materials = appData.materials.filter(f => f.id !== fileId);
-        safeWrite('materials', appData.materials);
-        
-        // Safety wipe from files array just in case it wasn't migrated
-        appData.files = appData.files.filter(f => f.id !== fileId);
-        safeWrite('files', appData.files);
-        
-        renderHubFiles();
-    }).catch((error) => {
-        console.error("Firebase deletion failed:", error);
-        
-        appData.materials = appData.materials.filter(f => f.id !== fileId);
-        safeWrite('materials', appData.materials);
-        
-        appData.files = appData.files.filter(f => f.id !== fileId);
-        safeWrite('files', appData.files);
-        
-        renderHubFiles();
-    });
+    appData.files = appData.files.filter(f => f.id !== fileId);
+    safeWrite('files', appData.files);
+    
+    renderHubFiles();
 }
 
 // =========================================
@@ -2160,7 +2267,7 @@ function removeStudentFromSeat(btn, stId) {
         // Restore seat background text
         const prefix = seatId.includes('theory') ? 'T' : 'L';
         const num = seatId.split('-')[2];
-        const color = seatId.includes('theory') ? 'text-indigo-300' : 'text-emerald-300';
+        const color = seatId.includes('theory') ? 'text-indigo-300' : 'textemerald-300';
         seat.innerHTML = `<span class="absolute top-1 left-2 text-[9px] font-bold ${color} pointer-events-none">${prefix}-${num}</span>`;
         
         filterSeatingStudents();
