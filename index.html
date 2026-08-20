@@ -285,9 +285,11 @@
                     <div class="premium-card p-6 md:p-8 mt-6 flex flex-col h-[500px]">
                         <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-4 shrink-0">
                             <h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-server mr-3 text-slate-400"></i> Managed Hub Files</h3>
+                            <!-- NEW: Bulk Duplicate Button -->
+                            <button type="button" onclick="duplicateSelectedFiles()" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-bold rounded-xl transition-colors border border-indigo-200 shadow-sm flex items-center"><i class="fa-solid fa-copy mr-2"></i> Duplicate Selected</button>
                         </div>
                         
-                        <!-- NEW: FILTER CONTROLS FOR HUB FILES -->
+                        <!-- FILTER CONTROLS FOR HUB FILES -->
                         <div class="flex flex-col sm:flex-row gap-3 mb-4 shrink-0">
                             <div class="relative flex-1">
                                 <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
@@ -302,7 +304,16 @@
 
                         <div class="overflow-y-auto flex-1 custom-scrollbar border border-slate-100 rounded-xl">
                             <table class="w-full text-left border-collapse min-w-[600px]">
-                                <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10"><th class="py-3 px-4 rounded-tl-xl">Date</th><th class="py-3 px-4">Category</th><th class="py-3 px-4">Target / Folder</th><th class="py-3 px-4">File Name</th><th class="py-3 px-2 rounded-tr-xl text-center">Action</th></tr></thead>
+                                <thead>
+                                    <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10">
+                                        <th class="py-3 px-4 rounded-tl-xl w-10 text-center"><input type="checkbox" id="selectAllHubFiles" onclick="toggleAllHubFiles(this)" class="w-4 h-4 cursor-pointer rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"></th>
+                                        <th class="py-3 px-2">Date</th>
+                                        <th class="py-3 px-4">Category</th>
+                                        <th class="py-3 px-4">Target / Folder</th>
+                                        <th class="py-3 px-4">File Name</th>
+                                        <th class="py-3 px-2 rounded-tr-xl text-center">Action</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="hub-files-list" class="text-sm divide-y divide-slate-50 font-medium"></tbody>
                             </table>
                         </div>
