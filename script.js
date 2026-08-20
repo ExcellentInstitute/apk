@@ -347,7 +347,6 @@ function calculateExactDues(student) {
     };
 }
 
-
 function shareTransactionWA(txId) {
     const tx = appData.transactions.find(t => t.id === txId);
     if(!tx) return;
@@ -1632,28 +1631,18 @@ async function executeDelete() {
 // 🗂️ THE SMART-SPLIT FILE UPLOADER
 // =========================================
 function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
-    // FIXED: Safely formats multiple targets directly into the exact comma-separated format needed
     const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
 
     const newFile = {
-        id: "FL" + Date.now(), name: name, category: category, target: finalTarget, url: url, path: path, size: size,
+        id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000), name: name, category: category, target: finalTarget, url: url, path: path, size: size,
         date: new Date().toISOString().split('T')[0], folder: folderName
     };
     
-    const isPublicMaterial = (category === 'Material' || category === 'Assignment');
-    
-    // Automatically routes file metadata to BOTH nodes if "ALL" is detected in the targets
-    if (finalTarget.includes('ALL')) {
-        if (!appData.materials) appData.materials = [];
-        appData.materials.push(newFile);
-        safeWrite('materials', appData.materials);
-    } 
-    
-    if (!isPublicMaterial || !finalTarget.includes('ALL')) {
-        if (!appData.files) appData.files = [];
-        appData.files.push(newFile);
-        safeWrite('files', appData.files);
-    }
+    // Explicitly saves all new uploads strictly into the Private Vault (files)
+    // You can manually duplicate them into the Public Vault (materials) later using the checkbox tool.
+    if (!appData.files) appData.files = [];
+    appData.files.push(newFile);
+    safeWrite('files', appData.files);
 
     if(callback) {
         callback();
@@ -1751,7 +1740,7 @@ function submitMaterialUpload(e) {
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
-                    alert("Material Published Successfully!");
+                    alert("Material Uploaded Successfully to Private Vault!");
                 });
             });
         }
@@ -1801,7 +1790,7 @@ function submitAssignmentUpload(e) {
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
-                    alert("Assignment Published Successfully!");
+                    alert("Assignment Uploaded Successfully to Private Vault!");
                 });
             });
         }
@@ -1842,6 +1831,7 @@ function renderStudentFiles(stId) {
     });
 }
 
+// 🆕 UPDATED: Checkboxes, Granular Control, and Separation of Vaults
 function renderHubFiles() {
     const listEl = document.getElementById('hub-files-list');
     if(!listEl) return;
@@ -1855,15 +1845,20 @@ function renderHubFiles() {
     listEl.innerHTML = '';
     
     if (!appData.materials) appData.materials = [];
+    if (!appData.files) appData.files = [];
     
-    let displayList = [...appData.materials];
-    if (appData.files && appData.files.length > 0) {
-        appData.files.forEach(f => {
-            if ((f.category === 'Material' || f.category === 'Assignment') && !displayList.some(m => m.id === f.id)) {
-                displayList.push(f);
-            }
-        });
-    }
+    let displayList = [];
+    
+    // Tag files explicitly to show exactly which database node they belong to
+    appData.materials.forEach(f => {
+        displayList.push({ ...f, _sourceNode: 'materials' });
+    });
+    
+    appData.files.forEach(f => {
+        if (!displayList.some(m => m.id === f.id)) {
+            displayList.push({ ...f, _sourceNode: 'files' });
+        }
+    });
     
     // Apply Live Filters
     displayList = displayList.filter(f => {
@@ -1875,11 +1870,11 @@ function renderHubFiles() {
         const matchesSearch = name.includes(searchQ) || folder.includes(searchQ) || target.toLowerCase().includes(searchQ);
         if (!matchesSearch) return false;
         
-        // Match Visibility Dropdown
+        // Match Visibility Dropdown based on actual DB Node, giving you 100% control
         if (vis === 'guest') {
-            if (!target.includes('ALL')) return false; // Guest mode only sees targets with 'ALL'
+            if (f._sourceNode !== 'materials') return false; 
         } else if (vis === 'private') {
-            if (target.includes('ALL')) return false;  // Private files are course-specific
+            if (f._sourceNode !== 'files') return false;  
         }
         
         return true;
@@ -1891,11 +1886,15 @@ function renderHubFiles() {
     }
     
     displayList.slice().reverse().forEach(f => {
-        // Safely extract names to support legacy Base64 files
         const displayName = f.name || f.title || f.filename || 'Unnamed Document';
         const displayFolder = f.folder || f.course || 'Unassigned';
         const displayTarget = f.target || 'N/A';
         const displayUrl = f.url || f.file || '';
+        
+        // Visual indicator of which vault the file currently lives in
+        const vaultBadge = f._sourceNode === 'materials' 
+            ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold ml-2 shadow-sm">GUEST</span>`
+            : `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[9px] font-bold ml-2 shadow-sm">PRIVATE</span>`;
         
         listEl.innerHTML += `
             <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
@@ -1903,14 +1902,14 @@ function renderHubFiles() {
                     <input type="checkbox" class="hub-file-checkbox w-4 h-4 cursor-pointer rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" value="${f.id}">
                 </td>
                 <td class="py-3 px-2 text-slate-500 font-bold text-xs">${f.date || '-'}</td>
-                <td class="py-3 px-4 text-indigo-600 font-bold text-xs">${f.category || 'Material'}</td>
+                <td class="py-3 px-4 text-indigo-600 font-bold text-xs flex items-center">${f.category || 'Material'} ${vaultBadge}</td>
                 <td class="py-3 px-4 text-slate-600 font-bold text-xs">${displayTarget} / ${displayFolder}</td>
                 <td class="py-3 px-4 text-slate-800 font-bold text-xs max-w-[150px] truncate" title="${displayName}">
                     <a href="${displayUrl}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${displayName}</a>
                 </td>
                 <td class="py-3 px-2 text-center whitespace-nowrap">
-                    <button type="button" onclick="openEditFileModal('${f.id}')" class="text-indigo-400 hover:text-indigo-600 transition-colors p-1 mr-1" title="Edit File Data"><i class="fa-solid fa-pen"></i></button>
-                    <button type="button" onclick="deleteHubFile('${f.path || ''}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    <button type="button" onclick="openEditFileModal('${f.id}', '${f._sourceNode}')" class="text-indigo-400 hover:text-indigo-600 transition-colors p-1 mr-1" title="Edit File Data"><i class="fa-solid fa-pen"></i></button>
+                    <button type="button" onclick="deleteHubFile('${f.path || ''}', '${f.id}', '${f._sourceNode}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
         `;
@@ -1922,6 +1921,7 @@ function toggleAllHubFiles(source) {
     checkboxes.forEach(cb => cb.checked = source.checked);
 }
 
+// 🆕 NEW: Duplicates selected files to the opposite Database Node (Migrate/Copy)
 async function duplicateSelectedFiles() {
     const checkboxes = document.querySelectorAll('.hub-file-checkbox:checked');
     if (checkboxes.length === 0) {
@@ -1929,13 +1929,14 @@ async function duplicateSelectedFiles() {
         return;
     }
 
-    if (!confirm(`Are you sure you want to duplicate ${checkboxes.length} selected file(s)?\n\nFiles will be cross-copied between the Public Vault (Materials) and Private Vault (Files) as reference links.`)) return;
+    if (!confirm(`Are you sure you want to duplicate ${checkboxes.length} selected file(s)?\n\nFiles will be cross-copied between the Public Vault (Guest) and Private Vault (Mobile App) as reference links.`)) return;
 
     let filesUpdated = false;
     let materialsUpdated = false;
 
     checkboxes.forEach(cb => {
         const fileId = cb.value;
+        // Determine source array
         let sourceFile = appData.materials.find(f => f.id === fileId);
         let isMaterial = true;
         
@@ -1945,16 +1946,14 @@ async function duplicateSelectedFiles() {
         }
 
         if (sourceFile) {
+            // Create a deep copy of the original object
             let clonedFile = JSON.parse(JSON.stringify(sourceFile));
             
+            // Assign a completely unique ID to prevent overlap
             clonedFile.id = "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000000);
-            
-            if (clonedFile.name) clonedFile.name += " (Copy)";
-            if (clonedFile.title) clonedFile.title += " (Copy)";
-            if (clonedFile.filename) clonedFile.filename += " (Copy)";
-            
             clonedFile.date = new Date().toISOString().split('T')[0];
             
+            // Cross-copy logic: Moves exact replica to the opposite node
             if (isMaterial) {
                 if (!appData.files) appData.files = [];
                 appData.files.push(clonedFile);
@@ -1974,7 +1973,7 @@ async function duplicateSelectedFiles() {
         
         await Promise.all(promises);
         
-        alert("Files duplicated successfully! You can now edit the copies or delete the originals to rearrange them.");
+        alert("Files duplicated successfully! You can easily filter by Guest/Private to view the newly created links.");
         
         const masterCb = document.getElementById('selectAllHubFiles');
         if(masterCb) masterCb.checked = false;
@@ -1988,19 +1987,14 @@ async function duplicateSelectedFiles() {
 // =========================================
 // ✏️ EDIT FILE METADATA MODAL LOGIC
 // =========================================
-function openEditFileModal(fileId) {
-    let file = appData.materials.find(f => f.id === fileId);
-    let isMaterial = true;
-    
-    if (!file) {
-        file = appData.files.find(f => f.id === fileId);
-        isMaterial = false;
-    }
+function openEditFileModal(fileId, sourceNode) {
+    let fileList = sourceNode === 'materials' ? appData.materials : appData.files;
+    let file = fileList.find(f => f.id === fileId);
     if (!file) return;
 
     // Support for Legacy File Fields
     document.getElementById('edit-file-id').value = file.id;
-    document.getElementById('edit-file-category').value = isMaterial ? 'materials' : 'files';
+    document.getElementById('edit-file-category').value = sourceNode;
     document.getElementById('edit-file-name').value = file.name || file.title || file.filename || '';
     document.getElementById('edit-file-folder').value = file.folder || file.course || '';
     document.getElementById('edit-file-target').value = file.target || '';
@@ -2036,7 +2030,6 @@ async function submitEditFile(e) {
     const newFolder = document.getElementById('edit-file-folder').value.trim();
     const rawTarget = document.getElementById('edit-file-target').value.trim();
 
-    // FIXED: Properly formats multiple targets from the edit modal
     const finalTarget = rawTarget.split(',').map(t => t.trim().toUpperCase()).join(', ');
 
     let fileList = categoryNode === 'materials' ? appData.materials : appData.files;
@@ -2052,21 +2045,6 @@ async function submitEditFile(e) {
         if(file.course !== undefined) file.course = newFolder;
 
         await safeWrite(categoryNode, fileList);
-        
-        // Auto-transfer logic: If edited target contains 'ALL', ensure it is in the materials array.
-        if (finalTarget.includes('ALL') && categoryNode === 'files') {
-            appData.files = appData.files.filter(f => f.id !== id);
-            if (!appData.materials) appData.materials = [];
-            appData.materials.push(file);
-            await Promise.all([safeWrite('files', appData.files), safeWrite('materials', appData.materials)]);
-        } 
-        // Auto-transfer logic: If edited target removes 'ALL', move it to private files array.
-        else if (!finalTarget.includes('ALL') && categoryNode === 'materials') {
-            appData.materials = appData.materials.filter(f => f.id !== id);
-            if (!appData.files) appData.files = [];
-            appData.files.push(file);
-            await Promise.all([safeWrite('files', appData.files), safeWrite('materials', appData.materials)]);
-        }
 
         alert("File details updated successfully!");
         closeEditFileModal();
@@ -2074,57 +2052,33 @@ async function submitEditFile(e) {
     }
 }
 
-function deleteStudentFile(path, fileId) {
-    if(!confirm("Are you sure you want to permanently delete this document?")) return;
-    
-    const storageRef = firebase.storage().ref();
-    const fileRef = storageRef.child(path);
-    
-    fileRef.delete().then(() => {
-        appData.files = appData.files.filter(f => f.id !== fileId);
-        safeWrite('files', appData.files);
-        
-        const stId = document.getElementById('tuition-student-id').value;
-        renderStudentFiles(stId);
-    }).catch((error) => {
-        console.error("Firebase deletion failed:", error);
-        
-        // Ensure database record is deleted even if file is missing in storage
-        appData.files = appData.files.filter(f => f.id !== fileId);
-        safeWrite('files', appData.files);
-        
-        const stId = document.getElementById('tuition-student-id').value;
-        renderStudentFiles(stId);
-    });
-}
-
-function deleteHubFile(path, fileId) {
+// 🆕 UPDATED: Explicitly targets the correct array for deletion
+function deleteHubFile(path, fileId, sourceNode) {
     if(!confirm("Are you sure you want to delete this file from the hub?")) return;
     
-    // Check if the path actually exists (prevents crash on old base64 files)
     if(path && path.trim() !== '' && path !== 'undefined') {
         const storageRef = firebase.storage().ref();
         const fileRef = storageRef.child(path);
         
         fileRef.delete().then(() => {
-            _removeFileFromDatabase(fileId);
+            _removeFileFromDatabase(fileId, sourceNode);
         }).catch((error) => {
             console.error("Firebase deletion failed:", error);
-            _removeFileFromDatabase(fileId);
+            _removeFileFromDatabase(fileId, sourceNode);
         });
     } else {
-        // Handle Legacy Base64 files that do not have a Storage Path
-        _removeFileFromDatabase(fileId);
+        _removeFileFromDatabase(fileId, sourceNode);
     }
 }
 
-function _removeFileFromDatabase(fileId) {
-    appData.materials = appData.materials.filter(f => f.id !== fileId);
-    safeWrite('materials', appData.materials);
-    
-    appData.files = appData.files.filter(f => f.id !== fileId);
-    safeWrite('files', appData.files);
-    
+function _removeFileFromDatabase(fileId, sourceNode) {
+    if (sourceNode === 'materials') {
+        appData.materials = appData.materials.filter(f => f.id !== fileId);
+        safeWrite('materials', appData.materials);
+    } else {
+        appData.files = appData.files.filter(f => f.id !== fileId);
+        safeWrite('files', appData.files);
+    }
     renderHubFiles();
 }
 
@@ -2244,7 +2198,7 @@ function filterSeatingStudents() {
     if(!list) return;
     list.innerHTML = '';
 
-    // Find all currently seated students in the DOM
+    // Find all currently seated students in the DOM for ANY batch configuration
     const seatedIds = new Set();
     document.querySelectorAll('#theory-room-seats [id^="drag-"], #practical-room-seats [id^="drag-"]').forEach(el => {
         seatedIds.add(el.dataset.id);
@@ -2361,39 +2315,79 @@ function removeStudentFromSeat(btn, stId) {
         // Restore seat background text
         const prefix = seatId.includes('theory') ? 'T' : 'L';
         const num = seatId.split('-')[2];
-        const color = seatId.includes('theory') ? 'text-indigo-300' : 'textemerald-300';
+        const color = seatId.includes('theory') ? 'text-indigo-300' : 'text-emerald-300';
         seat.innerHTML = `<span class="absolute top-1 left-2 text-[9px] font-bold ${color} pointer-events-none">${prefix}-${num}</span>`;
         
         filterSeatingStudents();
     }
 }
 
+// 🆕 FIXED: Complete Synchronization engine for Timetable/Batch Assignments
 async function saveSeatingArrangement() {
     const batch = document.getElementById('active-seating-batch').value;
     if(!appData.seating) appData.seating = {};
+
+    // 1. Identify everyone who was PREVIOUSLY seated in this batch
+    const oldSeatedIds = [];
+    if (appData.seating[batch]) {
+        Object.values(appData.seating[batch]).forEach(id => {
+            if(id) oldSeatedIds.push(id);
+        });
+    }
+
+    // 2. Clear current batch seating and start building the new arrangement
     appData.seating[batch] = {};
+    const newSeatedIds = [];
 
     const processRoom = (roomId) => {
         const seats = document.getElementById(roomId).children;
         for(let seat of seats) {
             const card = seat.querySelector('[id^="drag-"]');
             if(card) {
-                appData.seating[batch][seat.id] = card.dataset.id;
-                // Auto-update student's batch in their profile
-                const st = appData.students.find(s => s.id === card.dataset.id);
-                if(st && st.batch !== batch) { st.batch = batch; }
+                const stId = card.dataset.id;
+                appData.seating[batch][seat.id] = stId;
+                newSeatedIds.push(stId);
+
+                // Prevent duplicates: Remove this student from ANY other batch layout if they were moved
+                for (let b in appData.seating) {
+                    if (b !== batch && appData.seating[b]) {
+                        for (let sId in appData.seating[b]) {
+                            if (appData.seating[b][sId] === stId) {
+                                delete appData.seating[b][sId];
+                            }
+                        }
+                    }
+                }
+
+                // Update the student's personal profile specifically
+                const st = appData.students.find(s => s.id === stId);
+                if(st) { st.batch = batch; }
             }
         }
     };
+    
     processRoom('theory-room-seats');
     processRoom('practical-room-seats');
 
+    // 3. Reset any student who was REMOVED from the current batch to 'Unassigned'
+    oldSeatedIds.forEach(id => {
+        if (!newSeatedIds.includes(id)) {
+            const st = appData.students.find(s => s.id === id);
+            // Verify they weren't just moved to another active batch during the session
+            if (st && st.batch === batch) {
+                st.batch = 'Unassigned';
+            }
+        }
+    });
+
     try {
+        // Save both the newly formatted Seating Node and the Students array
         await Promise.all([
-            safeWrite(`seating/${batch}`, appData.seating[batch]),
+            safeWrite('seating', appData.seating),
             safeWrite('students', appData.students)
         ]);
         alert(`Seating layout for ${batch} Batch saved successfully!`);
+        filterSeatingStudents();
     } catch(e) {
         alert("Error saving seating layout: " + e.message);
     }
