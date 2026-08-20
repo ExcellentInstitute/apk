@@ -82,7 +82,7 @@
                     <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics</p>
                     <div onclick="switchTab('registration')" id="nav-registration" class="nav-btn"><i class="fa-solid fa-user-plus w-8 text-lg"></i> <span>New Admission</span></div>
                     <div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn"><i class="fa-solid fa-graduation-cap w-8 text-lg"></i> <span>Student Database</span></div>
-                    <!-- NEW SEATING & BATCH TAB -->
+                    <!-- SEATING & BATCH TAB -->
                     <div onclick="switchTab('seating')" id="nav-seating" class="nav-btn"><i class="fa-solid fa-chair w-8 text-lg text-emerald-400"></i> <span>Batch & Seating</span></div>
                 </div>
                 
@@ -239,7 +239,11 @@
                             <form onsubmit="submitMaterialUpload(event)" class="space-y-4 flex-1 flex flex-col">
                                 <div><label class="form-label text-indigo-800">Material Title</label><input type="text" id="hub-mat-title" class="form-input bg-white" placeholder="e.g. Python Chapter 1" required></div>
                                 <div><label class="form-label text-indigo-800">Folder / Section Name</label><input type="text" id="hub-mat-folder" class="form-input bg-white" placeholder="e.g. BCA Sem 1, Core Java" required></div>
-                                <div><label class="form-label text-indigo-800">Target Course / Batch</label><input type="text" id="hub-mat-target" class="form-input bg-white" placeholder="e.g. All, PGDCA" required></div>
+                                <!-- FIXED INSTRUCTIONS FOR MULTI-TARGETING -->
+                                <div>
+                                    <label class="form-label text-indigo-800">Target Course(s) / Batch (Comma separated)</label>
+                                    <input type="text" id="hub-mat-target" class="form-input bg-white border-indigo-200" placeholder="e.g. ALL, PGDCA, DCA, CCA" required>
+                                </div>
                                 <div>
                                     <label class="form-label text-indigo-800">Select Document File</label>
                                     <input type="file" id="hub-mat-file" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-white border border-slate-200 rounded-xl" required>
@@ -258,7 +262,11 @@
                             <h3 class="text-xl font-black text-cyan-900 mb-6 flex items-center"><div class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center mr-3 shadow-lg"><i class="fa-solid fa-pen-ruler"></i></div> Assign Task</h3>
                             <form onsubmit="submitAssignmentUpload(event)" class="space-y-4 flex-1 flex flex-col">
                                 <div><label class="form-label text-cyan-800">Assignment Title</label><input type="text" id="hub-ass-title" class="form-input bg-white" placeholder="e.g. Python Functions Lab" required></div>
-                                <div><label class="form-label text-cyan-800">Target Course / Batch</label><input type="text" id="hub-ass-target" class="form-input bg-white" placeholder="e.g. All, CCA, PGDCA" required></div>
+                                <!-- FIXED INSTRUCTIONS FOR MULTI-TARGETING -->
+                                <div>
+                                    <label class="form-label text-cyan-800">Target Course(s) / Batch (Comma separated)</label>
+                                    <input type="text" id="hub-ass-target" class="form-input bg-white border-cyan-200" placeholder="e.g. ALL, CCA, PGDCA" required>
+                                </div>
                                 <div>
                                     <label class="form-label text-cyan-800">Select Assignment File</label>
                                     <input type="file" id="hub-ass-file" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-100 file:text-cyan-700 cursor-pointer bg-white border border-slate-200 rounded-xl" required>
@@ -274,11 +282,27 @@
                     </div>
                     
                     <!-- Managed Files List -->
-                    <div class="premium-card p-6 md:p-8 mt-6 flex flex-col h-[400px]">
-                        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-4 shrink-0"><h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-server mr-3 text-slate-400"></i> Managed Hub Files</h3></div>
-                        <div class="overflow-y-auto flex-1 custom-scrollbar">
+                    <div class="premium-card p-6 md:p-8 mt-6 flex flex-col h-[500px]">
+                        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-4 shrink-0">
+                            <h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-server mr-3 text-slate-400"></i> Managed Hub Files</h3>
+                        </div>
+                        
+                        <!-- NEW: FILTER CONTROLS FOR HUB FILES -->
+                        <div class="flex flex-col sm:flex-row gap-3 mb-4 shrink-0">
+                            <div class="relative flex-1">
+                                <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
+                                <input type="text" id="hub-search" placeholder="Search file name or folder..." class="w-full rounded-xl border border-slate-200 pl-9 py-2 text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white" onkeyup="renderHubFiles()">
+                            </div>
+                            <select id="hub-filter-visibility" class="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600" onchange="renderHubFiles()">
+                                <option value="all">All Files</option>
+                                <option value="guest">Guest Viewable (ALL)</option>
+                                <option value="private">Private (Course/Student specific)</option>
+                            </select>
+                        </div>
+
+                        <div class="overflow-y-auto flex-1 custom-scrollbar border border-slate-100 rounded-xl">
                             <table class="w-full text-left border-collapse min-w-[600px]">
-                                <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10"><th class="py-3 px-4 rounded-l-lg">Date</th><th class="py-3 px-4">Category</th><th class="py-3 px-4">Target / Folder</th><th class="py-3 px-4">File Name</th><th class="py-3 px-2 rounded-r-lg text-center">Action</th></tr></thead>
+                                <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10"><th class="py-3 px-4 rounded-tl-xl">Date</th><th class="py-3 px-4">Category</th><th class="py-3 px-4">Target / Folder</th><th class="py-3 px-4">File Name</th><th class="py-3 px-2 rounded-tr-xl text-center">Action</th></tr></thead>
                                 <tbody id="hub-files-list" class="text-sm divide-y divide-slate-50 font-medium"></tbody>
                             </table>
                         </div>
@@ -797,6 +821,34 @@
         </main>
     </div>
 
+    <!-- NEW MODAL: EDIT HUB FILE -->
+    <div id="edit-file-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="premium-card w-full max-w-lg mx-4 flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl" id="edit-file-content">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
+                <h3 class="text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-file-pen mr-3 text-indigo-600"></i> Edit File Details</h3>
+                <button type="button" onclick="closeEditFileModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-8 bg-white">
+                <form id="edit-file-form" onsubmit="submitEditFile(event)" class="space-y-5">
+                    <input type="hidden" id="edit-file-id">
+                    <input type="hidden" id="edit-file-category">
+                    <div><label class="form-label text-indigo-800">File Name / Title</label><input type="text" id="edit-file-name" class="form-input bg-white border-slate-200" required></div>
+                    <div><label class="form-label text-indigo-800">Folder / Section</label><input type="text" id="edit-file-folder" class="form-input bg-white border-slate-200" required></div>
+                    <div>
+                        <label class="form-label text-indigo-800">Target Course(s) / Batch</label>
+                        <input type="text" id="edit-file-target" class="form-input bg-white border-slate-200" placeholder="e.g. ALL, PGDCA, DCA" required>
+                        <p class="text-[10px] text-slate-500 mt-2"><i class="fa-solid fa-circle-info"></i> Separate multiple courses with commas. Use "ALL" to make it visible in Guest Mode.</p>
+                    </div>
+                    <div class="pt-4 flex justify-end space-x-3">
+                        <button type="button" onclick="closeEditFileModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+                        <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXISTING MODALS BELOW -->
     <div id="edit-student-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div class="premium-card w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl" id="edit-modal-content">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
