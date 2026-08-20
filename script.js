@@ -1836,7 +1836,7 @@ function renderStudentFiles(stId) {
     });
 }
 
-// 🆕 UPDATED: Integrated Filtering, Search, and Legacy Base64 Formatting
+// 🆕 UPDATED: Integrated Filtering, Search, and Legacy Base64 Formatting with CHECKBOXES
 function renderHubFiles() {
     const listEl = document.getElementById('hub-files-list');
     if(!listEl) return;
@@ -1881,7 +1881,7 @@ function renderHubFiles() {
     });
 
     if (displayList.length === 0) {
-        listEl.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No hub files match your filter.</td></tr>';
+        listEl.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>No hub files match your filter.</td></tr>';
         return;
     }
     
@@ -1894,19 +1894,97 @@ function renderHubFiles() {
         
         listEl.innerHTML += `
             <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
-                <td class="py-3 px-4 text-slate-500 font-bold text-xs">${f.date || '-'}</td>
+                <td class="py-3 px-4 text-center">
+                    <input type="checkbox" class="hub-file-checkbox w-4 h-4 cursor-pointer rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" value="${f.id}">
+                </td>
+                <td class="py-3 px-2 text-slate-500 font-bold text-xs">${f.date || '-'}</td>
                 <td class="py-3 px-4 text-indigo-600 font-bold text-xs">${f.category || 'Material'}</td>
                 <td class="py-3 px-4 text-slate-600 font-bold text-xs">${displayTarget} / ${displayFolder}</td>
                 <td class="py-3 px-4 text-slate-800 font-bold text-xs max-w-[150px] truncate" title="${displayName}">
                     <a href="${displayUrl}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${displayName}</a>
                 </td>
-                <td class="py-3 px-2 text-center">
+                <td class="py-3 px-2 text-center whitespace-nowrap">
                     <button type="button" onclick="openEditFileModal('${f.id}')" class="text-indigo-400 hover:text-indigo-600 transition-colors p-1 mr-1" title="Edit File Data"><i class="fa-solid fa-pen"></i></button>
-                    <button type="button" onclick="deleteHubFile('${f.path}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    <button type="button" onclick="deleteHubFile('${f.path || ''}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
         `;
     });
+}
+
+// 🆕 NEW: Select/Deselect all checkboxes in the Hub Files table
+function toggleAllHubFiles(source) {
+    const checkboxes = document.querySelectorAll('.hub-file-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+// 🆕 NEW: Duplicates selected files to the opposite Database Node
+async function duplicateSelectedFiles() {
+    const checkboxes = document.querySelectorAll('.hub-file-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Please select at least one file to duplicate.");
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to duplicate ${checkboxes.length} selected file(s)?\n\nFiles will be cross-copied between the Public Vault (Materials) and Private Vault (Files) as reference links.`)) return;
+
+    let filesUpdated = false;
+    let materialsUpdated = false;
+
+    checkboxes.forEach(cb => {
+        const fileId = cb.value;
+        let sourceFile = appData.materials.find(f => f.id === fileId);
+        let isMaterial = true;
+        
+        if (!sourceFile) {
+            sourceFile = appData.files.find(f => f.id === fileId);
+            isMaterial = false;
+        }
+
+        if (sourceFile) {
+            // Create a deep copy of the original object
+            let clonedFile = JSON.parse(JSON.stringify(sourceFile));
+            
+            // Assign a completely unique ID to prevent overlap
+            clonedFile.id = "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000000);
+            
+            // Append (Copy) to the name so the user knows which is which
+            if (clonedFile.name) clonedFile.name += " (Copy)";
+            if (clonedFile.title) clonedFile.title += " (Copy)";
+            if (clonedFile.filename) clonedFile.filename += " (Copy)";
+            
+            // Update the generation date to today
+            clonedFile.date = new Date().toISOString().split('T')[0];
+            
+            // Cross-copy logic
+            if (isMaterial) {
+                if (!appData.files) appData.files = [];
+                appData.files.push(clonedFile);
+                filesUpdated = true;
+            } else {
+                if (!appData.materials) appData.materials = [];
+                appData.materials.push(clonedFile);
+                materialsUpdated = true;
+            }
+        }
+    });
+
+    try {
+        const promises = [];
+        if (filesUpdated) promises.push(safeWrite('files', appData.files));
+        if (materialsUpdated) promises.push(safeWrite('materials', appData.materials));
+        
+        await Promise.all(promises);
+        
+        alert("Files duplicated successfully! You can now edit the copies or delete the originals to rearrange them.");
+        
+        const masterCb = document.getElementById('selectAllHubFiles');
+        if(masterCb) masterCb.checked = false;
+        
+        renderHubFiles();
+    } catch (e) {
+        alert("Error duplicating files: " + e.message);
+    }
 }
 
 // =========================================
@@ -2008,7 +2086,8 @@ function deleteStudentFile(path, fileId) {
 function deleteHubFile(path, fileId) {
     if(!confirm("Are you sure you want to delete this file from the hub?")) return;
     
-    if(path) {
+    // Check if the path actually exists (prevents crash on old base64 files)
+    if(path && path.trim() !== '' && path !== 'undefined') {
         const storageRef = firebase.storage().ref();
         const fileRef = storageRef.child(path);
         
@@ -2267,7 +2346,7 @@ function removeStudentFromSeat(btn, stId) {
         // Restore seat background text
         const prefix = seatId.includes('theory') ? 'T' : 'L';
         const num = seatId.split('-')[2];
-        const color = seatId.includes('theory') ? 'text-indigo-300' : 'textemerald-300';
+        const color = seatId.includes('theory') ? 'text-indigo-300' : 'text-emerald-300';
         seat.innerHTML = `<span class="absolute top-1 left-2 text-[9px] font-bold ${color} pointer-events-none">${prefix}-${num}</span>`;
         
         filterSeatingStudents();
