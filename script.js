@@ -347,6 +347,7 @@ function calculateExactDues(student) {
     };
 }
 
+
 function shareTransactionWA(txId) {
     const tx = appData.transactions.find(t => t.id === txId);
     if(!tx) return;
@@ -1631,18 +1632,24 @@ async function executeDelete() {
 // 🗂️ THE SMART-SPLIT FILE UPLOADER
 // =========================================
 function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
+    // FIXED: Safely formats multiple targets directly into the exact comma-separated format needed
+    const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
+
     const newFile = {
-        id: "FL" + Date.now(), name: name, category: category, target: target.toUpperCase(), url: url, path: path, size: size,
+        id: "FL" + Date.now(), name: name, category: category, target: finalTarget, url: url, path: path, size: size,
         date: new Date().toISOString().split('T')[0], folder: folderName
     };
     
     const isPublicMaterial = (category === 'Material' || category === 'Assignment');
     
-    if (isPublicMaterial) {
+    // Automatically routes file metadata to BOTH nodes if "ALL" is detected in the targets
+    if (finalTarget.includes('ALL')) {
         if (!appData.materials) appData.materials = [];
         appData.materials.push(newFile);
         safeWrite('materials', appData.materials);
-    } else {
+    } 
+    
+    if (!isPublicMaterial || !finalTarget.includes('ALL')) {
         if (!appData.files) appData.files = [];
         appData.files.push(newFile);
         safeWrite('files', appData.files);
@@ -1739,13 +1746,12 @@ function submitMaterialUpload(e) {
             uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                 progressContainer.classList.add('hidden');
                 const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                // Target is automatically converted to uppercase here for easy mapping
                 saveFileToDatabase(title, "Material", target, downloadURL, filePath, sizeMB, folder, () => {
                     e.target.reset();
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
-                    alert("Material Published Successfully to Public Vault!");
+                    alert("Material Published Successfully!");
                 });
             });
         }
@@ -1795,7 +1801,7 @@ function submitAssignmentUpload(e) {
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
-                    alert("Assignment Published Successfully to Public Vault!");
+                    alert("Assignment Published Successfully!");
                 });
             });
         }
@@ -1836,7 +1842,6 @@ function renderStudentFiles(stId) {
     });
 }
 
-// 🆕 UPDATED: Integrated Filtering, Search, and Legacy Base64 Formatting with CHECKBOXES
 function renderHubFiles() {
     const listEl = document.getElementById('hub-files-list');
     if(!listEl) return;
@@ -1912,13 +1917,11 @@ function renderHubFiles() {
     });
 }
 
-// 🆕 NEW: Select/Deselect all checkboxes in the Hub Files table
 function toggleAllHubFiles(source) {
     const checkboxes = document.querySelectorAll('.hub-file-checkbox');
     checkboxes.forEach(cb => cb.checked = source.checked);
 }
 
-// 🆕 NEW: Duplicates selected files to the opposite Database Node
 async function duplicateSelectedFiles() {
     const checkboxes = document.querySelectorAll('.hub-file-checkbox:checked');
     if (checkboxes.length === 0) {
@@ -1942,21 +1945,16 @@ async function duplicateSelectedFiles() {
         }
 
         if (sourceFile) {
-            // Create a deep copy of the original object
             let clonedFile = JSON.parse(JSON.stringify(sourceFile));
             
-            // Assign a completely unique ID to prevent overlap
             clonedFile.id = "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000000);
             
-            // Append (Copy) to the name so the user knows which is which
             if (clonedFile.name) clonedFile.name += " (Copy)";
             if (clonedFile.title) clonedFile.title += " (Copy)";
             if (clonedFile.filename) clonedFile.filename += " (Copy)";
             
-            // Update the generation date to today
             clonedFile.date = new Date().toISOString().split('T')[0];
             
-            // Cross-copy logic
             if (isMaterial) {
                 if (!appData.files) appData.files = [];
                 appData.files.push(clonedFile);
@@ -2036,23 +2034,40 @@ async function submitEditFile(e) {
     
     const newName = document.getElementById('edit-file-name').value.trim();
     const newFolder = document.getElementById('edit-file-folder').value.trim();
-    const newTarget = document.getElementById('edit-file-target').value.trim().toUpperCase();
+    const rawTarget = document.getElementById('edit-file-target').value.trim();
+
+    // FIXED: Properly formats multiple targets from the edit modal
+    const finalTarget = rawTarget.split(',').map(t => t.trim().toUpperCase()).join(', ');
 
     let fileList = categoryNode === 'materials' ? appData.materials : appData.files;
     let file = fileList.find(f => f.id === id);
     
     if (file) {
-        // Update Primary Engine Fields
         file.name = newName;
         file.folder = newFolder;
-        file.target = newTarget;
+        file.target = finalTarget;
         
-        // Sync Legacy Engine Fields dynamically so old data doesn't break
         if(file.title !== undefined) file.title = newName;
         if(file.filename !== undefined) file.filename = newName;
         if(file.course !== undefined) file.course = newFolder;
 
         await safeWrite(categoryNode, fileList);
+        
+        // Auto-transfer logic: If edited target contains 'ALL', ensure it is in the materials array.
+        if (finalTarget.includes('ALL') && categoryNode === 'files') {
+            appData.files = appData.files.filter(f => f.id !== id);
+            if (!appData.materials) appData.materials = [];
+            appData.materials.push(file);
+            await Promise.all([safeWrite('files', appData.files), safeWrite('materials', appData.materials)]);
+        } 
+        // Auto-transfer logic: If edited target removes 'ALL', move it to private files array.
+        else if (!finalTarget.includes('ALL') && categoryNode === 'materials') {
+            appData.materials = appData.materials.filter(f => f.id !== id);
+            if (!appData.files) appData.files = [];
+            appData.files.push(file);
+            await Promise.all([safeWrite('files', appData.files), safeWrite('materials', appData.materials)]);
+        }
+
         alert("File details updated successfully!");
         closeEditFileModal();
         renderHubFiles();
@@ -2346,7 +2361,7 @@ function removeStudentFromSeat(btn, stId) {
         // Restore seat background text
         const prefix = seatId.includes('theory') ? 'T' : 'L';
         const num = seatId.split('-')[2];
-        const color = seatId.includes('theory') ? 'text-indigo-300' : 'text-emerald-300';
+        const color = seatId.includes('theory') ? 'text-indigo-300' : 'textemerald-300';
         seat.innerHTML = `<span class="absolute top-1 left-2 text-[9px] font-bold ${color} pointer-events-none">${prefix}-${num}</span>`;
         
         filterSeatingStudents();
