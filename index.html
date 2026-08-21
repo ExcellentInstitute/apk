@@ -512,14 +512,14 @@
                                     <label class="form-label text-indigo-600">Assign Batch</label>
                                     <select id="reg-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700">
                                         <option value="Unassigned" selected>Unassigned</option>
-                                        <option value="1st">1st Batch (08:00 AM)</option>
-                                        <option value="2nd">2nd Batch (08:45 AM)</option>
-                                        <option value="3rd">3rd Batch (09:30 AM)</option>
-                                        <option value="4th">4th Batch (10:15 AM)</option>
-                                        <option value="5th">5th Batch (03:00 PM)</option>
-                                        <option value="6th">6th Batch (03:45 PM)</option>
-                                        <option value="7th">7th Batch (04:30 PM)</option>
-                                        <option value="8th">8th Batch (05:15 PM)</option>
+                                        <option value="1st">1st Batch (Lab: 08:00 AM | Theory: 08:45 AM)</option>
+                                        <option value="2nd">2nd Batch (Theory: 08:00 AM | Lab: 08:45 AM)</option>
+                                        <option value="3rd">3rd Batch (Lab: 09:30 AM | Theory: 10:15 AM)</option>
+                                        <option value="4th">4th Batch (Theory: 09:30 AM | Lab: 10:15 AM)</option>
+                                        <option value="5th">5th Batch (Lab: 03:00 PM | Theory: 03:45 PM)</option>
+                                        <option value="6th">6th Batch (Theory: 03:00 PM | Lab: 03:45 PM)</option>
+                                        <option value="7th">7th Batch (Lab: 04:30 PM | Theory: 05:15 PM)</option>
+                                        <option value="8th">8th Batch (Theory: 04:30 PM | Lab: 05:15 PM)</option>
                                     </select>
                                 </div>
                             </div>
@@ -670,10 +670,10 @@
                 </div>
 
                 <!-- NEW SEATING & BATCH MANAGEMENT VIEW -->
-                <div id="view-seating" class="view-section max-w-7xl mx-auto h-[85vh]">
-                    <div class="flex flex-col lg:flex-row gap-6 h-full">
+                <div id="view-seating" class="view-section max-w-7xl mx-auto">
+                    <div class="flex flex-col lg:flex-row gap-6 min-h-[85vh] pb-10">
                         <!-- Left: Draggable Students List -->
-                        <div class="w-full lg:w-1/3 premium-card flex flex-col bg-white overflow-hidden shadow-md">
+                        <div class="w-full lg:w-1/3 premium-card flex flex-col bg-white overflow-hidden shadow-md h-[600px] lg:h-auto">
                             <div class="p-6 border-b border-slate-100 bg-slate-50 shrink-0">
                                 <h3 class="font-black text-slate-800 text-lg flex items-center"><i class="fa-solid fa-users text-indigo-500 mr-2 text-xl"></i> Active Students</h3>
                                 <p class="text-xs text-slate-500 mt-1 mb-4 font-medium">Drag and drop students to assign seats.</p>
@@ -690,28 +690,28 @@
                         <!-- Right: Seating Arrangement & Inbox -->
                         <div class="w-full lg:w-2/3 flex flex-col gap-6">
                             <!-- Batch Selector & Rooms -->
-                            <div class="premium-card flex-1 bg-white flex flex-col shadow-md overflow-hidden">
+                            <div class="premium-card flex-1 bg-white flex flex-col shadow-md overflow-hidden min-h-[500px]">
                                 <div class="p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap justify-between items-center gap-4 shrink-0">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shadow-inner shrink-0"><i class="fa-solid fa-layer-group"></i></div>
                                         <div>
                                             <h3 class="font-black text-slate-800 text-sm md:text-base leading-tight">Room Layout Manager</h3>
                                             <select id="active-seating-batch" class="bg-transparent text-xs font-bold text-indigo-600 mt-1 cursor-pointer outline-none border-none p-0 focus:ring-0" onchange="renderSeatingLayout()">
-                                                <option value="1st">1st Batch (08:00 AM)</option>
-                                                <option value="2nd">2nd Batch (08:45 AM)</option>
-                                                <option value="3rd">3rd Batch (09:30 AM)</option>
-                                                <option value="4th">4th Batch (10:15 AM)</option>
-                                                <option value="5th">5th Batch (03:00 PM)</option>
-                                                <option value="6th">6th Batch (03:45 PM)</option>
-                                                <option value="7th">7th Batch (04:30 PM)</option>
-                                                <option value="8th">8th Batch (05:15 PM)</option>
+                                                <option value="1st">1st Batch (Lab: 08:00 AM | Theory: 08:45 AM)</option>
+                                                <option value="2nd">2nd Batch (Theory: 08:00 AM | Lab: 08:45 AM)</option>
+                                                <option value="3rd">3rd Batch (Lab: 09:30 AM | Theory: 10:15 AM)</option>
+                                                <option value="4th">4th Batch (Theory: 09:30 AM | Lab: 10:15 AM)</option>
+                                                <option value="5th">5th Batch (Lab: 03:00 PM | Theory: 03:45 PM)</option>
+                                                <option value="6th">6th Batch (Theory: 03:00 PM | Lab: 03:45 PM)</option>
+                                                <option value="7th">7th Batch (Lab: 04:30 PM | Theory: 05:15 PM)</option>
+                                                <option value="8th">8th Batch (Theory: 04:30 PM | Lab: 05:15 PM)</option>
                                             </select>
                                         </div>
                                     </div>
                                     <button onclick="saveSeatingArrangement()" class="bg-indigo-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30 transform hover:-translate-y-0.5"><i class="fa-solid fa-floppy-disk mr-1.5"></i>Save Layout</button>
                                 </div>
                                 
-                                <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/80 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                                <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/80 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 min-h-[400px]">
                                     <!-- Theory Room -->
                                     <div class="flex flex-col h-full">
                                         <div class="bg-indigo-100 text-indigo-800 font-black text-center py-2.5 rounded-t-xl border border-indigo-200 uppercase tracking-widest text-xs flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid fa-chalkboard mr-2"></i> Theory Room (10 Seats)</div>
@@ -902,14 +902,14 @@
                             <label class="form-label text-indigo-600">Assigned Batch</label>
                             <select id="edit-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700">
                                 <option value="Unassigned">Unassigned</option>
-                                <option value="1st">1st Batch (08:00 AM)</option>
-                                <option value="2nd">2nd Batch (08:45 AM)</option>
-                                <option value="3rd">3rd Batch (09:30 AM)</option>
-                                <option value="4th">4th Batch (10:15 AM)</option>
-                                <option value="5th">5th Batch (03:00 PM)</option>
-                                <option value="6th">6th Batch (03:45 PM)</option>
-                                <option value="7th">7th Batch (04:30 PM)</option>
-                                <option value="8th">8th Batch (05:15 PM)</option>
+                                <option value="1st">1st Batch (Lab: 08:00 AM | Theory: 08:45 AM)</option>
+                                <option value="2nd">2nd Batch (Theory: 08:00 AM | Lab: 08:45 AM)</option>
+                                <option value="3rd">3rd Batch (Lab: 09:30 AM | Theory: 10:15 AM)</option>
+                                <option value="4th">4th Batch (Theory: 09:30 AM | Lab: 10:15 AM)</option>
+                                <option value="5th">5th Batch (Lab: 03:00 PM | Theory: 03:45 PM)</option>
+                                <option value="6th">6th Batch (Theory: 03:00 PM | Lab: 03:45 PM)</option>
+                                <option value="7th">7th Batch (Lab: 04:30 PM | Theory: 05:15 PM)</option>
+                                <option value="8th">8th Batch (Theory: 04:30 PM | Lab: 05:15 PM)</option>
                             </select>
                         </div>
 
