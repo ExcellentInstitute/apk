@@ -19,8 +19,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// FCM Notification Relay (Only used for Push Notifications)
-const FCM_RELAY_URL = "https://script.google.com/macros/s/AKfycbxFsBuyiWOdTMMGeOgTXhvSmAfUK_uMbdwVO945ejPvnsEOQtX9ZtMCh9RQtBWzHSVj/exec";
+// (FCM_RELAY_URL completely removed to bypass Google Apps Script limits)
 
 let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [] };
 let sessionPassword = ""; 
@@ -362,6 +361,10 @@ function shareTransactionWA(txId) {
     document.body.removeChild(link);
 }
 
+// =========================================================
+// 🔔 PURE FIREBASE NOTIFICATION ROUTING
+// Google Apps Script completely disconnected to prevent Google blocks
+// =========================================================
 async function sendCustomPushNotification() {
     const stId = document.getElementById('tuition-student-id').value;
     const student = appData.students.find(s => s.id === stId);
@@ -385,22 +388,39 @@ async function sendCustomPushNotification() {
     
     if(!confirm(`Send App Notification to ${student.name} for ₹${Math.floor(currentDue)}?`)) return;
 
-    const title = encodeURIComponent("Pending Fee Alert ⚠️");
-    const body = encodeURIComponent(`You have a current pending due of ₹${Math.floor(currentDue)} (Total Remaining: ₹${Math.floor(totalDue)}). Please clear it via the Student Hub to avoid interruptions.`);
+    const title = "Pending Fee Alert ⚠️";
+    const bodyText = `You have a current pending due of ₹${Math.floor(currentDue)} (Total Remaining: ₹${Math.floor(totalDue)}). Please clear it via the Student Hub to avoid interruptions.`;
     
     const notifyBtn = document.getElementById('custom-notify-btn');
     if(notifyBtn) notifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs text-amber-500"></i>';
 
     try {
-        let response = await fetch(`${FCM_RELAY_URL}?action=send_notification&phone=${phone}&title=${title}&body=${body}`);
-        let result = await response.json();
-        if (result.success) {
-            alert(`Push notification sent successfully to ${student.name}!`);
-        } else {
-            alert("Failed to send: " + result.error);
+        if (!appData.notices) appData.notices = [];
+        
+        const now = new Date();
+        const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+        const dateString = now.toLocaleString('en-IN', options).replace(/am/i, 'AM').replace(/pm/i, 'PM');
+        
+        // Write the alert directly into Firebase Database targeted precisely at this student's phone number
+        const newNotice = {
+            id: 'NOT' + Date.now(),
+            title: '📢 ' + title,
+            message: 'Target: ' + phone + '\n\n' + bodyText, 
+            date: dateString
+        };
+
+        appData.notices.unshift(newNotice);
+        await safeWrite('notices', appData.notices);
+        
+        alert(`Push notification successfully routed via Firebase to ${student.name}!`);
+        
+        if (typeof renderBroadcastList === 'function') {
+            renderBroadcastList(); 
         }
+
     } catch (err) {
-        alert("Network error while sending notification. Check connection.");
+        console.error(err);
+        alert("Network error while sending notification. Check your connection.");
     } finally {
         if(notifyBtn) notifyBtn.innerHTML = '<i class="fa-solid fa-bell text-xs"></i>';
     }
