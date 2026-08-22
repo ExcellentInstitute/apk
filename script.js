@@ -322,7 +322,8 @@ function calculateExactDues(student) {
     let actualPaid = totalTxPaid > storedPaidFee ? totalTxPaid : storedPaidFee;
     let adWallet = safeParse(student.adWallet);
     
-    let totalOutstanding = totalFee - (actualPaid + adWallet);
+    // VIRTUAL COIN FIX: Coins no longer subtract from physical tuition dues!
+    let totalOutstanding = totalFee - actualPaid; 
     if (totalOutstanding < 0) totalOutstanding = 0.0;
 
     let feeStructure = (student.feeType || student.feeStructure || student['Fee Structure'] || student.fee_structure || 'Monthly').toString().trim();
@@ -484,7 +485,7 @@ function shareStudentWA() {
         displayDue = parseFloat(student.customDueAmount);
     }
     
-    const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}\%0A*Duration:*${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}\%0A*Total Paid:* ₹${metrics.actualPaid}%0A*Ad Discount:* ₹${metrics.adDiscount.toFixed(2)}\%0A*Due:* ₹${displayDue.toFixed(2)}${student.customDueDate ? ' (By: '+student.customDueDate+')' : ''}\%0A*Status:* ${displayDue <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
+    const msg = `🎓 *STUDENT UPDATE*%0A*Name:* ${student.name}%0A*Course:* ${student.course}\%0A*Duration:*${student.duration || '?'} Months%0A*Total Fee:* ₹${student.totalFee}\%0A*Total Paid:* ₹${metrics.actualPaid}%0A*Virtual Coins:* ${metrics.adDiscount.toFixed(0)} Coins\%0A*Due:* ₹${displayDue.toFixed(2)}${student.customDueDate ? ' (By: '+student.customDueDate+')' : ''}\%0A*Status:* ${displayDue <= 0 ? 'Cleared ✅' : 'Pending ⚠️'}`;
     
     const link = document.createElement('a');
     link.href = `https://api.whatsapp.com/send?text=${msg}`;
@@ -1119,7 +1120,7 @@ function showFeeBreakdown() {
         totalAdDiscount += parseFloat(st.adWallet) || 0;
     });
     const total = admission + tuition + exam + other;
-    alert(`📊 TOTAL STUDENT FEES: ₹${total.toLocaleString('en-IN')}\n\n🎟️ Admission Fees: ₹${admission.toLocaleString('en-IN')}\n📖 Course Tuitions: ₹${tuition.toLocaleString('en-IN')}\n📝 Exam/Certificates: ₹${exam.toLocaleString('en-IN')}\n💡 Other Fees: ₹${other.toLocaleString('en-IN')}\n🎁 Total Ad Discounts: ₹${totalAdDiscount.toFixed(2)}`);
+    alert(`📊 TOTAL STUDENT FEES: ₹${total.toLocaleString('en-IN')}\n\n🎟️ Admission Fees: ₹${admission.toLocaleString('en-IN')}\n📖 Course Tuitions: ₹${tuition.toLocaleString('en-IN')}\n📝 Exam/Certificates: ₹${exam.toLocaleString('en-IN')}\n💡 Other Fees: ₹${other.toLocaleString('en-IN')}\n🪙 Total Virtual Coins Earned: ${totalAdDiscount.toFixed(0)}`);
 }
 
 function getDynamicPaidFee(student) {
@@ -1343,7 +1344,7 @@ function selectStudent(id) {
     document.getElementById('active-student-phone').innerText = student.phone || "-";
     document.getElementById('active-student-totalfee').innerText = `₹${student.totalFee}`;
     document.getElementById('active-student-paidfee').innerText = `₹${metrics.actualPaid}`;
-    document.getElementById('active-student-adwallet').innerText = `₹${metrics.adDiscount.toFixed(2)}`;
+    document.getElementById('active-student-adwallet').innerText = `${metrics.adDiscount.toFixed(0)} Coins`;
 
     const badgeEl = document.getElementById('active-student-badge');
     if(badgeEl) {
