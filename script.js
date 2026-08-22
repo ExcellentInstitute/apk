@@ -19,8 +19,6 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// (FCM_RELAY_URL completely removed to bypass Google Apps Script limits)
-
 let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [] };
 let sessionPassword = ""; 
 let cropper = null;
@@ -40,32 +38,32 @@ window.onload = function() {
 // 🛡️ DATA SANITIZER, AUTO-HEALER & GLOBAL CACHE SYNC
 // =========================================================
 
-// STRICT FIX: Auto-Heals missing IDs from Mobile App and stores the exact Firebase Push Key for 100% accurate edits/deletes.
 function parseFbList(data) {
     if (!data) return [];
     
-    // If it's a legacy array, use the index as the tracker
+    let result = [];
     if (Array.isArray(data)) {
-        return data.map((item, index) => {
+        data.forEach((item, index) => {
             if (item !== null && typeof item === 'object') {
                 item._fbKey = index.toString();
+                result.push(item);
             }
-            return item;
-        }).filter(e => e !== null);
+        });
+    } else {
+        Object.keys(data).forEach(key => {
+            let item = data[key];
+            if (item !== null && typeof item === 'object') {
+                if (!item.id) item.id = key; 
+                item._fbKey = key; 
+                result.push(item);
+            }
+        });
     }
-    
-    // If it's an object of unique Firebase Push Keys (The modern robust method)
-    return Object.keys(data).map(key => {
-        let item = data[key];
-        if (item !== null && typeof item === 'object') {
-            if (!item.id) item.id = key; // Auto-heal missing IDs
-            item._fbKey = key; // Super-tracker for 0-latency atomic targeting
-        }
-        return item;
-    }).filter(e => e !== null);
+    // STRICT FIX: Reversing the array ensures newly registered students (with Push IDs) 
+    // are ALWAYS visible at the top of the database list.
+    return result.reverse(); 
 }
 
-// 🚀 Universal Cache Synchronizer
 function syncLocalCache() {
     if (appData.students.length > 0 || appData.transactions.length > 0) {
         localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
@@ -73,49 +71,43 @@ function syncLocalCache() {
 }
 
 // =========================================================
-// 🚀 PURE FIREBASE SYNC ENGINE WITH GRACEFUL DEGRADATION
+// 🚀 PURE FIREBASE SYNC ENGINE (1-FILE-AT-A-TIME)
 // =========================================================
 
-// Enterprise safety wrapper to prevent app crashes if a rule is missing
-// STRICT FIX: Added JSON sterilizer to strip 'undefined' variables which silently crash Firebase
 const safeWrite = async (path, data) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(data));
         await firebase.database().ref(path).set(cleanData);
     } catch (err) {
-        console.warn(`⚠️ Warning: Could not write to '${path}'. Check Firebase Rules.`, err.message);
+        console.warn(`⚠️ Warning: Could not write to '${path}'.`, err.message);
     }
 };
 
-// =========================================================
-// 🛡️ ATOMIC FIREBASE HELPERS (Prevents Data Overwriting & Loss)
-// =========================================================
-
-// STRICT FIX: Added JSON sterilizer to guarantee Registration Sync success
 const atomicPush = async (path, data) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(data));
-        delete cleanData._fbKey; // Prevent internal tracker from saving to cloud
-        await firebase.database().ref(path).push(cleanData);
+        delete cleanData._fbKey; 
+        
+        const ref = firebase.database().ref(path).push();
+        await ref.set(cleanData);
+        return ref.key; 
     } catch (err) {
         console.error(`Atomic Push Error on ${path}:`, err);
-        alert(`Database Write Blocked (${path}): Verify your internet connection and that you logged in explicitly as 'admin'.`);
+        alert(`Database Write Blocked (${path}): Verify your internet connection.`);
+        return null;
     }
 };
 
-// STRICT FIX: Uses the Super-Tracker (_fbKey) to surgically overwrite the exact node with 0% failure rate
 const atomicUpdateById = async (path, id, newData) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(newData));
-        delete cleanData._fbKey; // Strip the internal tracker before saving
+        delete cleanData._fbKey; 
 
-        // If we know the exact Firebase key, use it for a direct 0-latency update!
         if (newData._fbKey) {
             await firebase.database().ref(`${path}/${newData._fbKey}`).set(cleanData);
             return;
         }
 
-        // Fallback safety net: Query by ID if the tracker is missing
         const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
         if (snapshot.exists()) {
             const updates = {};
@@ -126,11 +118,9 @@ const atomicUpdateById = async (path, id, newData) => {
         }
     } catch (err) {
         console.error(`Atomic Update Error on ${path}:`, err);
-        alert(`Database Edit Blocked (${path}): Verify your internet connection and that you logged in explicitly as 'admin'.`);
     }
 };
 
-// STRICT FIX: Uses the Super-Tracker to surgically delete the exact node
 const atomicDeleteById = async (path, id, fbKey = null) => {
     try {
         if (fbKey) {
@@ -146,7 +136,6 @@ const atomicDeleteById = async (path, id, fbKey = null) => {
         }
     } catch (err) {
         console.error(`Atomic Delete Error on ${path}:`, err);
-        alert(`Database Delete Blocked (${path}): Verify your internet connection and that you logged in explicitly as 'admin'.`);
     }
 };
 
@@ -171,17 +160,14 @@ const safeFetch = async (path) => {
     try {
         return await firebase.database().ref(path).once('value');
     } catch (err) {
-        console.warn(`⚠️ Warning: Could not read '${path}'. Check Firebase Rules.`, err.message);
         return { val: () => null }; 
     }
 };
 
-// Paginated Fetch to prevent Browser Crash on scale
 const safeFetchLimit = async (path, limit) => {
     try {
         return await firebase.database().ref(path).orderByChild('date').limitToLast(limit).once('value');
     } catch (err) {
-        console.warn(`⚠️ Warning: Could not read paginated '${path}'.`, err.message);
         return { val: () => null };
     }
 };
@@ -202,12 +188,8 @@ async function handleLogin(e) {
             email = `${user}@ei.com`;
         }
 
-        // 1. Authenticate with Firebase Server securely
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
-        // ====================================================================
-        // 🛡️ FIREBASE WEBSOCKET AUTH BARRIER
-        // ====================================================================
         await new Promise((resolve, reject) => {
             const unsubscribe = firebase.auth().onAuthStateChanged(user => {
                 if (user) {
@@ -219,9 +201,6 @@ async function handleLogin(e) {
             });
         });
 
-        // ====================================================================
-        // 🚀 CACHE-FIRST INSTANT LOGIN (Fixes slow login times)
-        // ====================================================================
         const cachedData = localStorage.getItem('excellentERP_Database');
         if (cachedData) {
             try {
@@ -246,8 +225,6 @@ async function handleLogin(e) {
             btnText.innerHTML = '<i class="fa-solid fa-cloud-arrow-down fa-bounce mr-2"></i> Downloading Secure Vault...';
         }
 
-        // +++ STAGED BACKGROUND LOADING +++
-        // Stage 1: Critical UI Data ONLY (Instant Unlock)
         const [stSnap, txSnap, statSnap, setSnap] = await Promise.all([
             safeFetch('students'),
             safeFetchLimit('transactions', 250), 
@@ -262,7 +239,6 @@ async function handleLogin(e) {
 
         sessionPassword = pass; 
         
-        // Safety ID Generator for newly migrated data
         appData.transactions.forEach(tx => { if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000); });
         appData.students.forEach(st => { if(!st.id) st.id = 'STU' + Math.floor(Math.random() * 90000 + 10000); if(!st.status) st.status = 'Active'; });
 
@@ -281,11 +257,8 @@ async function handleLogin(e) {
                 btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
                 document.getElementById('login-screen').style.opacity = '1';
             }, 500);
-        } else {
-            console.log("Background cloud sync complete. Live data is now active.");
         }
 
-        // Stage 2: Background Data Load (Does not block login)
         Promise.all([
             safeFetch('files'),
             safeFetch('materials'),
@@ -301,20 +274,16 @@ async function handleLogin(e) {
             
             syncLocalCache();
 
-            // Refresh specific modules once loaded
             renderHubFiles();
             renderBroadcastList();
             renderSeatingLayout();
             renderBatchRequests();
             
-            // If the admin already clicked a student before background finished, refresh the docs!
             const activeId = document.getElementById('tuition-student-id').value;
             if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
                 renderStudentFiles(activeId);
             }
-            console.log("Background stage 2 data loaded successfully.");
         }).catch(err => console.error("Background sync error:", err));
-        // +++ END NEW STAGED LOADING +++
 
     } catch(err) {
         console.error("Login System Error:", err);
@@ -352,12 +321,11 @@ async function runStudentAuthMigration() {
             let phone = String(student.phone).trim();
             if(phone) {
                 let email = `${phone}@ei.com`;
-                let password = generateSecurePassword(); // Secure random password generated
+                let password = generateSecurePassword(); 
                 
                 try {
                     await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
                     successCount++;
-                    console.log(`Created: ${email} | Secure Password: ${password}`); // Export these to share with students securely
                 } catch(e) {
                     if(e.code === 'auth/email-already-in-use') {
                         skipCount++;
@@ -440,7 +408,6 @@ function calculateExactDues(student) {
     let actualPaid = totalTxPaid > storedPaidFee ? totalTxPaid : storedPaidFee;
     let adWallet = safeParse(student.adWallet);
     
-    // VIRTUAL COIN FIX: Coins no longer subtract from physical tuition dues!
     let totalOutstanding = totalFee - actualPaid; 
     if (totalOutstanding < 0) totalOutstanding = 0.0;
 
@@ -574,8 +541,10 @@ async function sendCustomPushNotification() {
             date: dateString
         };
 
+        const fbKey = await atomicPush('notices', newNotice);
+        if (fbKey) newNotice._fbKey = fbKey;
+        
         appData.notices.unshift(newNotice);
-        await atomicPush('notices', newNotice);
         syncLocalCache();
         
         alert(`Push notification successfully routed via Firebase to ${student.name}!`);
@@ -752,10 +721,6 @@ function showError(el) {
 }
 
 function logout() { location.reload(); }
-
-function recalculateStats() {
-    // Deprecated: Stats are now updated atomically during transaction writes to support pagination safely.
-}
 
 function toggleBalanceVisibility() {
     isBalanceHidden = !isBalanceHidden;
@@ -1258,52 +1223,59 @@ function getDynamicPaidFee(student) {
 function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr, parentPhone, batchId) {
     const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
     const newStudent = { 
-        id: id, name: name, course: course, totalFee: parseFloat(totalFee) || 0, paidFee: parseFloat(paidNow) || 0, 
-        feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 || "", 
+        id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), 
+        feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, 
         duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active', 
         customDueAmount: "", customDueDate: "",
         parentPhone: parentPhone || "", batch: batchId || "Unassigned"
     };
-    appData.students.unshift(newStudent);
     
-    recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow) || 0, dateStr);
-    atomicPush('students', newStudent);
-    syncLocalCache();
-    renderStudentList(); 
+    // Save to Firebase FIRST
+    atomicPush('students', newStudent).then(fbKey => {
+        if (fbKey) newStudent._fbKey = fbKey;
+        appData.students.unshift(newStudent);
+        recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
+        syncLocalCache();
+        renderStudentList(); 
+    });
+    
     return id;
 }
 
-function recordTransaction(type, title, amount, dateStr, desc = "") {
-    const newTx = { id: 'TXN' + Math.floor(Math.random() * 9000 + 1000), type: type, title: title, amount: parseFloat(amount) || 0, date: dateStr, description: desc };
+async function recordTransaction(type, title, amount, dateStr, desc = "") {
+    const newTx = { id: 'TXN' + Math.floor(Math.random() * 9000 + 1000), type: type, title: title, amount: parseFloat(amount), date: dateStr, description: desc };
+    
+    const fbKey = await atomicPush('transactions', newTx);
+    if (fbKey) newTx._fbKey = fbKey;
+
     appData.transactions.push(newTx);
     appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
     
     // Manual stat increment
     appData.stats.income = parseFloat(appData.stats.income || 0);
     appData.stats.expense = parseFloat(appData.stats.expense || 0);
-    if(type === 'income') appData.stats.income += parseFloat(amount) || 0;
-    if(type === 'expense') appData.stats.expense += parseFloat(amount) || 0;
+    if(type === 'income') appData.stats.income += parseFloat(amount);
+    if(type === 'expense') appData.stats.expense += parseFloat(amount);
     appData.stats.balance = appData.stats.income - appData.stats.expense;
     
-    atomicPush('transactions', newTx);
-    safeWrite('stats', appData.stats);
+    await safeWrite('stats', appData.stats);
     syncLocalCache();
     refreshAllUI(); 
 }
 
-function submitTuitionFee(e) {
+async function submitTuitionFee(e) {
     e.preventDefault();
     const stId = document.getElementById('tuition-student-id').value; const date = document.getElementById('tuition-date').value;
     const feeCategory = document.getElementById('tuition-feetype-select').value; const desc = document.getElementById('tuition-desc').value;
-    const amount = parseFloat(document.getElementById('tuition-amount').value) || 0;
+    const amount = parseFloat(document.getElementById('tuition-amount').value);
     let student = appData.students.find(s => s.id === stId);
     if(student) {
         if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
         const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
-        recordTransaction("income", `${finalDesc} - ${student.name} [${student.id}]`, amount, date);
         
-        // STRICT FIX: Lock the updated paid fee directly to Firebase to prevent rollback
-        atomicUpdateById('students', student.id, student);
+        await recordTransaction("income", `${finalDesc} - ${student.name} [${student.id}]`, amount, date);
+        await atomicUpdateById('students', student.id, student);
+        
         syncLocalCache();
 
         alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
@@ -1626,7 +1598,7 @@ function submitEditStudent(e) {
     student.course = document.getElementById('edit-course').value; 
     student.batch = document.getElementById('edit-batch').value; 
     student.feeType = document.getElementById('edit-feetype').value;
-    student.totalFee = parseFloat(document.getElementById('edit-totalfee').value) || 0;
+    student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
     student.duration = parseInt(document.getElementById('edit-duration').value) || 0;
     student.adWallet = parseFloat(document.getElementById('edit-adwallet').value) || 0;
     
@@ -1651,7 +1623,7 @@ function submitEditStudent(e) {
     }
 
     const oldPaid = getDynamicPaidFee(student);
-    const newPaid = parseFloat(document.getElementById('edit-paidfee').value) || 0;
+    const newPaid = parseFloat(document.getElementById('edit-paidfee').value);
     student.paidFee = newPaid;
 
     if(newPaid !== oldPaid) {
@@ -1665,22 +1637,19 @@ function submitEditStudent(e) {
 
     const fileInput = document.getElementById('edit-image');
     if(croppedImages.edit) {
-        student.image = croppedImages.edit; croppedImages.edit = null; finalizeEdit(student, oldName, newName);
+        student.image = croppedImages.edit; croppedImages.edit = null; finalizeEdit(student);
     } else if(fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
-        reader.onload = function(evt) { student.image = evt.target.result; finalizeEdit(student, oldName, newName); };
+        reader.onload = function(evt) { student.image = evt.target.result; finalizeEdit(student); };
         reader.readAsDataURL(fileInput.files[0]);
-    } else { finalizeEdit(student, oldName, newName); }
+    } else { finalizeEdit(student); }
 }
 
-function finalizeEdit(student, oldName, newName) { 
+function finalizeEdit(student) { 
     closeEditModal(); 
     atomicUpdateById('students', student.id, student);
     
-    let studentTxs = appData.transactions.filter(tx => {
-        let title = String(tx.title || "");
-        return title.includes(`[${student.id}]`) || title.includes(newName) || title.includes(oldName);
-    });
+    let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${student.id}]`));
     studentTxs.forEach(tx => atomicUpdateById('transactions', tx.id, tx));
 
     syncLocalCache();
@@ -1828,7 +1797,7 @@ async function executeDelete() {
 // =========================================
 // 🗂️ THE SMART-SPLIT FILE UPLOADER
 // =========================================
-function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null, vault = 'files') {
+function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
     const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
 
     const newFile = {
@@ -1836,17 +1805,20 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
         date: new Date().toISOString().split('T')[0], folder: folderName
     };
     
-    if (!appData[vault]) appData[vault] = [];
-    appData[vault].push(newFile);
-    atomicPush(vault, newFile);
-    syncLocalCache();
+    if (!appData.files) appData.files = [];
+    
+    atomicPush('files', newFile).then(fbKey => {
+        if (fbKey) newFile._fbKey = fbKey;
+        appData.files.push(newFile);
+        syncLocalCache();
 
-    if(callback) {
-        callback();
-    } else {
-        const stId = document.getElementById('tuition-student-id').value;
-        renderStudentFiles(stId);
-    }
+        if(callback) {
+            callback();
+        } else {
+            const stId = document.getElementById('tuition-student-id').value;
+            renderStudentFiles(stId);
+        }
+    });
 }
 
 function handleStudentFileUpload(event) {
@@ -1881,7 +1853,6 @@ function handleStudentFileUpload(event) {
                 progressContainer.classList.add('hidden');
                 const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
                 
-                // STRICT FIX: Ensure we use the randomized STU ID, never the phone number!
                 const targetVal = student.id; 
                 
                 const formattedFileName = "Certificate - " + student.name;
@@ -1889,7 +1860,7 @@ function handleStudentFileUpload(event) {
                 saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
                     renderStudentFiles(stId);
                     alert("Document saved securely to Private Vault!");
-                }, 'files'); // Certificates go to 'files' vault
+                });
                 document.getElementById('student-doc-upload').value = '';
             });
         }
@@ -1935,13 +1906,25 @@ function submitMaterialUpload(e) {
             uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                 progressContainer.classList.add('hidden');
                 const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                saveFileToDatabase(title, "Material", target, downloadURL, filePath, sizeMB, folder, () => {
+                
+                const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
+                const newFile = {
+                    id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000), name: title, category: "Material", target: finalTarget, url: downloadURL, path: filePath, size: sizeMB,
+                    date: new Date().toISOString().split('T')[0], folder: folder
+                };
+                
+                if (!appData.materials) appData.materials = [];
+                
+                atomicPush('materials', newFile).then(fbKey => {
+                    if (fbKey) newFile._fbKey = fbKey;
+                    appData.materials.push(newFile);
+                    syncLocalCache();
                     e.target.reset();
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
                     alert("Material Uploaded Successfully to Public Vault!");
-                }, 'materials'); // Study materials go to 'materials' vault (fixes 404 issue)
+                });
             });
         }
     );
@@ -1985,13 +1968,25 @@ function submitAssignmentUpload(e) {
             uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                 progressContainer.classList.add('hidden');
                 const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                saveFileToDatabase(title, "Assignment", target, downloadURL, filePath, sizeMB, "Assignments", () => {
+                
+                const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
+                const newFile = {
+                    id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000), name: title, category: "Assignment", target: finalTarget, url: downloadURL, path: filePath, size: sizeMB,
+                    date: new Date().toISOString().split('T')[0], folder: "Assignments"
+                };
+                
+                if (!appData.materials) appData.materials = [];
+                
+                atomicPush('materials', newFile).then(fbKey => {
+                    if (fbKey) newFile._fbKey = fbKey;
+                    appData.materials.push(newFile);
+                    syncLocalCache();
                     e.target.reset();
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
                     alert("Assignment Uploaded Successfully to Public Vault!");
-                }, 'materials'); // Assignments go to 'materials' vault (fixes 404 issue)
+                });
             });
         }
     );
@@ -2024,7 +2019,6 @@ function renderStudentFiles(stId) {
                     <a href="${f.url || f.file}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name || f.filename || 'Document'}</a>
                 </td>
                 <td class="py-3 px-2 text-center">
-                    <!-- NEW: FIXED BROKEN DELETE BUTTON -->
                     <button type="button" onclick="deleteHubFile('${f.path || ''}', '${f.id}', 'files')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Document"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -2125,8 +2119,8 @@ async function duplicateSelectedFiles() {
 
     if (!confirm(`Are you sure you want to duplicate ${checkboxes.length} selected file(s)?\n\nFiles will be cross-copied between the Public Vault (Guest) and Private Vault (Mobile App) as reference links.`)) return;
 
-    checkboxes.forEach(cb => {
-        const fileId = cb.value;
+    for (let i = 0; i < checkboxes.length; i++) {
+        const fileId = checkboxes[i].value;
         let sourceFile = appData.materials.find(f => f.id === fileId);
         let isMaterial = true;
         
@@ -2142,15 +2136,17 @@ async function duplicateSelectedFiles() {
             
             if (isMaterial) {
                 if (!appData.files) appData.files = [];
+                const fbKey = await atomicPush('files', clonedFile);
+                if (fbKey) clonedFile._fbKey = fbKey;
                 appData.files.push(clonedFile);
-                atomicPush('files', clonedFile); 
             } else {
                 if (!appData.materials) appData.materials = [];
+                const fbKey = await atomicPush('materials', clonedFile);
+                if (fbKey) clonedFile._fbKey = fbKey;
                 appData.materials.push(clonedFile);
-                atomicPush('materials', clonedFile); 
             }
         }
-    });
+    }
 
     try {
         syncLocalCache();
@@ -2230,21 +2226,15 @@ async function submitEditFile(e) {
     }
 }
 
-// ====================================================================
-// STRICT FIX: The 404 PDF Error Engine
-// Checks if ANY duplicate file exists before deleting from physical storage
-// ====================================================================
 function deleteHubFile(path, fileId, sourceNode) {
     if(!confirm("Are you sure you want to delete this file from the hub?")) return;
     
     if(path && path.trim() !== '' && path !== 'undefined') {
         const allVaultFiles = [...(appData.materials || []), ...(appData.files || [])];
         
-        // Check if ANY other file uses this exact storage path
         const isShared = allVaultFiles.some(f => f.path === path && f.id !== fileId);
 
         if (isShared) {
-            // DO NOT delete from storage, just remove DB record
             _removeFileFromDatabase(fileId, sourceNode);
         } else {
             const storageRef = firebase.storage().ref();
@@ -2296,13 +2286,14 @@ function submitBroadcast(e) {
         date: dateString
     };
 
-    appData.notices.unshift(newNotice);
-    atomicPush('notices', newNotice);
-    syncLocalCache();
-    
-    renderBroadcastList();
-    e.target.reset();
-    alert("Broadcast Alert Sent!");
+    atomicPush('notices', newNotice).then(fbKey => {
+        if (fbKey) newNotice._fbKey = fbKey;
+        appData.notices.unshift(newNotice);
+        syncLocalCache();
+        renderBroadcastList();
+        e.target.reset();
+        alert("Broadcast Alert Sent!");
+    });
 }
 
 function renderBroadcastList() {
