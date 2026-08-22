@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Excellent Institute</title>
     
     <link rel="icon" type="image/jpeg" sizes="any" href="logo.jpeg">
@@ -26,33 +26,33 @@
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="text-slate-800 h-screen overflow-hidden flex selection:bg-indigo-200 relative">
+<body class="text-slate-800 h-screen overflow-hidden flex selection:bg-indigo-200 relative bg-slate-50 font-['Plus_Jakarta_Sans',sans-serif]">
 
     <div id="comprehensive-print-view" class="bg-white w-full"></div>
 
-    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-animated">
-        <div class="glass-panel relative z-10 w-full max-w-md p-8 md:p-12 rounded-[2.5rem] mx-4 transform transition-all shadow-[0_0_50px_rgba(0,0,0,0.3)] border border-white/40">
-            <div class="text-center mb-10">
-                <div class="w-32 h-32 mx-auto mb-6 bg-white p-1 rounded-full shadow-2xl shadow-indigo-500/30">
+    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-animated p-4">
+        <div class="glass-panel relative z-10 w-full max-w-md p-6 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.5rem] transform transition-all shadow-[0_0_50px_rgba(0,0,0,0.3)] border border-white/40">
+            <div class="text-center mb-8 sm:mb-10">
+                <div class="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 sm:mb-6 bg-white p-1 rounded-full shadow-2xl shadow-indigo-500/30">
                     <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=4f46e5&color=fff&size=128&bold=true&rounded=true'" alt="Institute Logo" class="w-full h-full object-cover rounded-full">
                 </div>
-                <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Excellent Institute</h1>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Excellent Institute</h1>
                 <p class="text-xs text-indigo-600 mt-2 font-bold uppercase tracking-widest bg-indigo-50 inline-block px-3 py-1 rounded-full border border-indigo-100">Secure Admin Portal</p>
             </div>
-            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-6">
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4 sm:space-y-6">
                 <div class="relative group">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-user text-lg"></i></div>
-                    <input type="text" id="username" class="form-input pl-12 py-4 text-lg bg-white/70 backdrop-blur-sm" placeholder="Login ID" required>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-user text-base sm:text-lg"></i></div>
+                    <input type="text" id="username" class="form-input pl-12 py-3.5 sm:py-4 text-base sm:text-lg bg-white/70 backdrop-blur-sm rounded-2xl w-full border border-slate-200 focus:border-indigo-500 outline-none transition-all" placeholder="Login ID" required>
                 </div>
                 <div class="relative group">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-lock text-lg"></i></div>
-                    <input type="password" id="password" class="form-input pl-12 pr-12 py-4 text-lg bg-white/70 backdrop-blur-sm" placeholder="Password" required>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors"><i class="fa-solid fa-lock text-base sm:text-lg"></i></div>
+                    <input type="password" id="password" class="form-input pl-12 pr-12 py-3.5 sm:py-4 text-base sm:text-lg bg-white/70 backdrop-blur-sm rounded-2xl w-full border border-slate-200 focus:border-indigo-500 outline-none transition-all" placeholder="Password" required>
                     <div class="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-indigo-600 transition-colors" onclick="togglePasswordVisibility()">
-                        <i id="eye-icon" class="fa-solid fa-eye text-lg"></i>
+                        <i id="eye-icon" class="fa-solid fa-eye text-base sm:text-lg"></i>
                     </div>
                 </div>
-                <p id="login-error" class="text-rose-600 text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.</p>
-                <button type="submit" id="login-btn" class="w-full py-4 mt-8 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 shadow-xl hover:shadow-indigo-500/40 flex justify-center items-center transform hover:-translate-y-1">
+                <p id="login-error" class="text-rose-600 text-xs sm:text-sm font-bold hidden text-center bg-rose-100 py-3 rounded-xl border border-rose-200 shadow-inner"><i class="fa-solid fa-circle-exclamation mr-2"></i>Access Denied! Incorrect Password.</p>
+                <button type="submit" id="login-btn" class="w-full py-3.5 sm:py-4 mt-6 sm:mt-8 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-base sm:text-lg rounded-2xl transition-all duration-300 shadow-xl hover:shadow-indigo-500/40 flex justify-center items-center transform hover:-translate-y-0.5 active:translate-y-0">
                     <span id="login-btn-text">Authenticate <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i></span>
                 </button>
             </form>
@@ -63,168 +63,167 @@
         
         <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-40 hidden md:hidden backdrop-blur-sm transition-opacity duration-300 opacity-0" onclick="toggleSidebar()"></div>
 
-        <aside id="sidebar" class="w-[280px] bg-slate-900 text-slate-300 flex flex-col z-50 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-500 ease-out h-full shadow-[20px_0_50px_rgba(0,0,0,0.1)] border-r border-slate-800">
-            <div class="h-24 flex items-center px-6 bg-slate-950/50 relative overflow-hidden border-b border-slate-800 shrink-0">
+        <aside id="sidebar" class="w-[260px] sm:w-[280px] bg-slate-900 text-slate-300 flex flex-col z-50 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-500 ease-out h-full shadow-[20px_0_50px_rgba(0,0,0,0.1)] border-r border-slate-800">
+            <div class="h-20 sm:h-24 flex items-center px-5 sm:px-6 bg-slate-950/50 relative overflow-hidden border-b border-slate-800 shrink-0">
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
-                <div class="w-12 h-12 bg-white rounded-full p-0.5 shadow-lg shadow-indigo-500/50 relative z-10 shrink-0 mr-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full p-0.5 shadow-lg shadow-indigo-500/50 relative z-10 shrink-0 mr-3">
                     <img src="logo.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=Excellent+Institute&background=4f46e5&color=fff&size=64&bold=true&rounded=true'" alt="Institute Logo" class="w-full h-full object-cover rounded-full bg-transparent">
                 </div>
                 <div class="relative z-10">
-                    <h1 class="text-lg font-bold text-white tracking-wide leading-tight">Excellent Inst.</h1>
+                    <h1 class="text-base sm:text-lg font-bold text-white tracking-wide leading-tight">Excellent Inst.</h1>
                     <p class="text-[10px] text-indigo-400 font-bold tracking-widest uppercase">ERP Software</p>
                 </div>
                 <button type="button" onclick="toggleSidebar()" class="md:hidden absolute right-4 text-slate-400 hover:text-white bg-slate-800 w-8 h-8 rounded-lg flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <nav class="flex-1 px-4 py-8 overflow-y-auto custom-scrollbar">
-                <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p><div onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active"><i class="fa-solid fa-layer-group w-8 text-lg"></i> <span>Dashboard</span></div></div>
-                <div class="mb-6">
+            <nav class="flex-1 px-3 sm:px-4 py-6 sm:py-8 overflow-y-auto custom-scrollbar">
+                <div class="mb-5 sm:mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p><div onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active"><i class="fa-solid fa-layer-group w-7 sm:w-8 text-base sm:text-lg"></i> <span>Dashboard</span></div></div>
+                <div class="mb-5 sm:mb-6">
                     <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics</p>
-                    <div onclick="switchTab('registration')" id="nav-registration" class="nav-btn"><i class="fa-solid fa-user-plus w-8 text-lg"></i> <span>New Admission</span></div>
-                    <div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn"><i class="fa-solid fa-graduation-cap w-8 text-lg"></i> <span>Student Database</span></div>
-                    <!-- SEATING & BATCH TAB -->
-                    <div onclick="switchTab('seating')" id="nav-seating" class="nav-btn"><i class="fa-solid fa-chair w-8 text-lg text-emerald-400"></i> <span>Batch & Seating</span></div>
+                    <div onclick="switchTab('registration')" id="nav-registration" class="nav-btn"><i class="fa-solid fa-user-plus w-7 sm:w-8 text-base sm:text-lg"></i> <span>New Admission</span></div>
+                    <div onclick="switchTab('tuition')" id="nav-tuition" class="nav-btn"><i class="fa-solid fa-graduation-cap w-7 sm:w-8 text-base sm:text-lg"></i> <span>Student Database</span></div>
+                    <div onclick="switchTab('seating')" id="nav-seating" class="nav-btn"><i class="fa-solid fa-chair w-7 sm:w-8 text-base sm:text-lg text-emerald-400"></i> <span>Batch & Seating</span></div>
                 </div>
                 
-                <div class="mb-6">
+                <div class="mb-5 sm:mb-6">
                     <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Academics & Comms</p>
-                    <div onclick="switchTab('filehub')" id="nav-filehub" class="nav-btn"><i class="fa-solid fa-cloud-arrow-up w-8 text-lg text-indigo-400"></i> <span>File Hub (Study & Tasks)</span></div>
-                    <div onclick="switchTab('exam')" id="nav-exam" class="nav-btn"><i class="fa-solid fa-laptop-code w-8 text-lg text-emerald-400"></i> <span>MCQ Exam Portal</span></div>
-                    <div onclick="switchTab('broadcast')" id="nav-broadcast" class="nav-btn"><i class="fa-solid fa-satellite-dish w-8 text-lg text-amber-400"></i> <span>Broadcasts (Alerts)</span></div>
+                    <div onclick="switchTab('filehub')" id="nav-filehub" class="nav-btn"><i class="fa-solid fa-cloud-arrow-up w-7 sm:w-8 text-base sm:text-lg text-indigo-400"></i> <span>File Hub (Study & Tasks)</span></div>
+                    <div onclick="switchTab('exam')" id="nav-exam" class="nav-btn"><i class="fa-solid fa-laptop-code w-7 sm:w-8 text-base sm:text-lg text-emerald-400"></i> <span>MCQ Exam Portal</span></div>
+                    <div onclick="switchTab('broadcast')" id="nav-broadcast" class="nav-btn"><i class="fa-solid fa-satellite-dish w-7 sm:w-8 text-base sm:text-lg text-amber-400"></i> <span>Broadcasts (Alerts)</span></div>
                 </div>
 
-                <div class="mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Services & Forms</p><div onclick="switchTab('job')" id="nav-job" class="nav-btn"><i class="fa-solid fa-briefcase w-8 text-lg"></i> <span>Job Applications</span></div><div onclick="switchTab('print')" id="nav-print" class="nav-btn"><i class="fa-solid fa-print w-8 text-lg"></i> <span>Print & Xerox Desk</span></div>
-                <a href="Admission_form.pdf" target="_blank" class="nav-btn mt-2 bg-slate-800/50 hover:bg-slate-800"><i class="fa-solid fa-file-pdf w-8 text-lg text-rose-400"></i> <span class="text-sm">Admission PDF</span></a>
-                <a href="Terms&conditions.pdf" target="_blank" class="nav-btn bg-slate-800/50 hover:bg-slate-800"><i class="fa-solid fa-file-contract w-8 text-lg text-emerald-400"></i> <span class="text-sm">Terms PDF</span></a></div>
-                <div class="mb-6">
+                <div class="mb-5 sm:mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Services & Forms</p><div onclick="switchTab('job')" id="nav-job" class="nav-btn"><i class="fa-solid fa-briefcase w-7 sm:w-8 text-base sm:text-lg"></i> <span>Job Applications</span></div><div onclick="switchTab('print')" id="nav-print" class="nav-btn"><i class="fa-solid fa-print w-7 sm:w-8 text-base sm:text-lg"></i> <span>Print & Xerox Desk</span></div>
+                <a href="Admission_form.pdf" target="_blank" class="nav-btn mt-2 bg-slate-800/50 hover:bg-slate-800"><i class="fa-solid fa-file-pdf w-7 sm:w-8 text-base sm:text-lg text-rose-400"></i> <span class="text-xs sm:text-sm">Admission PDF</span></a>
+                <a href="Terms&conditions.pdf" target="_blank" class="nav-btn bg-slate-800/50 hover:bg-slate-800"><i class="fa-solid fa-file-contract w-7 sm:w-8 text-base sm:text-lg text-emerald-400"></i> <span class="text-xs sm:text-sm">Terms PDF</span></a></div>
+                <div class="mb-5 sm:mb-6">
                     <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Finance</p>
-                    <div onclick="switchTab('expenditure')" id="nav-expenditure" class="nav-btn"><i class="fa-solid fa-wallet w-8 text-lg"></i> <span>Expenditures</span></div>
-                    <div onclick="switchTab('analytics')" id="nav-analytics" class="nav-btn"><i class="fa-solid fa-chart-line w-8 text-lg"></i> <span>P&L Analytics</span></div>
+                    <div onclick="switchTab('expenditure')" id="nav-expenditure" class="nav-btn"><i class="fa-solid fa-wallet w-7 sm:w-8 text-base sm:text-lg"></i> <span>Expenditures</span></div>
+                    <div onclick="switchTab('analytics')" id="nav-analytics" class="nav-btn"><i class="fa-solid fa-chart-line w-7 sm:w-8 text-base sm:text-lg"></i> <span>P&L Analytics</span></div>
                 </div>
                 <div class="mb-2">
                     <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">System</p>
-                    <div onclick="switchTab('settings')" id="nav-settings" class="nav-btn"><i class="fa-solid fa-gear w-8 text-lg"></i> <span>Settings</span></div>
+                    <div onclick="switchTab('settings')" id="nav-settings" class="nav-btn"><i class="fa-solid fa-gear w-7 sm:w-8 text-base sm:text-lg"></i> <span>Settings</span></div>
                 </div>
             </nav>
             
-            <div class="p-5 bg-slate-950 border-t border-slate-800 shrink-0">
-                <div class="flex items-center bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-inner">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-bold shadow-md mr-3 relative">AD<div class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-800"></div></div>
-                    <div class="flex-1"><p class="text-xs font-bold text-white leading-tight">Admin User</p><p class="text-[9px] text-emerald-400 font-bold tracking-wider uppercase mt-0.5"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>Cloud Synced</p></div>
-                    <button type="button" onclick="logout()" class="w-8 h-8 rounded-lg text-rose-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-power-off text-sm"></i></button>
+            <div class="p-4 sm:p-5 bg-slate-950 border-t border-slate-800 shrink-0">
+                <div class="flex items-center bg-slate-800 p-2.5 sm:p-3 rounded-xl border border-slate-700 shadow-inner">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-bold shadow-md mr-3 relative shrink-0">AD<div class="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-slate-800"></div></div>
+                    <div class="flex-1 min-w-0"><p class="text-xs font-bold text-white leading-tight truncate">Admin User</p><p class="text-[9px] text-emerald-400 font-bold tracking-wider uppercase mt-0.5 truncate"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>Cloud Synced</p></div>
+                    <button type="button" onclick="logout()" class="w-8 h-8 rounded-lg text-rose-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors shrink-0" title="Sign Out"><i class="fa-solid fa-power-off text-sm"></i></button>
                 </div>
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col relative h-screen w-full bg-slate-100/50">
-            <header class="h-24 px-4 md:px-8 flex items-center justify-between shrink-0 z-10 relative">
+        <main class="flex-1 flex flex-col relative h-screen w-full bg-slate-100/50 min-w-0">
+            <header class="h-20 sm:h-24 px-4 sm:px-6 md:px-8 flex items-center justify-between shrink-0 z-10 relative">
                 <div class="absolute top-0 left-0 w-full h-full bg-white/70 backdrop-blur-xl border-b border-slate-200/60 z-0"></div>
-                <div class="flex items-center relative z-10">
-                    <button type="button" onclick="toggleSidebar()" class="mr-4 text-slate-700 hover:text-indigo-600 md:hidden bg-white w-10 h-10 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center transition-transform active:scale-95"><i class="fa-solid fa-bars text-lg"></i></button>
-                    <div><h2 id="page-title" class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">System Dashboard</h2><p class="text-xs text-slate-500 mt-1 font-bold uppercase tracking-widest hidden sm:block text-indigo-600">Financial Overview</p></div>
+                <div class="flex items-center relative z-10 min-w-0">
+                    <button type="button" onclick="toggleSidebar()" class="mr-3 sm:mr-4 text-slate-700 hover:text-indigo-600 md:hidden bg-white w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center transition-transform active:scale-95 shrink-0"><i class="fa-solid fa-bars text-base sm:text-lg"></i></button>
+                    <div class="truncate"><h2 id="page-title" class="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight truncate">System Dashboard</h2><p class="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 font-bold uppercase tracking-widest hidden sm:block text-indigo-600">Financial Overview</p></div>
                 </div>
-                <div class="relative z-10 flex items-center gap-3">
+                <div class="relative z-10 flex items-center gap-2 sm:gap-3 shrink-0">
                     
                     <div class="relative cursor-pointer" onclick="toggleNotifications()">
-                        <div class="w-11 h-11 rounded-xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors">
-                            <i class="fa-solid fa-bell text-xl"></i>
-                            <span id="notif-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden shadow-md border-2 border-white">0</span>
+                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors">
+                            <i class="fa-solid fa-bell text-lg sm:text-xl"></i>
+                            <span id="notif-badge" class="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full flex items-center justify-center hidden shadow-md border-2 border-white">0</span>
                         </div>
                         
-                        <div id="notif-dropdown" class="absolute top-14 right-0 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 hidden z-50 flex flex-col overflow-hidden transform origin-top-right transition-all scale-95 opacity-0">
-                            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                                <h3 class="font-bold text-slate-800 text-sm">30-Day Due Alerts</h3>
-                                <span class="text-[10px] bg-rose-100 text-rose-600 px-2 py-1 rounded-lg font-bold" id="notif-count-text">0 Pending</span>
+                        <div id="notif-dropdown" class="absolute top-12 sm:top-14 right-0 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 hidden z-50 flex flex-col overflow-hidden transform origin-top-right transition-all scale-95 opacity-0">
+                            <div class="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                                <h3 class="font-bold text-slate-800 text-xs sm:text-sm">30-Day Due Alerts</h3>
+                                <span class="text-[10px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded-lg font-bold" id="notif-count-text">0 Pending</span>
                             </div>
-                            <div id="notif-list" class="max-h-80 overflow-y-auto custom-scrollbar p-2 bg-white">
-                                </div>
+                            <div id="notif-list" class="max-h-72 sm:max-h-80 overflow-y-auto custom-scrollbar p-2 bg-white">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="bg-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg shadow-inner"><i class="fa-solid fa-vault"></i></div>
-                        <div class="flex flex-col"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block leading-tight">Net Balance</span><span id="header-balance" class="text-lg md:text-xl font-black text-slate-800 leading-tight">₹0</span></div>
+                    <div class="bg-white px-3 sm:px-5 py-2 sm:py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 flex items-center gap-2 sm:gap-3">
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base sm:text-lg shadow-inner shrink-0"><i class="fa-solid fa-vault"></i></div>
+                        <div class="flex flex-col"><span class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block leading-tight">Net Balance</span><span id="header-balance" class="text-base sm:text-lg md:text-xl font-black text-slate-800 leading-tight">₹0</span></div>
                     </div>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 pb-24 w-full scroll-smooth relative z-0 custom-scrollbar" onclick="closeNotificationsIfOpen(event)">
+            <div class="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 lg:p-10 pb-24 w-full scroll-smooth relative z-0 custom-scrollbar" onclick="closeNotificationsIfOpen(event)">
                 
                 <!-- DASHBOARD VIEW -->
-                <div id="view-dashboard" class="view-section active space-y-8 max-w-7xl mx-auto">
-                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="flex items-center flex-wrap gap-3 text-slate-600 text-sm font-bold w-full sm:w-auto">
-                            <span><i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i> Database Active</span>
+                <div id="view-dashboard" class="view-section active space-y-6 sm:space-y-8 max-w-7xl mx-auto">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex items-center flex-wrap gap-2 sm:gap-3 text-slate-600 text-xs sm:text-sm font-bold w-full sm:w-auto">
+                            <span><i class="fa-solid fa-circle-check text-emerald-500 text-base sm:text-lg"></i> Database Active</span>
                         </div>
                         
-                        <div class="flex flex-wrap gap-3 w-full sm:w-auto">
-                            <button type="button" onclick="toggleBalanceVisibility()" id="toggle-balance-btn" class="flex-1 sm:flex-none px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors shadow-sm border border-slate-200 flex items-center justify-center" title="Toggle Dashboard Visibility">
+                        <div class="flex flex-wrap gap-2.5 sm:gap-3 w-full sm:w-auto">
+                            <button type="button" onclick="toggleBalanceVisibility()" id="toggle-balance-btn" class="flex-1 sm:flex-none px-3.5 sm:px-4 py-2.5 sm:py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition-colors shadow-sm border border-slate-200 flex items-center justify-center" title="Toggle Dashboard Visibility">
                                 <i class="fa-solid fa-eye mr-2"></i> Show Values
                             </button>
-                            <button type="button" onclick="generateComprehensivePrint()" class="flex-1 sm:flex-none px-6 py-3 bg-slate-900 hover:bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center transform hover:-translate-y-1">
-                                <i class="fa-solid fa-print mr-2 text-lg"></i> Print Report
+                            <button type="button" onclick="generateComprehensivePrint()" class="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-900 hover:bg-indigo-600 text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center transform hover:-translate-y-0.5 active:translate-y-0">
+                                <i class="fa-solid fa-print mr-2 text-base sm:text-lg"></i> Print Report
                             </button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="premium-card p-8 relative overflow-hidden group">
-                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-emerald-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+                        <div class="premium-card p-6 sm:p-8 relative overflow-hidden group">
+                            <div class="absolute -right-8 -top-8 w-32 sm:w-40 h-32 sm:h-40 bg-emerald-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
                             <div class="relative z-10">
-                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-arrow-trend-up"></i></div><span class="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-emerald-100">Total In</span></div>
-                                <h3 class="text-sm font-bold text-slate-500 mb-1">Total Revenue</h3>
-                                <h2 class="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-2 dashboard-value" id="dash-income">₹ ••••••</h2>
-                                <p class="text-xs text-slate-400 font-medium">+ Tuitions, Exams, Jobs & Print</p>
+                                <div class="flex items-center justify-between mb-4 sm:mb-6"><div class="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner"><i class="fa-solid fa-arrow-trend-up"></i></div><span class="px-2.5 sm:px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg border border-emerald-100">Total In</span></div>
+                                <h3 class="text-xs sm:text-sm font-bold text-slate-500 mb-1">Total Revenue</h3>
+                                <h2 class="text-3xl sm:text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-2 dashboard-value" id="dash-income">₹ ••••••</h2>
+                                <p class="text-[11px] sm:text-xs text-slate-400 font-medium">+ Tuitions, Exams, Jobs & Print</p>
                             </div>
                         </div>
-                        <div class="premium-card p-8 relative overflow-hidden group">
-                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-rose-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+                        <div class="premium-card p-6 sm:p-8 relative overflow-hidden group">
+                            <div class="absolute -right-8 -top-8 w-32 sm:w-40 h-32 sm:h-40 bg-rose-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
                             <div class="relative z-10">
-                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-arrow-trend-down"></i></div><span class="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-rose-100">Total Out</span></div>
-                                <h3 class="text-sm font-bold text-slate-500 mb-1">Total Expenditures</h3>
-                                <h2 class="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-2 dashboard-value" id="dash-expense">₹ ••••••</h2>
-                                <p class="text-xs text-slate-400 font-medium">- Bills, Salaries & Purchases</p>
+                                <div class="flex items-center justify-between mb-4 sm:mb-6"><div class="w-10 h-10 sm:w-12 sm:h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner"><i class="fa-solid fa-arrow-trend-down"></i></div><span class="px-2.5 sm:px-3 py-1 bg-rose-50 text-rose-600 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg border border-rose-100">Total Out</span></div>
+                                <h3 class="text-xs sm:text-sm font-bold text-slate-500 mb-1">Total Expenditures</h3>
+                                <h2 class="text-3xl sm:text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-2 dashboard-value" id="dash-expense">₹ ••••••</h2>
+                                <p class="text-[11px] sm:text-xs text-slate-400 font-medium">- Bills, Salaries & Purchases</p>
                             </div>
                         </div>
-                        <div class="premium-card p-8 bg-gradient-to-br from-slate-900 to-slate-800 border-none relative overflow-hidden group shadow-xl">
+                        <div class="premium-card p-6 sm:p-8 bg-gradient-to-br from-slate-900 to-slate-800 border-none relative overflow-hidden group shadow-xl sm:col-span-2 md:col-span-1">
                             <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                            <div class="absolute -right-8 -top-8 w-40 h-40 bg-indigo-500/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                            <div class="absolute -right-8 -top-8 w-32 sm:w-40 h-32 sm:h-40 bg-indigo-500/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                             <div class="relative z-10">
-                                <div class="flex items-center justify-between mb-6"><div class="w-12 h-12 bg-white/10 text-white backdrop-blur-md rounded-2xl flex items-center justify-center text-xl shadow-inner border border-white/10"><i class="fa-solid fa-scale-balanced"></i></div><span class="px-3 py-1 bg-indigo-500/30 text-indigo-200 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-indigo-400/30">Net Cash</span></div>
-                                <h3 class="text-sm font-bold text-indigo-200 mb-1">Available Balance</h3>
-                                <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-2 dashboard-value" id="dash-balance">₹ ••••••</h2>
-                                <p class="text-xs text-indigo-300 font-medium">Income minus Expenses</p>
+                                <div class="flex items-center justify-between mb-4 sm:mb-6"><div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 text-white backdrop-blur-md rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner border border-white/10"><i class="fa-solid fa-scale-balanced"></i></div><span class="px-2.5 sm:px-3 py-1 bg-indigo-500/30 text-indigo-200 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest rounded-lg border border-indigo-400/30">Net Cash</span></div>
+                                <h3 class="text-xs sm:text-sm font-bold text-indigo-200 mb-1">Available Balance</h3>
+                                <h2 class="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight mb-2 dashboard-value" id="dash-balance">₹ ••••••</h2>
+                                <p class="text-[11px] sm:text-xs text-indigo-300 font-medium">Income minus Expenses</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 premium-card p-6 md:p-8 flex flex-col h-[500px]">
-                            <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4 shrink-0"><h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-list-ul mr-3 text-indigo-500"></i> Recent Activity</h3></div>
-                            <div class="overflow-auto w-full custom-scrollbar flex-1">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+                        <div class="lg:col-span-2 premium-card p-4 sm:p-6 md:p-8 flex flex-col h-[450px] sm:h-[500px]">
+                            <div class="flex items-center justify-between mb-4 sm:mb-6 border-b border-slate-100 pb-3 sm:pb-4 shrink-0"><h3 class="text-lg sm:text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-list-ul mr-2.5 sm:mr-3 text-indigo-500"></i> Recent Activity</h3></div>
+                            <div class="overflow-x-auto overflow-y-auto w-full custom-scrollbar flex-1">
                                 <table class="w-full text-left border-collapse min-w-[500px]">
                                     <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10"><th class="py-3 px-4 rounded-l-lg">Date</th><th class="py-3 px-4">Description</th><th class="py-3 px-4 text-center">Type</th><th class="py-3 px-4 text-right">Amount</th><th class="py-3 px-2 rounded-r-lg"></th></tr></thead>
-                                    <tbody id="transaction-ledger" class="text-sm divide-y divide-slate-50 font-medium"></tbody>
+                                    <tbody id="transaction-ledger" class="text-xs sm:text-sm divide-y divide-slate-50 font-medium"></tbody>
                                 </table>
                             </div>
                         </div>
-                        <div class="lg:col-span-1 premium-card p-6 md:p-8 bg-gradient-to-b from-indigo-50 to-white flex flex-col h-[500px]">
-                            <div class="flex items-center justify-between mb-6 border-b border-indigo-100 pb-4 shrink-0"><h3 class="text-xl font-extrabold text-indigo-900 flex items-center"><i class="fa-solid fa-hard-drive mr-3 text-indigo-500"></i> Data & Security</h3></div>
-                            <div class="flex-1 flex flex-col justify-center space-y-6">
-                                <div class="text-center mb-2">
-                                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md border border-indigo-100 text-3xl text-indigo-400"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-                                    <p class="text-sm text-slate-600 font-medium">Your data is synced securely to the cloud. You can also save a manual copy to your computer.</p>
+                        <div class="lg:col-span-1 premium-card p-6 md:p-8 bg-gradient-to-b from-indigo-50 to-white flex flex-col h-[450px] sm:h-[500px]">
+                            <div class="flex items-center justify-between mb-4 sm:mb-6 border-b border-indigo-100 pb-3 sm:pb-4 shrink-0"><h3 class="text-lg sm:text-xl font-extrabold text-indigo-900 flex items-center"><i class="fa-solid fa-hard-drive mr-2.5 sm:mr-3 text-indigo-500"></i> Data & Security</h3></div>
+                            <div class="flex-1 flex flex-col justify-center space-y-4 sm:space-y-6">
+                                <div class="text-center mb-1 sm:mb-2">
+                                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-md border border-indigo-100 text-2xl sm:text-3xl text-indigo-400"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                                    <p class="text-xs sm:text-sm text-slate-600 font-medium">Your data is synced securely to the cloud. You can also save a manual copy to your computer.</p>
                                 </div>
                                 <div class="space-y-3">
-                                    <button type="button" onclick="exportDatabaseBackup()" class="w-full py-4 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white font-bold rounded-2xl shadow-sm border border-emerald-200 transition-all flex flex-col items-center justify-center group cursor-pointer"><i class="fa-solid fa-download text-2xl mb-1 group-hover:scale-110 transition-transform"></i><span>Download Backup File (.json)</span></button>
-                                    <label class="w-full py-4 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold rounded-2xl shadow-sm border border-blue-200 transition-all flex flex-col items-center justify-center group cursor-pointer"><i class="fa-solid fa-upload text-2xl mb-1 group-hover:scale-110 transition-transform"></i><span>Restore Data from File</span><input type="file" accept=".json" class="hidden" onchange="importDatabaseBackup(event)"></label>
+                                    <button type="button" onclick="exportDatabaseBackup()" class="w-full py-3.5 sm:py-4 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white font-bold rounded-2xl shadow-sm border border-emerald-200 transition-all flex flex-col items-center justify-center group cursor-pointer text-xs sm:text-sm"><i class="fa-solid fa-download text-xl sm:text-2xl mb-1 group-hover:scale-110 transition-transform"></i><span>Download Backup File (.json)</span></button>
+                                    <label class="w-full py-3.5 sm:py-4 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold rounded-2xl shadow-sm border border-blue-200 transition-all flex flex-col items-center justify-center group cursor-pointer text-xs sm:text-sm"><i class="fa-solid fa-upload text-xl sm:text-2xl mb-1 group-hover:scale-110 transition-transform"></i><span>Restore Data from File</span><input type="file" accept=".json" class="hidden" onchange="importDatabaseBackup(event)"></label>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="view-exam" class="view-section h-[80vh] w-full max-w-7xl mx-auto">
+                <div id="view-exam" class="view-section h-[75vh] sm:h-[80vh] w-full max-w-7xl mx-auto">
                     <div class="premium-card w-full h-full overflow-hidden border border-slate-200 p-0 m-0">
                         <iframe src="https://excellentinstitute.github.io/exam/#admin" class="w-full h-full border-0"></iframe>
                     </div>
@@ -232,77 +231,73 @@
 
                 <!-- FILE HUB VIEW -->
                 <div id="view-filehub" class="view-section max-w-7xl mx-auto">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         <!-- Study Material Card -->
-                        <div class="premium-card p-6 md:p-8 flex flex-col bg-gradient-to-br from-indigo-50 to-white border border-indigo-100">
-                            <h3 class="text-xl font-black text-indigo-900 mb-6 flex items-center"><div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center mr-3 shadow-lg"><i class="fa-solid fa-book-open"></i></div> Upload Study Material</h3>
-                            <form onsubmit="submitMaterialUpload(event)" class="space-y-4 flex-1 flex flex-col">
-                                <div><label class="form-label text-indigo-800">Material Title</label><input type="text" id="hub-mat-title" class="form-input bg-white" placeholder="e.g. Python Chapter 1" required></div>
-                                <div><label class="form-label text-indigo-800">Folder / Section Name</label><input type="text" id="hub-mat-folder" class="form-input bg-white" placeholder="e.g. BCA Sem 1, Core Java" required></div>
-                                <!-- FIXED INSTRUCTIONS FOR MULTI-TARGETING -->
+                        <div class="premium-card p-5 sm:p-6 md:p-8 flex flex-col bg-gradient-to-br from-indigo-50 to-white border border-indigo-100">
+                            <h3 class="text-lg sm:text-xl font-black text-indigo-900 mb-4 sm:mb-6 flex items-center"><div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center mr-3 shadow-lg shrink-0"><i class="fa-solid fa-book-open text-sm sm:text-base"></i></div> Upload Study Material</h3>
+                            <form onsubmit="submitMaterialUpload(event)" class="space-y-3.5 sm:space-y-4 flex-1 flex flex-col">
+                                <div><label class="form-label text-indigo-800 text-xs sm:text-sm">Material Title</label><input type="text" id="hub-mat-title" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. Python Chapter 1" required></div>
+                                <div><label class="form-label text-indigo-800 text-xs sm:text-sm">Folder / Section Name</label><input type="text" id="hub-mat-folder" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. BCA Sem 1, Core Java" required></div>
                                 <div>
-                                    <label class="form-label text-indigo-800">Target Course(s) / Batch (Comma separated)</label>
-                                    <input type="text" id="hub-mat-target" class="form-input bg-white border-indigo-200" placeholder="e.g. ALL, PGDCA, DCA, CCA" required>
+                                    <label class="form-label text-indigo-800 text-xs sm:text-sm">Target Course(s) / Batch (Comma separated)</label>
+                                    <input type="text" id="hub-mat-target" class="form-input bg-white border-indigo-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. ALL, PGDCA, DCA, CCA" required>
                                 </div>
                                 <div>
-                                    <label class="form-label text-indigo-800">Select Document File</label>
-                                    <input type="file" id="hub-mat-file" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-white border border-slate-200 rounded-xl" required>
+                                    <label class="form-label text-indigo-800 text-xs sm:text-sm">Select Document File</label>
+                                    <input type="file" id="hub-mat-file" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-white border border-slate-200 rounded-xl" required>
                                 </div>
                                 <div id="mat-progress-container" class="hidden w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-2">
                                     <div id="mat-progress-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
                                 </div>
-                                <div class="mt-auto pt-4">
-                                    <button type="submit" id="btn-mat-upload" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1">Publish Material</button>
+                                <div class="mt-auto pt-3 sm:pt-4">
+                                    <button type="submit" id="btn-mat-upload" class="w-full py-3.5 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all text-xs sm:text-sm transform hover:-translate-y-0.5 active:translate-y-0">Publish Material</button>
                                 </div>
                             </form>
                         </div>
                         
                         <!-- Assignment Card -->
-                        <div class="premium-card p-6 md:p-8 flex flex-col bg-gradient-to-br from-cyan-50 to-white border border-cyan-100">
-                            <h3 class="text-xl font-black text-cyan-900 mb-6 flex items-center"><div class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center mr-3 shadow-lg"><i class="fa-solid fa-pen-ruler"></i></div> Assign Task</h3>
-                            <form onsubmit="submitAssignmentUpload(event)" class="space-y-4 flex-1 flex flex-col">
-                                <div><label class="form-label text-cyan-800">Assignment Title</label><input type="text" id="hub-ass-title" class="form-input bg-white" placeholder="e.g. Python Functions Lab" required></div>
-                                <!-- FIXED INSTRUCTIONS FOR MULTI-TARGETING -->
+                        <div class="premium-card p-5 sm:p-6 md:p-8 flex flex-col bg-gradient-to-br from-cyan-50 to-white border border-cyan-100">
+                            <h3 class="text-lg sm:text-xl font-black text-cyan-900 mb-4 sm:mb-6 flex items-center"><div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center mr-3 shadow-lg shrink-0"><i class="fa-solid fa-pen-ruler text-sm sm:text-base"></i></div> Assign Task</h3>
+                            <form onsubmit="submitAssignmentUpload(event)" class="space-y-3.5 sm:space-y-4 flex-1 flex flex-col">
+                                <div><label class="form-label text-cyan-800 text-xs sm:text-sm">Assignment Title</label><input type="text" id="hub-ass-title" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. Python Functions Lab" required></div>
                                 <div>
-                                    <label class="form-label text-cyan-800">Target Course(s) / Batch (Comma separated)</label>
-                                    <input type="text" id="hub-ass-target" class="form-input bg-white border-cyan-200" placeholder="e.g. ALL, CCA, PGDCA" required>
+                                    <label class="form-label text-cyan-800 text-xs sm:text-sm">Target Course(s) / Batch (Comma separated)</label>
+                                    <input type="text" id="hub-ass-target" class="form-input bg-white border-cyan-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. ALL, CCA, PGDCA" required>
                                 </div>
                                 <div>
-                                    <label class="form-label text-cyan-800">Select Assignment File</label>
-                                    <input type="file" id="hub-ass-file" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-100 file:text-cyan-700 cursor-pointer bg-white border border-slate-200 rounded-xl" required>
+                                    <label class="form-label text-cyan-800 text-xs sm:text-sm">Select Assignment File</label>
+                                    <input type="file" id="hub-ass-file" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-100 file:text-cyan-700 cursor-pointer bg-white border border-slate-200 rounded-xl" required>
                                 </div>
                                 <div id="ass-progress-container" class="hidden w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-2">
                                     <div id="ass-progress-bar" class="bg-cyan-600 h-full w-0 transition-all duration-300"></div>
                                 </div>
-                                <div class="mt-auto pt-4">
-                                    <button type="submit" id="btn-ass-upload" class="w-full py-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1">Publish Assignment</button>
+                                <div class="mt-auto pt-3 sm:pt-4">
+                                    <button type="submit" id="btn-ass-upload" class="w-full py-3.5 sm:py-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl shadow-lg transition-all text-xs sm:text-sm transform hover:-translate-y-0.5 active:translate-y-0">Publish Assignment</button>
                                 </div>
                             </form>
                         </div>
                     </div>
                     
                     <!-- Managed Files List -->
-                    <div class="premium-card p-6 md:p-8 mt-6 flex flex-col h-[500px]">
-                        <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-4 shrink-0">
-                            <h3 class="text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-server mr-3 text-slate-400"></i> Managed Hub Files</h3>
-                            <!-- NEW: Bulk Duplicate Button -->
-                            <button type="button" onclick="duplicateSelectedFiles()" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-bold rounded-xl transition-colors border border-indigo-200 shadow-sm flex items-center"><i class="fa-solid fa-copy mr-2"></i> Duplicate Selected</button>
+                    <div class="premium-card p-4 sm:p-6 md:p-8 mt-6 flex flex-col h-[450px] sm:h-[500px]">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 border-b border-slate-100 pb-3 sm:pb-4 gap-3 shrink-0">
+                            <h3 class="text-lg sm:text-xl font-extrabold text-slate-800 flex items-center"><i class="fa-solid fa-server mr-2.5 sm:mr-3 text-slate-400"></i> Managed Hub Files</h3>
+                            <button type="button" onclick="duplicateSelectedFiles()" class="px-3 sm:px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-bold rounded-xl transition-colors border border-indigo-200 shadow-sm flex items-center"><i class="fa-solid fa-copy mr-2"></i> Duplicate Selected</button>
                         </div>
                         
-                        <!-- NEW: FILTER CONTROLS FOR HUB FILES -->
-                        <div class="flex flex-col sm:flex-row gap-3 mb-4 shrink-0">
+                        <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4 shrink-0">
                             <div class="relative flex-1">
-                                <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-sm"></i>
-                                <input type="text" id="hub-search" placeholder="Search file name or folder..." class="w-full rounded-xl border border-slate-200 pl-9 py-2 text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white" onkeyup="renderHubFiles()">
+                                <i class="fa-solid fa-search absolute left-3 top-2.5 sm:top-3 text-slate-400 text-xs sm:text-sm"></i>
+                                <input type="text" id="hub-search" placeholder="Search file name or folder..." class="w-full rounded-xl border border-slate-200 pl-8 sm:pl-9 py-2 text-xs sm:text-sm font-medium focus:border-indigo-500 outline-none transition-all bg-white" onkeyup="renderHubFiles()">
                             </div>
-                            <select id="hub-filter-visibility" class="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600" onchange="renderHubFiles()">
+                            <select id="hub-filter-visibility" class="rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600" onchange="renderHubFiles()">
                                 <option value="all">All Files</option>
                                 <option value="guest">Guest Viewable (ALL)</option>
                                 <option value="private">Private (Course/Student specific)</option>
                             </select>
                         </div>
 
-                        <div class="overflow-y-auto flex-1 custom-scrollbar border border-slate-100 rounded-xl">
+                        <div class="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar border border-slate-100 rounded-xl">
                             <table class="w-full text-left border-collapse min-w-[600px]">
                                 <thead>
                                     <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50 sticky top-0 z-10">
@@ -314,7 +309,7 @@
                                         <th class="py-3 px-2 rounded-tr-xl text-center">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody id="hub-files-list" class="text-sm divide-y divide-slate-50 font-medium"></tbody>
+                                <tbody id="hub-files-list" class="text-xs sm:text-sm divide-y divide-slate-50 font-medium"></tbody>
                             </table>
                         </div>
                     </div>
@@ -322,22 +317,22 @@
 
                 <!-- BROADCASTS VIEW -->
                 <div id="view-broadcast" class="view-section max-w-6xl mx-auto">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-full">
                         <div class="lg:col-span-5">
-                            <form onsubmit="submitBroadcast(event)" class="premium-card p-8 bg-gradient-to-br from-amber-50 to-white border border-amber-100 sticky top-0">
-                                <h3 class="text-xl font-black text-amber-900 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mr-4 shadow-lg shadow-amber-500/30"><i class="fa-solid fa-bullhorn text-xl"></i></div>Broadcast Message</h3>
-                                <div class="space-y-5">
-                                    <div><label class="form-label text-amber-800">Target Course / Batch</label><input type="text" id="bc-target" class="form-input bg-white border-amber-200" placeholder="e.g. ALL, PGDCA" required></div>
-                                    <div><label class="form-label text-amber-800">Alert Title</label><input type="text" id="bc-title" class="form-input bg-white border-amber-200" placeholder="e.g. Center Closed Tomorrow" required></div>
-                                    <div><label class="form-label text-amber-800">Message Content</label><textarea id="bc-message" class="form-input bg-white border-amber-200 resize-none h-32" placeholder="Type your announcement here..." required></textarea></div>
-                                    <button type="submit" id="btn-bc-send" class="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Send Alert Now</button>
+                            <form onsubmit="submitBroadcast(event)" class="premium-card p-5 sm:p-8 bg-gradient-to-br from-amber-50 to-white border border-amber-100 lg:sticky lg:top-0">
+                                <h3 class="text-lg sm:text-xl font-black text-amber-900 mb-4 sm:mb-6 flex items-center"><div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-amber-500/30 shrink-0"><i class="fa-solid fa-bullhorn text-lg sm:text-xl"></i></div>Broadcast Message</h3>
+                                <div class="space-y-4 sm:space-y-5">
+                                    <div><label class="form-label text-amber-800 text-xs sm:text-sm">Target Course / Batch</label><input type="text" id="bc-target" class="form-input bg-white border-amber-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. ALL, PGDCA" required></div>
+                                    <div><label class="form-label text-amber-800 text-xs sm:text-sm">Alert Title</label><input type="text" id="bc-title" class="form-input bg-white border-amber-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. Center Closed Tomorrow" required></div>
+                                    <div><label class="form-label text-amber-800 text-xs sm:text-sm">Message Content</label><textarea id="bc-message" class="form-input bg-white border-amber-200 resize-none h-28 sm:h-32 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="Type your announcement here..." required></textarea></div>
+                                    <button type="submit" id="btn-bc-send" class="w-full py-3.5 sm:py-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/40 transition-all mt-3 sm:mt-4 cursor-pointer text-base sm:text-lg transform hover:-translate-y-0.5 active:translate-y-0">Send Alert Now</button>
                                 </div>
                             </form>
                         </div>
                         <div class="lg:col-span-7">
-                            <div class="premium-card p-8 h-[500px] lg:h-[700px] flex flex-col">
-                                <h3 class="text-xl font-extrabold text-slate-800 mb-6 border-b border-slate-100 pb-4 flex items-center"><i class="fa-solid fa-satellite-dish mr-3 text-amber-500"></i> Recent Broadcasts</h3>
-                                <div class="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar" id="broadcast-list"></div>
+                            <div class="premium-card p-5 sm:p-8 h-[450px] sm:h-[500px] lg:h-[700px] flex flex-col">
+                                <h3 class="text-lg sm:text-xl font-extrabold text-slate-800 mb-4 sm:mb-6 border-b border-slate-100 pb-3 sm:pb-4 flex items-center"><i class="fa-solid fa-satellite-dish mr-2.5 sm:mr-3 text-amber-500"></i> Recent Broadcasts</h3>
+                                <div class="overflow-y-auto flex-1 pr-1 sm:pr-2 space-y-3 sm:space-y-4 custom-scrollbar" id="broadcast-list"></div>
                             </div>
                         </div>
                     </div>
@@ -345,49 +340,49 @@
 
                 <!-- SETTINGS VIEW -->
                 <div id="view-settings" class="view-section max-w-4xl mx-auto">
-                    <div class="premium-card p-8 bg-white border border-slate-200">
-                        <h3 class="text-xl font-black text-slate-800 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-indigo-500/30"><i class="fa-solid fa-gear text-xl"></i></div>System Settings</h3>
+                    <div class="premium-card p-5 sm:p-8 bg-white border border-slate-200">
+                        <h3 class="text-lg sm:text-xl font-black text-slate-800 mb-4 sm:mb-6 flex items-center"><div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-indigo-500/30 shrink-0"><i class="fa-solid fa-gear text-lg sm:text-xl"></i></div>System Settings</h3>
                         
-                        <form id="settings-form" onsubmit="submitSettings(event)" class="space-y-8">
+                        <form id="settings-form" onsubmit="submitSettings(event)" class="space-y-6 sm:space-y-8">
 
-                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                                <h4 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-qrcode mr-2 text-indigo-500"></i> UPI & Payment QR Code</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200">
+                                <h4 class="font-bold text-slate-700 mb-3 sm:mb-4 flex items-center text-xs sm:text-sm"><i class="fa-solid fa-qrcode mr-2 text-indigo-500"></i> UPI & Payment QR Code</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                     <div>
-                                        <label class="form-label">Institute UPI ID</label>
-                                        <input type="text" id="set-upi" class="form-input bg-white" placeholder="yourupi@bank" required>
+                                        <label class="form-label text-xs sm:text-sm">Institute UPI ID</label>
+                                        <input type="text" id="set-upi" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" placeholder="yourupi@bank" required>
                                     </div>
                                     <div>
-                                        <label class="form-label">QR Code Image</label>
-                                        <div class="flex items-center gap-4">
-                                            <div class="w-16 h-16 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                                        <label class="form-label text-xs sm:text-sm">QR Code Image</label>
+                                        <div class="flex items-center gap-3 sm:gap-4">
+                                            <div class="w-14 h-14 sm:w-16 sm:h-16 bg-white border border-slate-200 rounded-xl flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
                                                 <img id="set-qr-preview" class="max-w-full max-h-full object-cover hidden">
-                                                <i id="set-qr-icon" class="fa-solid fa-qrcode text-slate-300 text-2xl"></i>
+                                                <i id="set-qr-icon" class="fa-solid fa-qrcode text-slate-300 text-xl sm:text-2xl"></i>
                                             </div>
-                                            <input type="file" id="set-qr-file" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-white border border-slate-200 rounded-xl" onchange="previewQRCode(event)">
+                                            <input type="file" id="set-qr-file" accept="image/*" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-white border border-slate-200 rounded-xl" onchange="previewQRCode(event)">
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="bg-amber-50/50 p-6 rounded-2xl border border-amber-100">
-                                <h4 class="font-bold text-amber-800 mb-4 flex items-center"><i class="fa-solid fa-coins mr-2 text-amber-500"></i> Virtual Coin Configuration</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-amber-50/50 p-4 sm:p-6 rounded-2xl border border-amber-100">
+                                <h4 class="font-bold text-amber-800 mb-3 sm:mb-4 flex items-center text-xs sm:text-sm"><i class="fa-solid fa-coins mr-2 text-amber-500"></i> Virtual Coin Configuration</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                     <div>
-                                        <label class="form-label text-amber-800">Allow Video Rewards?</label>
-                                        <select id="set-allow-rewards" class="form-input bg-white border-amber-200 font-bold text-slate-700 cursor-pointer">
+                                        <label class="form-label text-amber-800 text-xs sm:text-sm">Allow Video Rewards?</label>
+                                        <select id="set-allow-rewards" class="form-input bg-white border-amber-200 font-bold text-slate-700 cursor-pointer w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm">
                                             <option value="true">Yes, Enabled</option>
                                             <option value="false">No, Disabled</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label text-amber-800">Reward Coins Per Ad</label>
-                                        <input type="number" step="1" id="set-reward-amt" class="form-input bg-white border-amber-200 font-black text-amber-700 shadow-inner" placeholder="0" value="0" required>
+                                        <label class="form-label text-amber-800 text-xs sm:text-sm">Reward Coins Per Ad</label>
+                                        <input type="number" step="1" id="set-reward-amt" class="form-input bg-white border-amber-200 font-black text-amber-700 shadow-inner w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="0" value="0" required>
                                     </div>
                                 </div>
                             </div>
                             
-                            <button type="submit" id="btn-save-settings" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all cursor-pointer text-lg transform hover:-translate-y-1">Save Configuration</button>
+                            <button type="submit" id="btn-save-settings" class="w-full py-3.5 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all cursor-pointer text-base sm:text-lg transform hover:-translate-y-0.5 active:translate-y-0">Save Configuration</button>
                         </form>
                     </div>
                 </div>
@@ -395,18 +390,18 @@
                 <!-- ANALYTICS VIEW -->
                 <div id="view-analytics" class="view-section max-w-7xl mx-auto">
                     
-                    <div class="premium-card p-6 md:p-8 mb-6 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="premium-card p-4 sm:p-6 md:p-8 mb-6 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                         <div>
-                            <h3 class="text-2xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-chart-line mr-3 text-indigo-600"></i> Profit & Loss Analytics</h3>
-                            <p class="text-sm text-slate-500 font-medium mt-1">Track financial growth and add assumed projections.</p>
+                            <h3 class="text-xl sm:text-2xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-chart-line mr-2.5 sm:mr-3 text-indigo-600"></i> Profit & Loss Analytics</h3>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 sm:mt-1">Track financial growth and add assumed projections.</p>
                         </div>
-                        <div class="flex flex-wrap gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                            <button type="button" onclick="toggleAssumptionMode()" id="btn-assumption" class="px-4 py-2.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-slate-200 shadow-sm"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Assumption Mode: OFF</button>
-                            <select id="analytics-period" onchange="renderAnalytics()" class="form-input py-2.5 cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200 shadow-sm w-auto">
+                        <div class="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                            <button type="button" onclick="toggleAssumptionMode()" id="btn-assumption" class="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-slate-200 shadow-sm text-xs sm:text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Assumption Mode: OFF</button>
+                            <select id="analytics-period" onchange="renderAnalytics()" class="form-input py-2 sm:py-2.5 px-3 cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200 shadow-sm w-auto rounded-xl text-xs sm:text-sm">
                                 <option value="month">Monthly View</option>
                                 <option value="year">Yearly View</option>
                             </select>
-                            <select id="analytics-chart-type" onchange="renderAnalytics()" class="form-input py-2.5 cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200 shadow-sm w-auto">
+                            <select id="analytics-chart-type" onchange="renderAnalytics()" class="form-input py-2 sm:py-2.5 px-3 cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200 shadow-sm w-auto rounded-xl text-xs sm:text-sm">
                                 <option value="bar">Bar Chart (Inc vs Exp)</option>
                                 <option value="line">Line Chart (Trends)</option>
                                 <option value="net-bar">Deviation Bar (Net Profit)</option>
@@ -415,19 +410,19 @@
                         </div>
                     </div>
 
-                    <div id="assumption-panel" class="hidden premium-card p-6 md:p-8 mb-6 bg-indigo-50/50 border border-indigo-100 shadow-inner">
-                        <h4 class="font-bold text-indigo-900 mb-4 flex items-center"><i class="fa-solid fa-plus-circle mr-2 text-indigo-600 text-lg"></i> Add Projected Data</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-                            <div class="md:col-span-1">
-                                <label class="form-label text-indigo-800">Type</label>
-                                <select id="assumed-type" class="form-input border-indigo-200 bg-white cursor-pointer font-bold" onchange="toggleAssumedCategory()">
+                    <div id="assumption-panel" class="hidden premium-card p-4 sm:p-6 md:p-8 mb-6 bg-indigo-50/50 border border-indigo-100 shadow-inner">
+                        <h4 class="font-bold text-indigo-900 mb-3 sm:mb-4 flex items-center text-xs sm:text-sm"><i class="fa-solid fa-plus-circle mr-2 text-indigo-600 text-base sm:text-lg"></i> Add Projected Data</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4 items-end">
+                            <div class="sm:col-span-1 md:col-span-1">
+                                <label class="form-label text-indigo-800 text-xs">Type</label>
+                                <select id="assumed-type" class="form-input border-indigo-200 bg-white cursor-pointer font-bold w-full rounded-xl p-2.5 text-xs sm:text-sm" onchange="toggleAssumedCategory()">
                                     <option value="expense">Expense</option>
                                     <option value="income">Income</option>
                                 </select>
                             </div>
-                            <div class="md:col-span-2">
-                                <label class="form-label text-indigo-800">Category</label>
-                                <select id="assumed-category" class="form-input border-indigo-200 bg-white cursor-pointer font-medium" onchange="toggleCustomAssumedCategory()">
+                            <div class="sm:col-span-1 md:col-span-2">
+                                <label class="form-label text-indigo-800 text-xs">Category</label>
+                                <select id="assumed-category" class="form-input border-indigo-200 bg-white cursor-pointer font-medium w-full rounded-xl p-2.5 text-xs sm:text-sm" onchange="toggleCustomAssumedCategory()">
                                     <option value="Electricity Bill">Electricity Bill</option>
                                     <option value="Office Rent">Office Rent</option>
                                     <option value="Staff Salary">Staff Salary</option>
@@ -438,46 +433,46 @@
                                     <option value="Miscellaneous">Miscellaneous</option>
                                     <option value="Custom">➕ Add Custom Category...</option>
                                 </select>
-                                <input type="text" id="assumed-custom-category" class="form-input border-indigo-200 bg-white mt-2 hidden" placeholder="Enter custom type...">
+                                <input type="text" id="assumed-custom-category" class="form-input border-indigo-200 bg-white mt-2 hidden w-full rounded-xl p-2.5 text-xs sm:text-sm" placeholder="Enter custom type...">
                             </div>
-                            <div class="md:col-span-1">
-                                <label class="form-label text-indigo-800">Amount (₹)</label>
-                                <input type="number" id="assumed-amount" class="form-input border-indigo-200 bg-white font-black text-indigo-700" placeholder="0">
+                            <div class="sm:col-span-1 md:col-span-1">
+                                <label class="form-label text-indigo-800 text-xs">Amount (₹)</label>
+                                <input type="number" id="assumed-amount" class="form-input border-indigo-200 bg-white font-black text-indigo-700 w-full rounded-xl p-2.5 text-xs sm:text-sm" placeholder="0">
                             </div>
-                            <div class="md:col-span-1">
-                                <label class="form-label text-indigo-800">Month/Year</label>
-                                <input type="month" id="assumed-date" class="form-input border-indigo-200 bg-white font-medium cursor-pointer">
+                            <div class="sm:col-span-1 md:col-span-1">
+                                <label class="form-label text-indigo-800 text-xs">Month/Year</label>
+                                <input type="month" id="assumed-date" class="form-input border-indigo-200 bg-white font-medium cursor-pointer w-full rounded-xl p-2 text-xs sm:text-sm">
                             </div>
-                            <div class="md:col-span-1">
-                                <button type="button" onclick="addAssumption()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all transform hover:-translate-y-1">Add</button>
+                            <div class="sm:col-span-2 md:col-span-1">
+                                <button type="button" onclick="addAssumption()" class="w-full py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all text-xs sm:text-sm transform hover:-translate-y-0.5 active:translate-y-0">Add</button>
                             </div>
                         </div>
-                        <div id="assumed-list-container" class="mt-6 pt-4 border-t border-indigo-200 hidden">
-                             <h5 class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3">Active Assumptions Applied to Chart</h5>
-                             <ul id="assumed-list" class="text-sm space-y-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></ul>
-                             <button type="button" onclick="clearAssumptions()" class="mt-4 px-4 py-2 bg-rose-100 text-rose-600 text-xs font-bold rounded-lg hover:bg-rose-200 transition-colors"><i class="fa-solid fa-trash mr-1"></i> Clear All Assumptions</button>
+                        <div id="assumed-list-container" class="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-indigo-200 hidden">
+                             <h5 class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-2 sm:mb-3">Active Assumptions Applied to Chart</h5>
+                             <ul id="assumed-list" class="text-xs sm:text-sm space-y-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4"></ul>
+                             <button type="button" onclick="clearAssumptions()" class="mt-3 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 bg-rose-100 text-rose-600 text-xs font-bold rounded-lg hover:bg-rose-200 transition-colors"><i class="fa-solid fa-trash mr-1"></i> Clear All Assumptions</button>
                         </div>
                     </div>
 
-                    <div class="premium-card p-6 md:p-8 mb-6 bg-white h-[450px] relative shadow-md">
+                    <div class="premium-card p-4 sm:p-6 md:p-8 mb-6 bg-white h-[350px] sm:h-[450px] relative shadow-md">
                         <canvas id="analyticsChartCanvas"></canvas>
                     </div>
 
                     <div class="premium-card overflow-hidden bg-white shadow-sm">
-                        <div class="p-6 border-b border-slate-100 bg-slate-50 flex items-center">
-                            <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-table mr-2 text-indigo-500"></i> Detailed P&L Breakdown</h3>
+                        <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50 flex items-center">
+                            <h3 class="font-bold text-slate-700 text-xs sm:text-sm"><i class="fa-solid fa-table mr-2 text-indigo-500"></i> Detailed P&L Breakdown</h3>
                         </div>
-                        <div class="overflow-x-auto custom-scrollbar p-2">
-                            <table class="w-full text-left border-collapse min-w-[700px]">
+                        <div class="overflow-x-auto custom-scrollbar p-1 sm:p-2">
+                            <table class="w-full text-left border-collapse min-w-[650px]">
                                 <thead>
                                     <tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-200 bg-white sticky top-0">
-                                        <th class="py-4 px-5">Period</th>
-                                        <th class="py-4 px-5">Actual (In / Out)</th>
-                                        <th class="py-4 px-5">Assumed Adjustments</th>
-                                        <th class="py-4 px-5 text-right">Projected Net Profit</th>
+                                        <th class="py-3 sm:py-4 px-4 sm:px-5">Period</th>
+                                        <th class="py-3 sm:py-4 px-4 sm:px-5">Actual (In / Out)</th>
+                                        <th class="py-3 sm:py-4 px-4 sm:px-5">Assumed Adjustments</th>
+                                        <th class="py-3 sm:py-4 px-4 sm:px-5 text-right">Projected Net Profit</th>
                                     </tr>
                                 </thead>
-                                <tbody id="analytics-table-body" class="text-sm"></tbody>
+                                <tbody id="analytics-table-body" class="text-xs sm:text-sm"></tbody>
                             </table>
                         </div>
                     </div>
@@ -486,31 +481,28 @@
                 <!-- REGISTRATION VIEW -->
                 <div id="view-registration" class="view-section max-w-5xl mx-auto">
                     <form id="reg-form" onsubmit="submitRegistration(event)" class="premium-card overflow-hidden">
-                        <div class="bg-slate-900 p-8 md:p-10 text-white relative overflow-hidden">
+                        <div class="bg-slate-900 p-6 sm:p-8 md:p-10 text-white relative overflow-hidden">
                             <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20"></div>
-                            <i class="fa-solid fa-id-card absolute -right-6 -bottom-6 text-9xl text-white/5 transform -rotate-12"></i>
-                            <h2 class="text-3xl font-black relative z-10 tracking-tight mb-2">New Student Admission</h2>
-                            <p class="text-indigo-200 text-sm relative z-10 font-medium">Create a new student profile and collect initial admission fees.</p>
+                            <i class="fa-solid fa-id-card absolute -right-6 -bottom-6 text-7xl sm:text-9xl text-white/5 transform -rotate-12"></i>
+                            <h2 class="text-2xl sm:text-3xl font-black relative z-10 tracking-tight mb-1 sm:mb-2">New Student Admission</h2>
+                            <p class="text-indigo-200 text-xs sm:text-sm relative z-10 font-medium">Create a new student profile and collect initial admission fees.</p>
                         </div>
-                        <div class="p-6 md:p-10 space-y-8">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-[1.5rem] border border-slate-200">
-                                <div><label class="form-label text-indigo-600">Admission Date</label><input type="date" id="reg-date" class="form-input bg-white shadow-sm border-indigo-100" required></div>
-                                <div><label class="form-label text-indigo-600">Student Photo (Optional)</label><input type="file" id="reg-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer bg-white border border-indigo-100 rounded-xl shadow-sm transition-all" onchange="openCropModal(event, 'reg')"></div>
+                        <div class="p-4 sm:p-6 md:p-10 space-y-6 sm:space-y-8">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 bg-slate-50 p-4 sm:p-6 rounded-2xl sm:rounded-[1.5rem] border border-slate-200">
+                                <div><label class="form-label text-indigo-600 text-xs sm:text-sm">Admission Date</label><input type="date" id="reg-date" class="form-input bg-white shadow-sm border-indigo-100 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" required></div>
+                                <div><label class="form-label text-indigo-600 text-xs sm:text-sm">Student Photo (Optional)</label><input type="file" id="reg-image" accept="image/*" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2.5 sm:file:py-3 file:px-4 sm:file:px-5 file:rounded-xl file:border-0 file:text-xs sm:file:text-sm file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer bg-white border border-indigo-100 rounded-xl shadow-sm transition-all" onchange="openCropModal(event, 'reg')"></div>
                             </div>
                             
-                            <!-- UPDATED: 3-Column Grid to fit new fields perfectly -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div><label class="form-label">Full Name</label><input type="text" id="reg-name" class="form-input" placeholder="e.g. Rahul Sharma" required></div>
-                                <div><label class="form-label">Mobile Number</label><input type="tel" id="reg-phone" class="form-input" placeholder="+91"></div>
-                                <div><label class="form-label">Gender</label><select id="reg-gender" class="form-input cursor-pointer" required><option value="" disabled selected>Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+                                <div><label class="form-label text-xs sm:text-sm">Full Name</label><input type="text" id="reg-name" class="form-input w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. Rahul Sharma" required></div>
+                                <div><label class="form-label text-xs sm:text-sm">Mobile Number</label><input type="tel" id="reg-phone" class="form-input w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" placeholder="+91"></div>
+                                <div><label class="form-label text-xs sm:text-sm">Gender</label><select id="reg-gender" class="form-input cursor-pointer w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm font-medium" required><option value="" disabled selected>Select Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
                                 
-                                <div><label class="form-label">Course Enrolled</label><input type="text" id="reg-course" class="form-input" placeholder="e.g. PGDCA" required></div>
-                                <!-- NEW: Parent Phone Field -->
-                                <div><label class="form-label text-indigo-600">Parent's Number</label><input type="tel" id="reg-parent-phone" class="form-input border-indigo-100 bg-indigo-50/30" placeholder="+91"></div>
-                                <!-- NEW: Batch Selection Field -->
+                                <div><label class="form-label text-xs sm:text-sm">Course Enrolled</label><input type="text" id="reg-course" class="form-input w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. PGDCA" required></div>
+                                <div><label class="form-label text-indigo-600 text-xs sm:text-sm">Parent's Number</label><input type="tel" id="reg-parent-phone" class="form-input border-indigo-100 bg-indigo-50/30 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" placeholder="+91"></div>
                                 <div>
-                                    <label class="form-label text-indigo-600">Assign Batch</label>
-                                    <select id="reg-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700">
+                                    <label class="form-label text-indigo-600 text-xs sm:text-sm">Assign Batch</label>
+                                    <select id="reg-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm">
                                         <option value="Unassigned" selected>Unassigned</option>
                                         <option value="1st">1st Batch (Lab: 08:00 AM | Theory: 08:45 AM)</option>
                                         <option value="2nd">2nd Batch (Theory: 08:00 AM | Lab: 08:45 AM)</option>
@@ -525,14 +517,14 @@
                             </div>
                             
                             <hr class="border-slate-200">
-                            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-[1.5rem] p-6 md:p-8 border border-emerald-100 shadow-sm">
-                                <h3 class="text-emerald-800 font-black mb-6 flex items-center text-lg"><i class="fa-solid fa-money-check-dollar mr-3 text-2xl text-emerald-500"></i> Financial Commitment</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                                    <div><label class="form-label text-emerald-700">Duration (Months)</label><input type="number" id="reg-duration" class="form-input bg-white border-emerald-200 font-bold" placeholder="e.g. 6" required></div>
-                                    <div><label class="form-label text-emerald-700">Fee Structure</label><select id="reg-feetype" class="form-input bg-white border-emerald-200 cursor-pointer" required><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
-                                    <div><label class="form-label text-emerald-700">Total Course Fee (₹)</label><input type="number" id="reg-totalfee" class="form-input bg-white border-emerald-200 font-bold" placeholder="e.g. 15000" required></div>
-                                    <div><label class="form-label text-emerald-800">Advance Paid (₹)</label><input type="number" id="reg-paid" class="form-input border-emerald-400 focus:border-emerald-600 focus:ring-emerald-200 text-xl font-black text-emerald-700 bg-white shadow-inner" placeholder="0" required></div>
-                                    <div class="md:col-span-4 mt-4"><button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-2xl shadow-lg shadow-emerald-500/40 transition-all cursor-pointer transform hover:-translate-y-1">Register Student & Generate Receipt <i class="fa-solid fa-file-invoice ml-2"></i></button></div>
+                            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl sm:rounded-[1.5rem] p-4 sm:p-6 md:p-8 border border-emerald-100 shadow-sm">
+                                <h3 class="text-emerald-800 font-black mb-4 sm:mb-6 flex items-center text-base sm:text-lg"><i class="fa-solid fa-money-check-dollar mr-2.5 sm:mr-3 text-xl sm:text-2xl text-emerald-500"></i> Financial Commitment</h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 items-end">
+                                    <div><label class="form-label text-emerald-700 text-xs sm:text-sm">Duration (Months)</label><input type="number" id="reg-duration" class="form-input bg-white border-emerald-200 font-bold w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. 6" required></div>
+                                    <div><label class="form-label text-emerald-700 text-xs sm:text-sm">Fee Structure</label><select id="reg-feetype" class="form-input bg-white border-emerald-200 cursor-pointer w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" required><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select></div>
+                                    <div><label class="form-label text-emerald-700 text-xs sm:text-sm">Total Course Fee (₹)</label><input type="number" id="reg-totalfee" class="form-input bg-white border-emerald-200 font-bold w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. 15000" required></div>
+                                    <div><label class="form-label text-emerald-800 text-xs sm:text-sm">Advance Paid (₹)</label><input type="number" id="reg-paid" class="form-input border-emerald-400 focus:border-emerald-600 text-lg sm:text-xl font-black text-emerald-700 bg-white shadow-inner w-full rounded-xl p-2.5 sm:p-3" placeholder="0" required></div>
+                                    <div class="sm:col-span-2 md:col-span-4 mt-2 sm:mt-4"><button type="submit" class="w-full py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base sm:text-lg rounded-2xl shadow-lg shadow-emerald-500/40 transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0">Register Student & Generate Receipt <i class="fa-solid fa-file-invoice ml-2"></i></button></div>
                                 </div>
                             </div>
                         </div>
@@ -541,103 +533,105 @@
 
                 <!-- TUITION VIEW -->
                 <div id="view-tuition" class="view-section h-full max-w-7xl mx-auto">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-full">
                         
-                        <div class="lg:col-span-4 premium-card flex flex-col h-[500px] lg:h-[800px] overflow-hidden bg-white">
-                            <div class="p-6 border-b border-slate-100 bg-slate-50 z-10 relative shrink-0">
-                                <div class="flex justify-between items-start mb-4">
+                        <div class="lg:col-span-4 premium-card flex flex-col h-[450px] sm:h-[500px] lg:h-[800px] overflow-hidden bg-white">
+                            <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50 z-10 relative shrink-0">
+                                <div class="flex justify-between items-start mb-3 sm:mb-4 gap-2">
                                     <div>
-                                        <h3 class="font-extrabold text-slate-800 text-lg">Student Database</h3>
-                                        <p class="text-xs text-slate-500 font-medium mt-1">Select a student to view details</p>
+                                        <h3 class="font-extrabold text-slate-800 text-base sm:text-lg">Student Database</h3>
+                                        <p class="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">Select student to view ledger</p>
                                     </div>
-                                    <div onclick="showFeeBreakdown()" class="text-right bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm cursor-pointer hover:bg-emerald-50 transition-colors" title="Click to view details">
-                                        <p class="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest">Total Fee Collected <i class="fa-solid fa-circle-info ml-1"></i></p>
-                                        <p class="text-base font-black text-emerald-600 leading-tight">₹<span id="total-tuition-collected">0</span></p>
+                                    <div onclick="showFeeBreakdown()" class="text-right bg-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-emerald-100 shadow-sm cursor-pointer hover:bg-emerald-50 transition-colors shrink-0" title="Click to view details">
+                                        <p class="text-[8px] sm:text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest">Collected <i class="fa-solid fa-circle-info ml-1"></i></p>
+                                        <p class="text-sm sm:text-base font-black text-emerald-600 leading-tight">₹<span id="total-tuition-collected">0</span></p>
                                     </div>
                                 </div>
                                 
-                                <div class="space-y-3">
-                                    <div class="relative"><i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i><input type="text" id="filter-search" oninput="renderStudentList()" placeholder="Search Name or ID..." class="w-full rounded-xl border border-slate-200 pl-9 py-2.5 text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white"></div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <select id="filter-due" onchange="renderStudentList()" class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600"><option value="all">All Dues</option><option value="pending">Pending</option><option value="cleared">Cleared</option></select>
-                                        <select id="filter-course" onchange="renderStudentList()" class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600"><option value="all">All Batches</option></select>
-                                        <select id="filter-status" onchange="renderStudentList()" class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600"><option value="Active">Active</option><option value="Graduated">Graduated</option><option value="all">All Status</option></select>
+                                <div class="space-y-2 sm:space-y-3">
+                                    <div class="relative"><i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs sm:text-sm"></i><input type="text" id="filter-search" oninput="renderStudentList()" placeholder="Search Name or ID..." class="w-full rounded-xl border border-slate-200 pl-8 sm:pl-9 py-2 sm:py-2.5 text-xs sm:text-sm font-medium focus:border-indigo-500 outline-none transition-all bg-white"></div>
+                                    <div class="flex flex-wrap gap-1.5 sm:gap-2">
+                                        <select id="filter-due" onchange="renderStudentList()" class="flex-1 rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600"><option value="all">All Dues</option><option value="pending">Pending</option><option value="cleared">Cleared</option></select>
+                                        <select id="filter-course" onchange="renderStudentList()" class="flex-1 rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600"><option value="all">All Batches</option></select>
+                                        <select id="filter-status" onchange="renderStudentList()" class="flex-1 rounded-xl border border-slate-200 px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600"><option value="Active">Active</option><option value="Graduated">Graduated</option><option value="all">All Status</option></select>
                                     </div>
                                 </div>
                             </div>
-                            <div class="p-4 overflow-y-auto flex-1 space-y-3 custom-scrollbar bg-slate-50/30" id="student-list"></div>
+                            <div class="p-3 sm:p-4 overflow-y-auto flex-1 space-y-2.5 sm:space-y-3 custom-scrollbar bg-slate-50/30" id="student-list"></div>
                         </div>
 
-                        <div class="lg:col-span-8 h-full flex flex-col space-y-6">
+                        <div class="lg:col-span-8 h-full flex flex-col space-y-4 sm:space-y-6">
                             
-                            <div class="premium-card p-8 flex-1 flex flex-col items-center justify-center text-center h-full" id="tuition-placeholder">
-                                <div class="w-32 h-32 bg-indigo-50 text-indigo-300 rounded-full flex items-center justify-center mb-6 text-6xl shadow-inner border border-indigo-100"><i class="fa-solid fa-user-graduate"></i></div>
-                                <h3 class="text-2xl font-extrabold text-slate-400 mb-2">Select a Student</h3>
-                                <p class="text-slate-400 font-medium">Their full financial history and profile will appear here.</p>
+                            <div class="premium-card p-6 sm:p-8 flex-1 flex flex-col items-center justify-center text-center h-[350px] sm:h-full" id="tuition-placeholder">
+                                <div class="w-24 h-24 sm:w-32 sm:h-32 bg-indigo-50 text-indigo-300 rounded-full flex items-center justify-center mb-4 sm:mb-6 text-4xl sm:text-6xl shadow-inner border border-indigo-100"><i class="fa-solid fa-user-graduate"></i></div>
+                                <h3 class="text-xl sm:text-2xl font-extrabold text-slate-400 mb-1 sm:mb-2">Select a Student</h3>
+                                <p class="text-xs sm:text-sm text-slate-400 font-medium">Their full financial history and profile will appear here.</p>
                             </div>
 
-                            <div id="tuition-active" class="hidden h-full flex flex-col gap-6 overflow-y-auto pb-10">
+                            <div id="tuition-active" class="hidden h-full flex flex-col gap-4 sm:gap-6 overflow-y-auto pb-10">
                                 
                                 <div class="premium-card overflow-hidden shrink-0 shadow-lg border-slate-200">
-                                    <div class="p-6 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-900 text-white gap-6 relative overflow-hidden">
+                                    <div class="p-5 sm:p-6 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-slate-900 text-white gap-4 sm:gap-6 relative overflow-hidden">
                                         <div class="absolute right-0 top-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
-                                        <div class="flex items-center space-x-5 relative z-10">
-                                            <div class="w-20 h-20 md:w-24 md:h-24 bg-slate-800 text-white rounded-2xl flex items-center justify-center text-3xl font-bold shrink-0 overflow-hidden border-2 border-slate-600 shadow-xl" id="active-student-avatar"></div>
-                                            <div class="text-left">
-                                                <div class="flex items-center gap-3 mb-1">
-                                                    <h2 class="text-2xl md:text-3xl font-black tracking-tight leading-none" id="active-student-name">Name</h2>
-                                                    <span id="active-student-badge" class="hidden px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold uppercase tracking-wider ml-2">Graduated</span>
+                                        <div class="flex items-center space-x-4 sm:space-x-5 relative z-10 min-w-0">
+                                            <div class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-slate-800 text-white rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold shrink-0 overflow-hidden border-2 border-slate-600 shadow-xl" id="active-student-avatar"></div>
+                                            <div class="text-left min-w-0">
+                                                <div class="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
+                                                    <h2 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-none truncate" id="active-student-name">Name</h2>
+                                                    <span id="active-student-badge" class="hidden px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Graduated</span>
                                                     
-                                                    <button type="button" onclick="shareStudentWA()" class="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition-all ml-auto" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp text-xs"></i></button>
-                                                    <button type="button" id="custom-notify-btn" onclick="sendCustomPushNotification()" class="w-8 h-8 rounded-full bg-amber-500/20 hover:bg-amber-500 text-amber-500 hover:text-white flex items-center justify-center transition-all" title="Send App Notification"><i class="fa-solid fa-bell text-xs"></i></button>
-                                                    <button type="button" onclick="openEditModal()" class="w-8 h-8 rounded-full bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white flex items-center justify-center transition-all" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
-                                                    <button type="button" onclick="openDeleteModal(null, true)" class="w-8 h-8 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition-all" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
+                                                    <div class="flex items-center gap-1.5 ml-auto sm:ml-2">
+                                                        <button type="button" onclick="shareStudentWA()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white flex items-center justify-center transition-all" title="Share via WhatsApp"><i class="fa-brands fa-whatsapp text-xs"></i></button>
+                                                        <button type="button" id="custom-notify-btn" onclick="sendCustomPushNotification()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500/20 hover:bg-amber-500 text-amber-500 hover:text-white flex items-center justify-center transition-all" title="Send App Notification"><i class="fa-solid fa-bell text-xs"></i></button>
+                                                        <button type="button" onclick="openEditModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-500/20 hover:bg-indigo-500 text-indigo-300 hover:text-white flex items-center justify-center transition-all" title="Edit Profile"><i class="fa-solid fa-pen text-xs"></i></button>
+                                                        <button type="button" onclick="openDeleteModal(null, true)" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white flex items-center justify-center transition-all" title="Delete Student Record"><i class="fa-solid fa-trash text-xs"></i></button>
+                                                    </div>
                                                 </div>
-                                                <div class="flex items-center space-x-2 mt-2 opacity-80"><i class="fa-solid fa-book text-xs"></i><p class="text-sm font-medium" id="active-student-course">Course</p><span class="text-slate-500">•</span><p class="text-xs" id="active-student-gender">Gender</p></div>
-                                                <span class="inline-block px-3 py-1 mt-3 text-[10px] bg-white/10 text-white rounded-lg font-bold uppercase tracking-wider border border-white/10" id="active-student-feetype">Monthly</span>
+                                                <div class="flex items-center space-x-2 mt-1 sm:mt-2 opacity-80 text-xs sm:text-sm"><i class="fa-solid fa-book text-[10px] sm:text-xs"></i><p class="font-medium truncate" id="active-student-course">Course</p><span class="text-slate-500">•</span><p id="active-student-gender">Gender</p></div>
+                                                <span class="inline-block px-2.5 py-0.5 sm:px-3 sm:py-1 mt-2 sm:mt-3 text-[9px] sm:text-[10px] bg-white/10 text-white rounded-lg font-bold uppercase tracking-wider border border-white/10" id="active-student-feetype">Monthly</span>
                                             </div>
                                         </div>
-                                        <div class="text-left sm:text-right bg-slate-800/80 backdrop-blur-md p-4 md:p-6 rounded-2xl border border-slate-700 w-full sm:w-auto relative z-10 shadow-inner mt-4 sm:mt-0">
-                                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pending Course Dues</p>
-                                            <p class="text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md" id="active-student-dues">₹0</p>
+                                        <div class="text-left sm:text-right bg-slate-800/80 backdrop-blur-md p-3.5 sm:p-5 rounded-2xl border border-slate-700 w-full sm:w-auto relative z-10 shadow-inner mt-2 sm:mt-0 shrink-0">
+                                            <p class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Pending Course Dues</p>
+                                            <p class="text-2xl sm:text-3xl md:text-4xl font-black text-rose-400 drop-shadow-md" id="active-student-dues">₹0</p>
                                         </div>
                                     </div>
                                     
-                                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 md:p-6 bg-slate-50 border-b border-slate-100 text-center divide-y divide-slate-200/60 md:divide-y-0 md:divide-x">
-                                        <div class="py-2 md:py-0"><p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Admission Date</p><p class="text-sm font-bold text-slate-700" id="active-student-date">-</p></div>
-                                        <div class="py-2 md:py-0"><p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Phone / Contact</p><p class="text-sm font-bold text-slate-700" id="active-student-phone">-</p></div>
-                                        <div class="py-2 md:py-0"><p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Fee</p><p class="text-sm font-bold text-indigo-600" id="active-student-totalfee">₹0</p></div>
-                                        <div class="py-2 md:py-0"><p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Paid</p><p class="text-sm font-bold text-emerald-600" id="active-student-paidfee">₹0</p></div>
-                                        <div class="py-2 md:py-0"><p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1"><i class="fa-solid fa-coins text-amber-500 mr-1"></i> Virtual Coins</p><p class="text-sm font-bold text-amber-500" id="active-student-adwallet">0 Coins</p></div>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 p-4 sm:p-6 bg-slate-50 border-b border-slate-100 text-center">
+                                        <div class="py-1 sm:py-0"><p class="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5">Admission Date</p><p class="text-xs sm:text-sm font-bold text-slate-700" id="active-student-date">-</p></div>
+                                        <div class="py-1 sm:py-0"><p class="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5">Phone / Contact</p><p class="text-xs sm:text-sm font-bold text-slate-700" id="active-student-phone">-</p></div>
+                                        <div class="py-1 sm:py-0"><p class="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5">Total Fee</p><p class="text-xs sm:text-sm font-bold text-indigo-600" id="active-student-totalfee">₹0</p></div>
+                                        <div class="py-1 sm:py-0"><p class="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5">Total Paid</p><p class="text-xs sm:text-sm font-bold text-emerald-600" id="active-student-paidfee">₹0</p></div>
+                                        <div class="py-1 sm:py-0 col-span-2 sm:col-span-1"><p class="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5"><i class="fa-solid fa-coins text-amber-500 mr-1"></i> Virtual Coins</p><p class="text-xs sm:text-sm font-bold text-amber-500" id="active-student-adwallet">0 Coins</p></div>
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 overflow-visible">
-                                    <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px]">
-                                        <div class="p-4 border-b border-slate-100 bg-slate-50 shrink-0"><h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-plus-circle mr-2 text-emerald-500"></i> Record New Payment</h3></div>
-                                        <form onsubmit="submitTuitionFee(event)" class="p-6 flex-1 flex flex-col justify-between overflow-y-auto custom-scrollbar">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1 overflow-visible">
+                                    <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[380px] sm:h-[400px]">
+                                        <div class="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50 shrink-0"><h3 class="font-bold text-slate-700 text-xs sm:text-sm"><i class="fa-solid fa-plus-circle mr-2 text-emerald-500"></i> Record New Payment</h3></div>
+                                        <form onsubmit="submitTuitionFee(event)" class="p-4 sm:p-6 flex-1 flex flex-col justify-between overflow-y-auto custom-scrollbar">
                                             <input type="hidden" id="tuition-student-id">
-                                            <div class="space-y-4 mb-4">
-                                                <div><label class="form-label">Payment Date</label><input type="date" id="tuition-date" class="form-input cursor-pointer" required></div>
+                                            <div class="space-y-3 sm:space-y-4 mb-3">
+                                                <div><label class="form-label text-xs sm:text-sm">Payment Date</label><input type="date" id="tuition-date" class="form-input cursor-pointer w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold" required></div>
                                                 <div>
-                                                    <label class="form-label text-indigo-600">Type of Fee</label>
-                                                    <select id="tuition-feetype-select" class="form-input cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required>
+                                                    <label class="form-label text-indigo-600 text-xs sm:text-sm">Type of Fee</label>
+                                                    <select id="tuition-feetype-select" class="form-input cursor-pointer font-bold text-indigo-700 bg-indigo-50 border-indigo-200 w-full rounded-xl p-2.5 text-xs sm:text-sm" required>
                                                         <option value="Course Tuition Fee">📖 Course Tuition Fee (Reduces Dues)</option>
                                                         <option value="Admission Fee">🎟️ Admission Fee (Late Advance - Reduces Dues)</option>
                                                         <option value="Exam / Certificate Fee">📝 Exam / Certificate Fee (Extra Charge)</option>
                                                         <option value="Other Fee">💡 Other Fee (Extra Charge)</option>
                                                     </select>
                                                 </div>
-                                                <div><label class="form-label">Description / Month (Optional)</label><input type="text" id="tuition-desc" class="form-input" placeholder="e.g. March / First Sem"></div>
-                                                <div><label class="form-label text-emerald-700">Amount Received (₹)</label><input type="number" id="tuition-amount" class="form-input text-xl font-black text-emerald-600 bg-emerald-50 border-emerald-200 shadow-inner" placeholder="0" required></div>
+                                                <div><label class="form-label text-xs sm:text-sm">Description / Month (Optional)</label><input type="text" id="tuition-desc" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm" placeholder="e.g. March / First Sem"></div>
+                                                <div><label class="form-label text-emerald-700 text-xs sm:text-sm">Amount Received (₹)</label><input type="number" id="tuition-amount" class="form-input text-lg sm:text-xl font-black text-emerald-600 bg-emerald-50 border-emerald-200 shadow-inner w-full rounded-xl p-2.5" placeholder="0" required></div>
                                             </div>
-                                            <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-all flex justify-center items-center text-sm cursor-pointer transform hover:-translate-y-1"><i class="fa-solid fa-receipt mr-2"></i> Save Payment</button>
+                                            <button type="submit" class="w-full py-3.5 sm:py-4 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-all flex justify-center items-center text-xs sm:text-sm cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"><i class="fa-solid fa-receipt mr-2"></i> Save Payment</button>
                                         </form>
                                     </div>
 
-                                    <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px]">
-                                        <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0"><h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-500"></i> Payment History</h3></div>
-                                        <div class="overflow-y-auto overflow-x-auto flex-1 custom-scrollbar p-2">
+                                    <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[380px] sm:h-[400px]">
+                                        <div class="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0"><h3 class="font-bold text-slate-700 text-xs sm:text-sm"><i class="fa-solid fa-clock-rotate-left mr-2 text-indigo-500"></i> Payment History</h3></div>
+                                        <div class="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar p-1 sm:p-2">
                                             <table class="w-full text-left border-collapse min-w-[250px]">
                                                 <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100"><th class="py-2 px-3">Date</th><th class="py-2 px-3">Description</th><th class="py-2 px-3 text-right">Amount</th><th class="py-2 px-2 text-center"></th></tr></thead>
                                                 <tbody id="student-mini-ledger" class="text-xs divide-y divide-slate-50 font-medium"></tbody>
@@ -645,9 +639,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[400px] lg:col-span-2">
-                                        <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
-                                            <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-folder-open mr-2 text-indigo-500"></i> Documents</h3>
+                                    <div class="premium-card flex flex-col bg-white overflow-hidden shadow-md h-[380px] sm:h-[400px] lg:col-span-2">
+                                        <div class="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+                                            <h3 class="font-bold text-slate-700 text-xs sm:text-sm"><i class="fa-solid fa-folder-open mr-2 text-indigo-500"></i> Documents</h3>
                                             <label class="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm border border-indigo-200">
                                                 <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload
                                                 <input type="file" id="student-doc-upload" class="hidden" accept=".pdf,.jpg,.jpeg,.png" onchange="handleStudentFileUpload(event)">
@@ -656,7 +650,7 @@
                                         <div id="upload-progress-container" class="hidden w-full bg-slate-100 h-1.5 shrink-0">
                                             <div id="upload-progress-bar" class="bg-indigo-500 h-1.5 w-0 transition-all duration-300"></div>
                                         </div>
-                                        <div class="overflow-y-auto overflow-x-auto flex-1 custom-scrollbar p-2">
+                                        <div class="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar p-1 sm:p-2">
                                             <table class="w-full text-left border-collapse min-w-[250px]">
                                                 <thead><tr class="text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100"><th class="py-2 px-3">Date</th><th class="py-2 px-3">File Name</th><th class="py-2 px-2 text-center"></th></tr></thead>
                                                 <tbody id="student-files-list" class="text-xs divide-y divide-slate-50 font-medium"></tbody>
@@ -671,32 +665,31 @@
 
                 <!-- NEW SEATING & BATCH MANAGEMENT VIEW -->
                 <div id="view-seating" class="view-section max-w-7xl mx-auto">
-                    <div class="flex flex-col lg:flex-row gap-6 min-h-[85vh] pb-10">
+                    <div class="flex flex-col lg:flex-row gap-4 sm:gap-6 min-h-[85vh] pb-10">
                         <!-- Left: Draggable Students List -->
-                        <div class="w-full lg:w-1/3 premium-card flex flex-col bg-white overflow-hidden shadow-md h-[600px] lg:h-auto">
-                            <div class="p-6 border-b border-slate-100 bg-slate-50 shrink-0">
-                                <h3 class="font-black text-slate-800 text-lg flex items-center"><i class="fa-solid fa-users text-indigo-500 mr-2 text-xl"></i> Active Students</h3>
-                                <p class="text-xs text-slate-500 mt-1 mb-4 font-medium">Drag and drop students to assign seats.</p>
+                        <div class="w-full lg:w-1/3 premium-card flex flex-col bg-white overflow-hidden shadow-md h-[450px] lg:h-auto">
+                            <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50 shrink-0">
+                                <h3 class="font-black text-slate-800 text-base sm:text-lg flex items-center"><i class="fa-solid fa-users text-indigo-500 mr-2 text-lg sm:text-xl"></i> Active Students</h3>
+                                <p class="text-xs text-slate-500 mt-1 mb-3 sm:mb-4 font-medium">Drag and drop students to assign seats.</p>
                                 <div class="relative">
-                                    <i class="fa-solid fa-search absolute left-3 top-3.5 text-slate-400 text-sm"></i>
-                                    <input type="text" id="seating-search" placeholder="Search unassigned students..." class="w-full rounded-xl border border-slate-200 pl-9 py-2.5 text-sm font-medium focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none transition-all bg-white" onkeyup="filterSeatingStudents()">
+                                    <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs sm:text-sm"></i>
+                                    <input type="text" id="seating-search" placeholder="Search unassigned students..." class="w-full rounded-xl border border-slate-200 pl-8 sm:pl-9 py-2 text-xs sm:text-sm font-medium focus:border-indigo-500 outline-none transition-all bg-white" onkeyup="filterSeatingStudents()">
                                 </div>
                             </div>
-                            <div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-50/50" id="draggable-students-list">
-                                <!-- Populated dynamically by JS -->
+                            <div class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 sm:space-y-3 custom-scrollbar bg-slate-50/50" id="draggable-students-list">
                             </div>
                         </div>
 
                         <!-- Right: Seating Arrangement & Inbox -->
-                        <div class="w-full lg:w-2/3 flex flex-col gap-6">
+                        <div class="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6">
                             <!-- Batch Selector & Rooms -->
-                            <div class="premium-card flex-1 bg-white flex flex-col shadow-md overflow-hidden min-h-[500px]">
-                                <div class="p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap justify-between items-center gap-4 shrink-0">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shadow-inner shrink-0"><i class="fa-solid fa-layer-group"></i></div>
+                            <div class="premium-card flex-1 bg-white flex flex-col shadow-md overflow-hidden min-h-[450px]">
+                                <div class="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap justify-between items-center gap-3 shrink-0">
+                                    <div class="flex items-center gap-2.5 sm:gap-3">
+                                        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-base sm:text-lg shadow-inner shrink-0"><i class="fa-solid fa-layer-group"></i></div>
                                         <div>
-                                            <h3 class="font-black text-slate-800 text-sm md:text-base leading-tight">Room Layout Manager</h3>
-                                            <select id="active-seating-batch" class="bg-transparent text-xs font-bold text-indigo-600 mt-1 cursor-pointer outline-none border-none p-0 focus:ring-0" onchange="renderSeatingLayout()">
+                                            <h3 class="font-black text-slate-800 text-xs sm:text-sm md:text-base leading-tight">Room Layout Manager</h3>
+                                            <select id="active-seating-batch" class="bg-transparent text-xs font-bold text-indigo-600 mt-0.5 sm:mt-1 cursor-pointer outline-none border-none p-0 focus:ring-0" onchange="renderSeatingLayout()">
                                                 <option value="1st">1st Batch (Lab: 08:00 AM | Theory: 08:45 AM)</option>
                                                 <option value="2nd">2nd Batch (Theory: 08:00 AM | Lab: 08:45 AM)</option>
                                                 <option value="3rd">3rd Batch (Lab: 09:30 AM | Theory: 10:15 AM)</option>
@@ -708,25 +701,23 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <button onclick="saveSeatingArrangement()" class="bg-indigo-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30 transform hover:-translate-y-0.5"><i class="fa-solid fa-floppy-disk mr-1.5"></i>Save Layout</button>
+                                    <button onclick="saveSeatingArrangement()" class="bg-indigo-600 text-white text-xs font-bold px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30 transform hover:-translate-y-0.5 active:translate-y-0"><i class="fa-solid fa-floppy-disk mr-1.5"></i>Save Layout</button>
                                 </div>
                                 
-                                <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/80 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 min-h-[400px]">
+                                <div class="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-50/80 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-h-[350px]">
                                     <!-- Theory Room -->
                                     <div class="flex flex-col h-full">
-                                        <div class="bg-indigo-100 text-indigo-800 font-black text-center py-2.5 rounded-t-xl border border-indigo-200 uppercase tracking-widest text-xs flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid fa-chalkboard mr-2"></i> Theory Room (10 Seats)</div>
-                                        <div class="border-x border-b border-indigo-100 bg-white p-4 rounded-b-xl flex-1 shadow-sm" id="theory-room-container">
-                                            <div class="grid grid-cols-2 gap-3 h-full" id="theory-room-seats">
-                                                <!-- Dropzones generated by JS -->
+                                        <div class="bg-indigo-100 text-indigo-800 font-black text-center py-2 sm:py-2.5 rounded-t-xl border border-indigo-200 uppercase tracking-widest text-[10px] sm:text-xs flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid fa-chalkboard mr-2"></i> Theory Room (10 Seats)</div>
+                                        <div class="border-x border-b border-indigo-100 bg-white p-3 sm:p-4 rounded-b-xl flex-1 shadow-sm" id="theory-room-container">
+                                            <div class="grid grid-cols-2 gap-2 sm:gap-3 h-full" id="theory-room-seats">
                                             </div>
                                         </div>
                                     </div>
                                     <!-- Practical Lab -->
                                     <div class="flex flex-col h-full">
-                                        <div class="bg-emerald-100 text-emerald-800 font-black text-center py-2.5 rounded-t-xl border border-emerald-200 uppercase tracking-widest text-xs flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid fa-desktop mr-2"></i> Practical Lab (10 Seats)</div>
-                                        <div class="border-x border-b border-emerald-100 bg-white p-4 rounded-b-xl flex-1 shadow-sm" id="practical-room-container">
-                                            <div class="grid grid-cols-2 gap-3 h-full" id="practical-room-seats">
-                                                <!-- Dropzones generated by JS -->
+                                        <div class="bg-emerald-100 text-emerald-800 font-black text-center py-2 sm:py-2.5 rounded-t-xl border border-emerald-200 uppercase tracking-widest text-[10px] sm:text-xs flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid fa-desktop mr-2"></i> Practical Lab (10 Seats)</div>
+                                        <div class="border-x border-b border-emerald-100 bg-white p-3 sm:p-4 rounded-b-xl flex-1 shadow-sm" id="practical-room-container">
+                                            <div class="grid grid-cols-2 gap-2 sm:gap-3 h-full" id="practical-room-seats">
                                             </div>
                                         </div>
                                     </div>
@@ -734,13 +725,12 @@
                             </div>
 
                             <!-- Inbox for Batch Change Requests -->
-                            <div class="premium-card h-48 md:h-64 bg-white flex flex-col shadow-md overflow-hidden shrink-0">
-                                <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-                                    <h3 class="font-bold text-slate-800 text-sm flex items-center"><i class="fa-solid fa-inbox text-amber-500 mr-2 text-lg"></i> Student Batch Requests</h3>
-                                    <span class="bg-rose-100 text-rose-600 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-rose-200" id="batch-request-count">0 Pending</span>
+                            <div class="premium-card h-44 sm:h-56 md:h-64 bg-white flex flex-col shadow-md overflow-hidden shrink-0">
+                                <div class="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+                                    <h3 class="font-bold text-slate-800 text-xs sm:text-sm flex items-center"><i class="fa-solid fa-inbox text-amber-500 mr-2 text-base sm:text-lg"></i> Student Batch Requests</h3>
+                                    <span class="bg-rose-100 text-rose-600 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-lg border border-rose-200" id="batch-request-count">0 Pending</span>
                                 </div>
-                                <div class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3 bg-slate-50/30" id="batch-requests-list">
-                                    <!-- JS populated -->
+                                <div class="flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar space-y-2.5 sm:space-y-3 bg-slate-50/30" id="batch-requests-list">
                                 </div>
                             </div>
                         </div>
@@ -748,61 +738,61 @@
                 </div>
 
                 <div id="view-job" class="view-section max-w-6xl mx-auto">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-full">
                         <div class="lg:col-span-5">
-                            <form onsubmit="submitJobApp(event)" class="premium-card p-8 bg-gradient-to-br from-blue-50 to-white border border-blue-100 sticky top-0">
-                                <h3 class="text-xl font-black text-blue-900 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-blue-500/30"><i class="fa-solid fa-briefcase text-xl"></i></div>New Job Application</h3>
-                                <div class="space-y-5">
-                                    <div><label class="form-label text-blue-800">Date Received</label><input type="date" id="job-date" class="form-input bg-white" required></div>
-                                    <div><label class="form-label text-blue-800">Applicant Name</label><input type="text" id="job-name" class="form-input bg-white" placeholder="e.g. Amit Kumar" required></div>
-                                    <div><label class="form-label text-blue-800">Applied Post / Exam</label><input type="text" id="job-post" class="form-input bg-white" placeholder="e.g. SSC CGL / Railway" required></div>
-                                    <div><label class="form-label text-blue-800">Amount Received (₹)</label><input type="number" id="job-amount" class="form-input text-xl text-blue-700 font-black bg-white border-blue-200 shadow-inner" placeholder="0" required></div>
-                                    <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Record Job Income</button>
+                            <form onsubmit="submitJobApp(event)" class="premium-card p-5 sm:p-8 bg-gradient-to-br from-blue-50 to-white border border-blue-100 lg:sticky lg:top-0">
+                                <h3 class="text-lg sm:text-xl font-black text-blue-900 mb-4 sm:mb-6 flex items-center"><div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-blue-500/30 shrink-0"><i class="fa-solid fa-briefcase text-lg sm:text-xl"></i></div>New Job Application</h3>
+                                <div class="space-y-4 sm:space-y-5">
+                                    <div><label class="form-label text-blue-800 text-xs sm:text-sm">Date Received</label><input type="date" id="job-date" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" required></div>
+                                    <div><label class="form-label text-blue-800 text-xs sm:text-sm">Applicant Name</label><input type="text" id="job-name" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. Amit Kumar" required></div>
+                                    <div><label class="form-label text-blue-800 text-xs sm:text-sm">Applied Post / Exam</label><input type="text" id="job-post" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. SSC CGL / Railway" required></div>
+                                    <div><label class="form-label text-blue-800 text-xs sm:text-sm">Amount Received (₹)</label><input type="number" id="job-amount" class="form-input text-lg sm:text-xl text-blue-700 font-black bg-white border-blue-200 shadow-inner w-full rounded-xl p-2.5 sm:p-3" placeholder="0" required></div>
+                                    <button type="submit" class="w-full py-3.5 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/40 transition-all mt-3 sm:mt-4 cursor-pointer text-base sm:text-lg transform hover:-translate-y-0.5 active:translate-y-0">Record Job Income</button>
                                 </div>
                             </form>
                         </div>
                         <div class="lg:col-span-7">
-                            <div class="premium-card p-8 h-[500px] lg:h-[700px] flex flex-col">
-                                <h3 class="text-xl font-extrabold text-slate-800 mb-6 border-b border-slate-100 pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-3 text-slate-400"></i> Recent Applications</h3>
-                                <div class="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar" id="job-list"></div>
+                            <div class="premium-card p-5 sm:p-8 h-[450px] sm:h-[500px] lg:h-[700px] flex flex-col">
+                                <h3 class="text-lg sm:text-xl font-extrabold text-slate-800 mb-4 sm:mb-6 border-b border-slate-100 pb-3 sm:pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-2.5 sm:mr-3 text-slate-400"></i> Recent Applications</h3>
+                                <div class="overflow-y-auto flex-1 pr-1 sm:pr-2 space-y-3 sm:space-y-4 custom-scrollbar" id="job-list"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="view-print" class="view-section max-w-6xl mx-auto">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-full">
                         <div class="lg:col-span-5">
-                            <form onsubmit="submitPrintIncome(event)" class="premium-card p-8 bg-gradient-to-br from-purple-50 to-white border border-purple-100 sticky top-0">
-                                <h3 class="text-xl font-black text-purple-900 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-purple-500/30"><i class="fa-solid fa-print text-xl"></i></div>Print & Copy Services</h3>
-                                <div class="space-y-5">
-                                    <div><label class="form-label text-purple-800">Date</label><input type="date" id="print-date" class="form-input bg-white" required></div>
-                                    <div><label class="form-label text-purple-800">Service Provided</label><select id="print-service" class="form-input bg-white cursor-pointer font-bold text-slate-700" required><option value="Photocopy (Xerox)">Photocopy (Xerox)</option><option value="Color Printout">Color Printout</option><option value="B/W Printout">B/W Printout</option><option value="Lamination">Lamination</option><option value="Spiral Binding">Spiral Binding</option><option value="Other Service">Other Service</option></select></div>
-                                    <div><label class="form-label text-purple-800">Customer / Desc (Optional)</label><input type="text" id="print-desc" class="form-input bg-white" placeholder="e.g. 100 pages project"></div>
-                                    <div><label class="form-label text-purple-800">Amount Received (₹)</label><input type="number" id="print-amount" class="form-input text-xl text-purple-700 font-black bg-white border-purple-200 shadow-inner" placeholder="0" required></div>
-                                    <button type="submit" class="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Add to Revenue</button>
+                            <form onsubmit="submitPrintIncome(event)" class="premium-card p-5 sm:p-8 bg-gradient-to-br from-purple-50 to-white border border-purple-100 lg:sticky lg:top-0">
+                                <h3 class="text-lg sm:text-xl font-black text-purple-900 mb-4 sm:mb-6 flex items-center"><div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-purple-500/30 shrink-0"><i class="fa-solid fa-print text-lg sm:text-xl"></i></div>Print & Copy Services</h3>
+                                <div class="space-y-4 sm:space-y-5">
+                                    <div><label class="form-label text-purple-800 text-xs sm:text-sm">Date</label><input type="date" id="print-date" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" required></div>
+                                    <div><label class="form-label text-purple-800 text-xs sm:text-sm">Service Provided</label><select id="print-service" class="form-input bg-white cursor-pointer font-bold text-slate-700 w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" required><option value="Photocopy (Xerox)">Photocopy (Xerox)</option><option value="Color Printout">Color Printout</option><option value="B/W Printout">B/W Printout</option><option value="Lamination">Lamination</option><option value="Spiral Binding">Spiral Binding</option><option value="Other Service">Other Service</option></select></div>
+                                    <div><label class="form-label text-purple-800 text-xs sm:text-sm">Customer / Desc (Optional)</label><input type="text" id="print-desc" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. 100 pages project"></div>
+                                    <div><label class="form-label text-purple-800 text-xs sm:text-sm">Amount Received (₹)</label><input type="number" id="print-amount" class="form-input text-lg sm:text-xl text-purple-700 font-black bg-white border-purple-200 shadow-inner w-full rounded-xl p-2.5 sm:p-3" placeholder="0" required></div>
+                                    <button type="submit" class="w-full py-3.5 sm:py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-500/40 transition-all mt-3 sm:mt-4 cursor-pointer text-base sm:text-lg transform hover:-translate-y-0.5 active:translate-y-0">Add to Revenue</button>
                                 </div>
                             </form>
                         </div>
                         <div class="lg:col-span-7">
-                            <div class="premium-card p-8 h-[500px] lg:h-[700px] flex flex-col">
-                                <h3 class="text-xl font-extrabold text-slate-800 mb-6 border-b border-slate-100 pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-3 text-slate-400"></i> Recent Print Income</h3>
-                                <div class="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar" id="print-list"></div>
+                            <div class="premium-card p-5 sm:p-8 h-[450px] sm:h-[500px] lg:h-[700px] flex flex-col">
+                                <h3 class="text-lg sm:text-xl font-extrabold text-slate-800 mb-4 sm:mb-6 border-b border-slate-100 pb-3 sm:pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-2.5 sm:mr-3 text-slate-400"></i> Recent Print Income</h3>
+                                <div class="overflow-y-auto flex-1 pr-1 sm:pr-2 space-y-3 sm:space-y-4 custom-scrollbar" id="print-list"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="view-expenditure" class="view-section max-w-6xl mx-auto">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-full">
                         <div class="lg:col-span-5">
-                            <form onsubmit="submitExpense(event)" class="premium-card p-8 bg-gradient-to-br from-rose-50 to-white border border-rose-100 sticky top-0">
-                                <h3 class="text-xl font-black text-rose-900 mb-6 flex items-center"><div class="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center mr-4 shadow-lg shadow-rose-500/30"><i class="fa-solid fa-minus text-xl"></i></div>Record Expense</h3>
-                                <div class="space-y-5">
-                                    <div><label class="form-label text-rose-800">Payment Date</label><input type="date" id="exp-date" class="form-input bg-white" required></div>
+                            <form onsubmit="submitExpense(event)" class="premium-card p-5 sm:p-8 bg-gradient-to-br from-rose-50 to-white border border-rose-100 lg:sticky lg:top-0">
+                                <h3 class="text-lg sm:text-xl font-black text-rose-900 mb-4 sm:mb-6 flex items-center"><div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-rose-500/30 shrink-0"><i class="fa-solid fa-minus text-lg sm:text-xl"></i></div>Record Expense</h3>
+                                <div class="space-y-4 sm:space-y-5">
+                                    <div><label class="form-label text-rose-800 text-xs sm:text-sm">Payment Date</label><input type="date" id="exp-date" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" required></div>
                                     <div>
-                                        <label class="form-label text-rose-800">Category</label>
-                                        <select id="exp-category" class="form-input bg-white cursor-pointer font-bold text-slate-700" required>
+                                        <label class="form-label text-rose-800 text-xs sm:text-sm">Category</label>
+                                        <select id="exp-category" class="form-input bg-white cursor-pointer font-bold text-slate-700 w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" required>
                                             <option value="Electricity Bill">Electricity Bill</option>
                                             <option value="Office Rent">Office Rent</option>
                                             <option value="Staff Salary">Staff Salary</option>
@@ -813,16 +803,16 @@
                                             <option value="Miscellaneous">Miscellaneous</option>
                                         </select>
                                     </div>
-                                    <div><label class="form-label text-rose-800">Amount (₹)</label><input type="number" id="exp-amount" class="form-input text-xl text-rose-600 font-black bg-white border-rose-200 shadow-inner" placeholder="0" required></div>
-                                    <div><label class="form-label text-rose-800">Description (Optional)</label><input type="text" id="exp-desc" class="form-input bg-white" placeholder="e.g. March Electricity"></div>
-                                    <button type="submit" class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/40 transition-all mt-4 cursor-pointer text-lg transform hover:-translate-y-1">Deduct from Balance</button>
+                                    <div><label class="form-label text-rose-800 text-xs sm:text-sm">Amount (₹)</label><input type="number" id="exp-amount" class="form-input text-lg sm:text-xl text-rose-600 font-black bg-white border-rose-200 shadow-inner w-full rounded-xl p-2.5 sm:p-3" placeholder="0" required></div>
+                                    <div><label class="form-label text-rose-800 text-xs sm:text-sm">Description (Optional)</label><input type="text" id="exp-desc" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. March Electricity"></div>
+                                    <button type="submit" class="w-full py-3.5 sm:py-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/40 transition-all mt-3 sm:mt-4 cursor-pointer text-base sm:text-lg transform hover:-translate-y-0.5 active:translate-y-0">Deduct from Balance</button>
                                 </div>
                             </form>
                         </div>
                         <div class="lg:col-span-7">
-                            <div class="premium-card p-8 h-[500px] lg:h-[700px] flex flex-col">
-                                <h3 class="text-xl font-extrabold text-slate-800 mb-6 border-b border-slate-100 pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-3 text-slate-400"></i> Expenditure History</h3>
-                                <div class="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar" id="expense-list"></div>
+                            <div class="premium-card p-5 sm:p-8 h-[450px] sm:h-[500px] lg:h-[700px] flex flex-col">
+                                <h3 class="text-lg sm:text-xl font-extrabold text-slate-800 mb-4 sm:mb-6 border-b border-slate-100 pb-3 sm:pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-2.5 sm:mr-3 text-slate-400"></i> Expenditure History</h3>
+                                <div class="overflow-y-auto flex-1 pr-1 sm:pr-2 space-y-3 sm:space-y-4 custom-scrollbar" id="expense-list"></div>
                             </div>
                         </div>
                     </div>
@@ -832,75 +822,72 @@
         </main>
     </div>
 
-    <!-- NEW MODAL: EDIT HUB FILE -->
-    <div id="edit-file-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-        <div class="premium-card w-full max-w-lg mx-4 flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl" id="edit-file-content">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
-                <h3 class="text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-file-pen mr-3 text-indigo-600"></i> Edit File Details</h3>
-                <button type="button" onclick="closeEditFileModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+    <!-- MODAL: EDIT HUB FILE -->
+    <div id="edit-file-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 p-3 sm:p-4">
+        <div class="premium-card w-full max-w-lg max-h-[90dvh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl overflow-hidden" id="edit-file-content">
+            <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem] shrink-0">
+                <h3 class="text-base sm:text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-file-pen mr-2.5 sm:mr-3 text-indigo-600"></i> Edit File Details</h3>
+                <button type="button" onclick="closeEditFileModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-xs sm:text-sm"></i></button>
             </div>
-            <div class="p-8 bg-white">
-                <form id="edit-file-form" onsubmit="submitEditFile(event)" class="space-y-5">
+            <div class="p-5 sm:p-8 bg-white overflow-y-auto custom-scrollbar flex-1">
+                <form id="edit-file-form" onsubmit="submitEditFile(event)" class="space-y-4 sm:space-y-5">
                     <input type="hidden" id="edit-file-id">
                     <input type="hidden" id="edit-file-category">
-                    <div><label class="form-label text-indigo-800">File Name / Title</label><input type="text" id="edit-file-name" class="form-input bg-white border-slate-200" required></div>
-                    <div><label class="form-label text-indigo-800">Folder / Section</label><input type="text" id="edit-file-folder" class="form-input bg-white border-slate-200" required></div>
+                    <div><label class="form-label text-indigo-800 text-xs sm:text-sm">File Name / Title</label><input type="text" id="edit-file-name" class="form-input bg-white border-slate-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" required></div>
+                    <div><label class="form-label text-indigo-800 text-xs sm:text-sm">Folder / Section</label><input type="text" id="edit-file-folder" class="form-input bg-white border-slate-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" required></div>
                     <div>
-                        <label class="form-label text-indigo-800">Target Course(s) / Batch</label>
-                        <input type="text" id="edit-file-target" class="form-input bg-white border-slate-200" placeholder="e.g. ALL, PGDCA, DCA" required>
-                        <p class="text-[10px] text-slate-500 mt-2"><i class="fa-solid fa-circle-info"></i> Separate multiple courses with commas. Use "ALL" to make it visible in Guest Mode.</p>
+                        <label class="form-label text-indigo-800 text-xs sm:text-sm">Target Course(s) / Batch</label>
+                        <input type="text" id="edit-file-target" class="form-input bg-white border-slate-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. ALL, PGDCA, DCA" required>
+                        <p class="text-[10px] text-slate-500 mt-1.5"><i class="fa-solid fa-circle-info"></i> Separate multiple courses with commas. Use "ALL" to make it visible in Guest Mode.</p>
                     </div>
-                    <div class="pt-4 flex justify-end space-x-3">
-                        <button type="button" onclick="closeEditFileModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-                        <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1">Save Changes</button>
+                    <div class="pt-3 sm:pt-4 flex justify-end space-x-2.5 sm:space-x-3">
+                        <button type="button" onclick="closeEditFileModal()" class="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors text-xs sm:text-sm">Cancel</button>
+                        <button type="submit" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all text-xs sm:text-sm transform hover:-translate-y-0.5 active:translate-y-0">Save Changes</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- EXISTING MODALS BELOW -->
-    <div id="edit-student-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-        <div class="premium-card w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl" id="edit-modal-content">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
-                <h3 class="text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-user-pen mr-3 text-indigo-600"></i> Edit Profile Details</h3>
-                <button type="button" onclick="closeEditModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+    <!-- MODAL: EDIT STUDENT -->
+    <div id="edit-student-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 p-3 sm:p-4">
+        <div class="premium-card w-full max-w-3xl max-h-[90dvh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl overflow-hidden" id="edit-modal-content">
+            <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem] shrink-0">
+                <h3 class="text-base sm:text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-user-pen mr-2.5 sm:mr-3 text-indigo-600"></i> Edit Profile Details</h3>
+                <button type="button" onclick="closeEditModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-xs sm:text-sm"></i></button>
             </div>
-            <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
-                <form id="edit-student-form" class="space-y-6">
+            <div class="p-5 sm:p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
+                <form id="edit-student-form" class="space-y-4 sm:space-y-6">
                     <input type="hidden" id="edit-student-id">
                     
-                    <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-6">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div><label class="form-label text-indigo-800">Total Course Fee (₹)</label><input type="number" id="edit-totalfee" class="form-input font-black text-indigo-700 bg-white border-indigo-200" required></div>
+                    <div class="bg-indigo-50/50 p-4 sm:p-6 rounded-2xl border border-indigo-100 mb-4 sm:mb-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
+                            <div><label class="form-label text-indigo-800 text-xs sm:text-sm">Total Course Fee (₹)</label><input type="number" id="edit-totalfee" class="form-input font-black text-indigo-700 bg-white border-indigo-200 w-full rounded-xl p-2.5 text-xs sm:text-sm" required></div>
                             <div>
-                                <label class="form-label text-emerald-800">Total Paid (₹)</label>
-                                <input type="number" id="edit-paidfee" class="form-input font-black text-emerald-700 bg-white border-emerald-200" required>
+                                <label class="form-label text-emerald-800 text-xs sm:text-sm">Total Paid (₹)</label>
+                                <input type="number" id="edit-paidfee" class="form-input font-black text-emerald-700 bg-white border-emerald-200 w-full rounded-xl p-2.5 text-xs sm:text-sm" required>
                             </div>
-                            <div>
-                                <label class="form-label text-amber-800"><i class="fa-solid fa-coins mr-1"></i> Virtual Coins Balance</label>
-                                <input type="number" step="1" id="edit-adwallet" class="form-input font-black text-amber-700 bg-white border-amber-200" required>
+                            <div class="sm:col-span-2 md:col-span-1">
+                                <label class="form-label text-amber-800 text-xs sm:text-sm"><i class="fa-solid fa-coins mr-1"></i> Virtual Coins Balance</label>
+                                <input type="number" step="1" id="edit-adwallet" class="form-input font-black text-amber-700 bg-white border-amber-200 w-full rounded-xl p-2.5 text-xs sm:text-sm" required>
                             </div>
                         </div>
-                        <p class="text-[10px] text-slate-500 mt-4"><i class="fa-solid fa-circle-info"></i> Safely corrects original transactions without duplicate entries. Edit rewards manually if needed.</p>
+                        <p class="text-[10px] text-slate-500 mt-2.5"><i class="fa-solid fa-circle-info"></i> Safely corrects original transactions without duplicate entries.</p>
                     </div>
 
-                    <!-- UPDATED: 3-Column Grid to fit new fields perfectly -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div><label class="form-label">Full Name</label><input type="text" id="edit-name" class="form-input" required></div>
-                        <div><label class="form-label">Admission Date</label><input type="date" id="edit-date" class="form-input" required></div>
-                        <div><label class="form-label">Mobile Number</label><input type="tel" id="edit-phone" class="form-input"></div>
-                        <div><label class="form-label">Gender</label><select id="edit-gender" class="form-input font-medium"><option value="Male">Male</option><option value="Female">Female</option></select></div>
-                        <div><label class="form-label">Course</label><input type="text" id="edit-course" class="form-input" required></div>
-                        <div><label class="form-label">Course Duration (Months)</label><input type="number" id="edit-duration" class="form-input" required></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
+                        <div><label class="form-label text-xs sm:text-sm">Full Name</label><input type="text" id="edit-name" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm" required></div>
+                        <div><label class="form-label text-xs sm:text-sm">Admission Date</label><input type="date" id="edit-date" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold" required></div>
+                        <div><label class="form-label text-xs sm:text-sm">Mobile Number</label><input type="tel" id="edit-phone" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold"></div>
+                        <div><label class="form-label text-xs sm:text-sm">Gender</label><select id="edit-gender" class="form-input font-medium w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm"><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                        <div><label class="form-label text-xs sm:text-sm">Course</label><input type="text" id="edit-course" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm" required></div>
+                        <div><label class="form-label text-xs sm:text-sm">Course Duration (Months)</label><input type="number" id="edit-duration" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm" required></div>
                         
-                        <div><label class="form-label text-indigo-600">Student Status</label><select id="edit-status" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200"><option value="Active">Active Student</option><option value="Graduated">Graduated / Alumni</option></select></div>
-                        <!-- NEW: Parent Phone Field -->
-                        <div><label class="form-label text-indigo-600">Parent's Number</label><input type="tel" id="edit-parent-phone" class="form-input border-indigo-100 bg-indigo-50/30" placeholder="+91"></div>
-                        <!-- NEW: Batch Selection Field -->
+                        <div><label class="form-label text-indigo-600 text-xs sm:text-sm">Student Status</label><select id="edit-status" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200 w-full rounded-xl p-2.5 text-xs sm:text-sm"><option value="Active">Active Student</option><option value="Graduated">Graduated / Alumni</option></select></div>
+                        <div><label class="form-label text-indigo-600 text-xs sm:text-sm">Parent's Number</label><input type="tel" id="edit-parent-phone" class="form-input border-indigo-100 bg-indigo-50/30 w-full rounded-xl p-2.5 text-xs sm:text-sm font-semibold" placeholder="+91"></div>
                         <div>
-                            <label class="form-label text-indigo-600">Assigned Batch</label>
-                            <select id="edit-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700">
+                            <label class="form-label text-indigo-600 text-xs sm:text-sm">Assigned Batch</label>
+                            <select id="edit-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700 w-full rounded-xl p-2.5 text-xs sm:text-sm">
                                 <option value="Unassigned">Unassigned</option>
                                 <option value="1st">1st Batch (Lab: 08:00 AM | Theory: 08:45 AM)</option>
                                 <option value="2nd">2nd Batch (Theory: 08:00 AM | Lab: 08:45 AM)</option>
@@ -913,95 +900,96 @@
                             </select>
                         </div>
 
-                        <div class="md:col-span-3">
-                            <label class="form-label">Update Photo (Leave blank to keep current)</label>
-                            <input type="file" id="edit-image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl" onchange="openCropModal(event, 'edit')">
+                        <div class="sm:col-span-2 md:col-span-3">
+                            <label class="form-label text-xs sm:text-sm">Update Photo (Leave blank to keep current)</label>
+                            <input type="file" id="edit-image" accept="image/*" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl" onchange="openCropModal(event, 'edit')">
                         </div>
                         
-                        <div class="col-span-1 md:col-span-3 flex flex-wrap gap-6">
-                            <div class="flex-1 min-w-[200px]">
-                                <label class="form-label">Fee Structure</label>
-                                <select id="edit-feetype" class="form-input font-medium"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select>
-                            </div>
+                        <div class="sm:col-span-2 md:col-span-3">
+                            <label class="form-label text-xs sm:text-sm">Fee Structure</label>
+                            <select id="edit-feetype" class="form-input font-medium w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select>
                         </div>
 
-                        <!-- NEW DUE OVERRIDES SECTION -->
-                        <div class="col-span-1 md:col-span-3 bg-rose-50/50 p-5 rounded-xl border border-rose-100 mt-2">
-                            <h4 class="text-xs font-bold text-rose-600 mb-4 uppercase tracking-wider"><i class="fa-solid fa-lock mr-2"></i> Current Due Overrides (Optional)</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><label class="form-label text-rose-800">Custom Due Amount (₹)</label><input type="number" id="edit-custom-due" class="form-input bg-white border-rose-200" placeholder="e.g. 1000"></div>
-                                <div><label class="form-label text-rose-800">Custom Due Date</label><input type="date" id="edit-custom-date" class="form-input bg-white border-rose-200"></div>
+                        <!-- DUE OVERRIDES SECTION -->
+                        <div class="sm:col-span-2 md:col-span-3 bg-rose-50/50 p-4 sm:p-5 rounded-xl border border-rose-100 mt-2">
+                            <h4 class="text-xs font-bold text-rose-600 mb-3 uppercase tracking-wider"><i class="fa-solid fa-lock mr-2"></i> Current Due Overrides (Optional)</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div><label class="form-label text-rose-800 text-xs sm:text-sm">Custom Due Amount (₹)</label><input type="number" id="edit-custom-due" class="form-input bg-white border-rose-200 w-full rounded-xl p-2.5 text-xs sm:text-sm" placeholder="e.g. 1000"></div>
+                                <div><label class="form-label text-rose-800 text-xs sm:text-sm">Custom Due Date</label><input type="date" id="edit-custom-date" class="form-input bg-white border-rose-200 w-full rounded-xl p-2.5 text-xs sm:text-sm font-semibold"></div>
                             </div>
-                            <p class="text-[10px] text-rose-500 mt-3 font-medium">Use this to force the dashboard and student app to show a specific due amount and deadline, overriding automatic calculations.</p>
+                            <p class="text-[10px] text-rose-500 mt-2 font-medium">Use this to force the dashboard and student app to show a specific due amount and deadline.</p>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-3">
-                <button type="button" onclick="closeEditModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-                <button type="button" onclick="submitEditStudent(event)" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1">Save Changes</button>
+            <div class="p-4 sm:p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-2.5 sm:space-x-3 shrink-0">
+                <button type="button" onclick="closeEditModal()" class="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors text-xs sm:text-sm">Cancel</button>
+                <button type="button" onclick="submitEditStudent(event)" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all text-xs sm:text-sm transform hover:-translate-y-0.5 active:translate-y-0">Save Changes</button>
             </div>
         </div>
     </div>
 
-    <div id="edit-transaction-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-        <div class="premium-card w-full max-w-lg mx-4 flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem]">
-                <h3 class="text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-pen-to-square mr-3 text-indigo-600"></i> Edit Record</h3>
-                <button type="button" onclick="closeEditTransactionModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+    <!-- MODAL: EDIT TRANSACTION -->
+    <div id="edit-transaction-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 p-3 sm:p-4">
+        <div class="premium-card w-full max-w-lg max-h-[90dvh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl overflow-hidden">
+            <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem] shrink-0">
+                <h3 class="text-base sm:text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-pen-to-square mr-2.5 sm:mr-3 text-indigo-600"></i> Edit Record</h3>
+                <button type="button" onclick="closeEditTransactionModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-xs sm:text-sm"></i></button>
             </div>
-            <div class="p-8 bg-white">
-                <form id="edit-transaction-form" onsubmit="submitEditTransaction(event)" class="space-y-5">
+            <div class="p-5 sm:p-8 bg-white overflow-y-auto custom-scrollbar flex-1">
+                <form id="edit-transaction-form" onsubmit="submitEditTransaction(event)" class="space-y-4 sm:space-y-5">
                     <input type="hidden" id="edit-tx-id">
-                    <div><label class="form-label">Date</label><input type="date" id="edit-tx-date" class="form-input" required></div>
-                    <div><label class="form-label">Title / Category</label><input type="text" id="edit-tx-title" class="form-input" required></div>
-                    <div><label class="form-label text-indigo-700">Amount (₹)</label><input type="number" id="edit-tx-amount" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200" required></div>
-                    <div><label class="form-label">Description (Optional)</label><input type="text" id="edit-tx-desc" class="form-input"></div>
-                    <div class="pt-4 flex justify-end space-x-3">
-                        <button type="button" onclick="closeEditTransactionModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-                        <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1">Update Record</button>
+                    <div><label class="form-label text-xs sm:text-sm">Date</label><input type="date" id="edit-tx-date" class="form-input w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm font-semibold" required></div>
+                    <div><label class="form-label text-xs sm:text-sm">Title / Category</label><input type="text" id="edit-tx-title" class="form-input w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" required></div>
+                    <div><label class="form-label text-indigo-700 text-xs sm:text-sm">Amount (₹)</label><input type="number" id="edit-tx-amount" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" required></div>
+                    <div><label class="form-label text-xs sm:text-sm">Description (Optional)</label><input type="text" id="edit-tx-desc" class="form-input w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm"></div>
+                    <div class="pt-3 sm:pt-4 flex justify-end space-x-2.5 sm:space-x-3">
+                        <button type="button" onclick="closeEditTransactionModal()" class="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors text-xs sm:text-sm">Cancel</button>
+                        <button type="submit" class="px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all text-xs sm:text-sm transform hover:-translate-y-0.5 active:translate-y-0">Update Record</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <div id="delete-student-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-        <div class="premium-card w-full max-w-md mx-4 flex flex-col transform scale-95 transition-transform duration-300 border-2 border-rose-500/30" id="delete-modal-content">
-            <div class="p-6 border-b border-rose-100 bg-rose-50 rounded-t-[1.5rem]">
-                <h3 class="text-xl font-black text-rose-600 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-3 text-2xl"></i> Delete Record</h3>
+    <!-- MODAL: DELETE RECORD -->
+    <div id="delete-student-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm opacity-0 transition-opacity duration-300 p-3 sm:p-4">
+        <div class="premium-card w-full max-w-md max-h-[90dvh] flex flex-col transform scale-95 transition-transform duration-300 border-2 border-rose-500/30 overflow-hidden" id="delete-modal-content">
+            <div class="p-4 sm:p-6 border-b border-rose-100 bg-rose-50 rounded-t-[1.5rem] shrink-0">
+                <h3 class="text-lg sm:text-xl font-black text-rose-600 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-2.5 sm:mr-3 text-xl sm:text-2xl"></i> Delete Record</h3>
             </div>
-            <div class="p-8 space-y-5 bg-white">
-                <p class="text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove <span id="delete-student-name" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded"></span> and <strong class="text-rose-600">recalculate balances</strong>. This action cannot be undone.</p>
+            <div class="p-5 sm:p-8 space-y-4 sm:space-y-5 bg-white overflow-y-auto custom-scrollbar flex-1">
+                <p class="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">This will permanently remove <span id="delete-student-name" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded"></span> and <strong class="text-rose-600">recalculate balances</strong>. This action cannot be undone.</p>
                 <div>
-                    <label class="form-label text-rose-600">Enter Admin Delete Password</label>
-                    <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50 text-lg tracking-widest" placeholder="••••••••" required>
+                    <label class="form-label text-rose-600 text-xs sm:text-sm">Enter Admin Delete Password</label>
+                    <input type="password" id="delete-password-input" class="form-input border-rose-200 focus:border-rose-500 bg-rose-50 text-base sm:text-lg tracking-widest w-full rounded-xl p-2.5 sm:p-3" placeholder="••••••••" required>
                     <p id="delete-error" class="text-rose-500 text-xs font-bold mt-2 hidden"><i class="fa-solid fa-circle-xmark mr-1"></i> Incorrect Password!</p>
                 </div>
                 <input type="hidden" id="delete-transaction-id">
                 <input type="hidden" id="delete-student-flag">
             </div>
-            <div class="p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-3">
-                <button type="button" onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-                <button type="button" id="confirm-delete-btn" onclick="executeDelete()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center transform hover:-translate-y-1">
+            <div class="p-4 sm:p-6 border-t border-slate-100 bg-slate-50 rounded-b-[1.5rem] flex justify-end space-x-2.5 sm:space-x-3 shrink-0">
+                <button type="button" onclick="closeDeleteModal()" class="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors text-xs sm:text-sm">Cancel</button>
+                <button type="button" id="confirm-delete-btn" onclick="executeDelete()" class="px-4 sm:px-5 py-2 sm:py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all flex items-center transform hover:-translate-y-0.5 active:translate-y-0 text-xs sm:text-sm">
                     <span id="delete-btn-text">Confirm Delete</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="crop-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm opacity-0 transition-opacity duration-300">
-        <div class="premium-card w-full max-w-lg mx-4 flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl overflow-hidden" id="crop-modal-content">
-            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 class="text-lg font-black text-slate-800 flex items-center"><i class="fa-solid fa-crop mr-2 text-indigo-600"></i> Crop Image</h3>
-                <button type="button" onclick="closeCropModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+    <!-- MODAL: CROP IMAGE -->
+    <div id="crop-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm opacity-0 transition-opacity duration-300 p-3 sm:p-4">
+        <div class="premium-card w-full max-w-lg max-h-[90dvh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl overflow-hidden" id="crop-modal-content">
+            <div class="p-3.5 sm:p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                <h3 class="text-base sm:text-lg font-black text-slate-800 flex items-center"><i class="fa-solid fa-crop mr-2 text-indigo-600"></i> Crop Image</h3>
+                <button type="button" onclick="closeCropModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-xs sm:text-sm"></i></button>
             </div>
-            <div class="p-4 flex justify-center items-center bg-slate-100" style="height: 400px;">
+            <div class="p-3 sm:p-4 flex justify-center items-center bg-slate-100 flex-1 overflow-hidden" style="height: 350px; max-height: 50dvh;">
                 <img id="image-to-crop" class="block max-w-full max-h-full hidden">
             </div>
-            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end space-x-3">
-                <button type="button" onclick="closeCropModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-                <button type="button" onclick="confirmCrop()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1">Apply Crop</button>
+            <div class="p-3.5 sm:p-4 border-t border-slate-100 bg-slate-50 flex justify-end space-x-2.5 sm:space-x-3 shrink-0">
+                <button type="button" onclick="closeCropModal()" class="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors text-xs sm:text-sm">Cancel</button>
+                <button type="button" onclick="confirmCrop()" class="px-4 sm:px-5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-xs sm:text-sm">Apply Crop</button>
             </div>
         </div>
     </div>
