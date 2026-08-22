@@ -37,12 +37,32 @@ window.onload = function() {
 };
 
 // =========================================================
-// 🛡️ DATA SANITIZER & GLOBAL CACHE SYNC
+// 🛡️ DATA SANITIZER, AUTO-HEALER & GLOBAL CACHE SYNC
 // =========================================================
+
+// STRICT FIX: Auto-Heals missing IDs from Mobile App and stores the exact Firebase Push Key for 100% accurate edits/deletes.
 function parseFbList(data) {
     if (!data) return [];
-    if (Array.isArray(data)) return data.filter(e => e !== null);
-    return Object.values(data).filter(e => e !== null);
+    
+    // If it's a legacy array, use the index as the tracker
+    if (Array.isArray(data)) {
+        return data.map((item, index) => {
+            if (item !== null && typeof item === 'object') {
+                item._fbKey = index.toString();
+            }
+            return item;
+        }).filter(e => e !== null);
+    }
+    
+    // If it's an object of unique Firebase Push Keys (The modern robust method)
+    return Object.keys(data).map(key => {
+        let item = data[key];
+        if (item !== null && typeof item === 'object') {
+            if (!item.id) item.id = key; // Auto-heal missing IDs
+            item._fbKey = key; // Super-tracker for 0-latency atomic targeting
+        }
+        return item;
+    }).filter(e => e !== null);
 }
 
 // 🚀 Universal Cache Synchronizer
@@ -75,16 +95,27 @@ const safeWrite = async (path, data) => {
 const atomicPush = async (path, data) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(data));
+        delete cleanData._fbKey; // Prevent internal tracker from saving to cloud
         await firebase.database().ref(path).push(cleanData);
     } catch (err) {
         console.error(`Atomic Push Error on ${path}:`, err);
+        alert(`Database Write Blocked (${path}): Verify your internet connection and that you logged in explicitly as 'admin'.`);
     }
 };
 
-// STRICT FIX: Added JSON sterilizer to guarantee Edit Profile Sync success
+// STRICT FIX: Uses the Super-Tracker (_fbKey) to surgically overwrite the exact node with 0% failure rate
 const atomicUpdateById = async (path, id, newData) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(newData));
+        delete cleanData._fbKey; // Strip the internal tracker before saving
+
+        // If we know the exact Firebase key, use it for a direct 0-latency update!
+        if (newData._fbKey) {
+            await firebase.database().ref(`${path}/${newData._fbKey}`).set(cleanData);
+            return;
+        }
+
+        // Fallback safety net: Query by ID if the tracker is missing
         const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
         if (snapshot.exists()) {
             const updates = {};
@@ -95,11 +126,18 @@ const atomicUpdateById = async (path, id, newData) => {
         }
     } catch (err) {
         console.error(`Atomic Update Error on ${path}:`, err);
+        alert(`Database Edit Blocked (${path}): Verify your internet connection and that you logged in explicitly as 'admin'.`);
     }
 };
 
-const atomicDeleteById = async (path, id) => {
+// STRICT FIX: Uses the Super-Tracker to surgically delete the exact node
+const atomicDeleteById = async (path, id, fbKey = null) => {
     try {
+        if (fbKey) {
+            await firebase.database().ref(`${path}/${fbKey}`).remove();
+            return;
+        }
+        
         const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
         if (snapshot.exists()) {
             const updates = {};
@@ -108,6 +146,7 @@ const atomicDeleteById = async (path, id) => {
         }
     } catch (err) {
         console.error(`Atomic Delete Error on ${path}:`, err);
+        alert(`Database Delete Blocked (${path}): Verify your internet connection and that you logged in explicitly as 'admin'.`);
     }
 };
 
@@ -313,12 +352,12 @@ async function runStudentAuthMigration() {
             let phone = String(student.phone).trim();
             if(phone) {
                 let email = `${phone}@ei.com`;
-                let password = generateSecurePassword(); 
+                let password = generateSecurePassword(); // Secure random password generated
                 
                 try {
                     await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
                     successCount++;
-                    console.log(`Created: ${email} | Secure Password: ${password}`); 
+                    console.log(`Created: ${email} | Secure Password: ${password}`); // Export these to share with students securely
                 } catch(e) {
                     if(e.code === 'auth/email-already-in-use') {
                         skipCount++;
@@ -879,7 +918,6 @@ function submitSettings(e) {
         pendingQRCodeBase64 = null;
     }
     
-    // Pure Firebase Save with Graceful Wrapper
     safeWrite('settings', appData.settings).then(() => {
         btn.innerHTML = 'Save Configuration';
         syncLocalCache();
@@ -1736,10 +1774,10 @@ async function executeDelete() {
             if(isStudent) {
                 const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
                 if(student) {
-                    atomicDeleteById('students', stId);
+                    atomicDeleteById('students', stId, student._fbKey);
                     
                     let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${stId}]`));
-                    studentTxs.forEach(tx => atomicDeleteById('transactions', tx.id));
+                    studentTxs.forEach(tx => atomicDeleteById('transactions', tx.id, tx._fbKey));
                     
                     appData.students = appData.students.filter(s => s.id !== stId);
                     appData.transactions = appData.transactions.filter(tx => {
@@ -1759,7 +1797,7 @@ async function executeDelete() {
                     if(tx.type === 'expense') appData.stats.expense -= parseFloat(tx.amount);
                     appData.stats.balance = appData.stats.income - appData.stats.expense;
 
-                    atomicDeleteById('transactions', txId);
+                    atomicDeleteById('transactions', txId, tx._fbKey);
                     
                     if (title.includes('Tuition') || title.includes('Admission') || title.includes('Advance')) {
                         appData.students.forEach(student => { 
@@ -1790,7 +1828,7 @@ async function executeDelete() {
 // =========================================
 // 🗂️ THE SMART-SPLIT FILE UPLOADER
 // =========================================
-function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
+function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null, vault = 'files') {
     const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
 
     const newFile = {
@@ -1798,9 +1836,9 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
         date: new Date().toISOString().split('T')[0], folder: folderName
     };
     
-    if (!appData.files) appData.files = [];
-    appData.files.push(newFile);
-    atomicPush('files', newFile);
+    if (!appData[vault]) appData[vault] = [];
+    appData[vault].push(newFile);
+    atomicPush(vault, newFile);
     syncLocalCache();
 
     if(callback) {
@@ -1851,7 +1889,7 @@ function handleStudentFileUpload(event) {
                 saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
                     renderStudentFiles(stId);
                     alert("Document saved securely to Private Vault!");
-                });
+                }, 'files'); // Certificates go to 'files' vault
                 document.getElementById('student-doc-upload').value = '';
             });
         }
@@ -1902,8 +1940,8 @@ function submitMaterialUpload(e) {
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
-                    alert("Material Uploaded Successfully to Private Vault!");
-                });
+                    alert("Material Uploaded Successfully to Public Vault!");
+                }, 'materials'); // Study materials go to 'materials' vault (fixes 404 issue)
             });
         }
     );
@@ -1952,8 +1990,8 @@ function submitAssignmentUpload(e) {
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
-                    alert("Assignment Uploaded Successfully to Private Vault!");
-                });
+                    alert("Assignment Uploaded Successfully to Public Vault!");
+                }, 'materials'); // Assignments go to 'materials' vault (fixes 404 issue)
             });
         }
     );
@@ -1986,6 +2024,7 @@ function renderStudentFiles(stId) {
                     <a href="${f.url || f.file}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name || f.filename || 'Document'}</a>
                 </td>
                 <td class="py-3 px-2 text-center">
+                    <!-- NEW: FIXED BROKEN DELETE BUTTON -->
                     <button type="button" onclick="deleteHubFile('${f.path || ''}', '${f.id}', 'files')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Document"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -2224,13 +2263,13 @@ function deleteHubFile(path, fileId, sourceNode) {
 }
 
 function _removeFileFromDatabase(fileId, sourceNode) {
+    let targetFile = appData[sourceNode].find(f => f.id === fileId);
     if (sourceNode === 'materials') {
         appData.materials = appData.materials.filter(f => f.id !== fileId);
-        atomicDeleteById('materials', fileId);
     } else {
         appData.files = appData.files.filter(f => f.id !== fileId);
-        atomicDeleteById('files', fileId);
     }
+    atomicDeleteById(sourceNode, fileId, targetFile ? targetFile._fbKey : null);
     syncLocalCache();
     renderHubFiles();
 }
@@ -2292,9 +2331,9 @@ function renderBroadcastList() {
 
 function deleteBroadcast(index) {
     if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
-    const noticeId = appData.notices[index].id;
+    const notice = appData.notices[index];
     appData.notices.splice(index, 1);
-    atomicDeleteById('notices', noticeId);
+    atomicDeleteById('notices', notice.id, notice._fbKey);
     syncLocalCache();
     renderBroadcastList();
 }
