@@ -59,7 +59,7 @@ function parseFbList(data) {
             }
         });
     }
-    // Ensures newest entries appear at the top of the Web App UI
+    // STRICT FIX: Reversing ensures new numeric records appear at the top.
     return result.reverse(); 
 }
 
@@ -70,7 +70,34 @@ function syncLocalCache() {
 }
 
 // =========================================================
-// 🚀 PURE FIREBASE SYNC ENGINE (1-FILE-AT-A-TIME & ARRAY-SAFE)
+// 🧹 AUTO-CLEANUP: 24-HOUR NOTIFICATION WIPER
+// =========================================================
+async function autoCleanupNotices() {
+    const now = Date.now();
+    const ONE_DAY = 24 * 60 * 60 * 1000; 
+    let indicesToDelete = [];
+    
+    appData.notices.forEach((notice) => {
+        let noticeTime = 0;
+        if (notice.id && notice.id.startsWith('NOT')) {
+            noticeTime = parseInt(notice.id.replace('NOT', '')) || 0;
+        }
+        
+        if (noticeTime > 0 && (now - noticeTime) > ONE_DAY) {
+            indicesToDelete.push({ id: notice.id, fbKey: notice._fbKey });
+        }
+    });
+
+    if (indicesToDelete.length > 0) {
+        for (let item of indicesToDelete) {
+            await atomicDeleteById('notices', item.id, item.fbKey);
+            appData.notices = appData.notices.filter(n => n.id !== item.id);
+        }
+    }
+}
+
+// =========================================================
+// 🚀 PURE FIREBASE SYNC ENGINE (ARRAY RESTORATION)
 // =========================================================
 
 const safeWrite = async (path, data) => {
@@ -82,29 +109,29 @@ const safeWrite = async (path, data) => {
     }
 };
 
-// STRICT FIX: Replaces Firebase .push() with Numeric Arrays to stop "Scribbled Letters"
-const atomicInsert = async (path, data) => {
+// STRICT FIX: Replaced .push() with sequential numeric indices to fix Mobile App crashes
+const atomicPush = async (path, data) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(data));
         delete cleanData._fbKey; 
         
-        const snap = await firebase.database().ref(path).once('value');
+        const snapshot = await firebase.database().ref(path).once('value');
         let nextIndex = 0;
         
-        if (snap.exists()) {
-            const dbData = snap.val();
-            if (Array.isArray(dbData)) {
-                nextIndex = dbData.length;
+        if (snapshot.exists()) {
+            const currentData = snapshot.val();
+            if (Array.isArray(currentData)) {
+                nextIndex = currentData.length;
             } else {
-                const keys = Object.keys(dbData).map(k => parseInt(k)).filter(k => !isNaN(k));
-                nextIndex = keys.length > 0 ? Math.max(...keys) + 1 : Object.keys(dbData).length;
+                const keys = Object.keys(currentData).map(Number).filter(k => !isNaN(k));
+                nextIndex = keys.length > 0 ? Math.max(...keys) + 1 : 0;
             }
         }
         
         await firebase.database().ref(`${path}/${nextIndex}`).set(cleanData);
-        return nextIndex.toString(); 
+        return nextIndex.toString();
     } catch (err) {
-        console.error(`Atomic Insert Error on ${path}:`, err);
+        console.error(`Atomic Push Error on ${path}:`, err);
         alert(`Database Write Blocked (${path}): Verify your internet connection.`);
         return null;
     }
@@ -126,7 +153,7 @@ const atomicUpdateById = async (path, id, newData) => {
             snapshot.forEach(child => { updates[child.key] = cleanData; });
             await firebase.database().ref(path).update(updates);
         } else {
-            await atomicInsert(path, cleanData); // Fallback to clean numeric insert
+            await atomicPush(path, cleanData);
         }
     } catch (err) {
         console.error(`Atomic Update Error on ${path}:`, err);
@@ -277,13 +304,16 @@ async function handleLogin(e) {
             safeFetchLimit('notices', 100),
             safeFetch('seating'),
             safeFetch('batch_requests')
-        ]).then(([flSnap, matSnap, notSnap, seatSnap, reqSnap]) => {
+        ]).then(async ([flSnap, matSnap, notSnap, seatSnap, reqSnap]) => {
             appData.files = parseFbList(flSnap.val());
             appData.materials = parseFbList(matSnap.val());
             appData.notices = parseFbList(notSnap.val());
             appData.seating = seatSnap.val() || {};
             appData.batchRequests = parseFbList(reqSnap.val());
             
+            // 🔥 NEW: Trigger automated 24-hour cleanup for database health
+            await autoCleanupNotices();
+
             syncLocalCache();
 
             renderHubFiles();
@@ -295,9 +325,6 @@ async function handleLogin(e) {
             if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
                 renderStudentFiles(activeId);
             }
-            
-            // Trigger Personal Notice auto-cleanup protocol
-            cleanupOldNotices();
         }).catch(err => console.error("Background sync error:", err));
 
     } catch(err) {
@@ -309,28 +336,86 @@ async function handleLogin(e) {
 }
 
 // =========================================================
-// 🔔 NEW: 24-HOUR AUTO DELETE FOR PERSONAL NOTIFICATIONS
+// ⚙️ AUTOMATED MIGRATION TOOLS
 // =========================================================
-async function cleanupOldNotices() {
-    if (!appData.notices || appData.notices.length === 0) return;
-    const now = Date.now();
-    let changed = false;
+async function runStudentAuthMigration() {
+    if(!confirm("Start automated Auth Migration? This will create secure Firebase accounts for all students without logging you out.")) return;
     
-    appData.notices = appData.notices.filter(notice => {
-        if (notice.isPersonal && notice.timestamp) {
-            // Delete if older than 24 Hours (86,400,000 milliseconds)
-            if (now - notice.timestamp > 24 * 60 * 60 * 1000) {
-                changed = true;
-                return false; 
+    try {
+        let secondaryApp;
+        if (firebase.apps.length < 2) {
+            secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
+        } else {
+            secondaryApp = firebase.app("SecondaryApp");
+        }
+
+        let successCount = 0;
+        let skipCount = 0;
+        
+        const generateSecurePassword = () => {
+            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$";
+            let pwd = "";
+            for(let i=0; i<8; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+            return pwd;
+        };
+
+        for (let student of appData.students) {
+            let phone = String(student.phone).trim();
+            if(phone) {
+                let email = `${phone}@ei.com`;
+                let password = generateSecurePassword(); 
+                
+                try {
+                    await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+                    successCount++;
+                } catch(e) {
+                    if(e.code === 'auth/email-already-in-use') {
+                        skipCount++;
+                    } else {
+                        console.error(`Error creating ${email}:`, e);
+                    }
+                }
+                await secondaryApp.auth().signOut();
             }
         }
-        return true;
-    });
+        alert(`Migration Complete!\n✅ Accounts Created: ${successCount}\n⏭️ Already Existed (Skipped): ${skipCount}\n\nCheck console for secure student passwords.`);
+    } catch (err) {
+        alert("Migration encountered an error: " + err.message);
+    }
+}
 
-    if (changed) {
-        await safeWrite('notices', appData.notices);
+async function runFileMigration() {
+    if(!confirm("Start File Vault Split? This will safely move Study Materials to the public node while keeping Certificates locked.")) return;
+    
+    try {
+        let newPrivateFiles = [];
+        let newPublicMaterials = appData.materials ? [...appData.materials] : [];
+
+        if (appData.files && appData.files.length > 0) {
+            appData.files.forEach(f => {
+                if (f.category === 'Material' || f.category === 'Assignment') {
+                    if (!newPublicMaterials.some(m => m.id === f.id)) {
+                        newPublicMaterials.push(f);
+                    }
+                } else {
+                    newPrivateFiles.push(f);
+                }
+            });
+        }
+
+        appData.files = newPrivateFiles;
+        appData.materials = newPublicMaterials;
+
+        await Promise.all([
+            safeWrite('files', appData.files.length > 0 ? appData.files : null),
+            safeWrite('materials', appData.materials.length > 0 ? appData.materials : null)
+        ]);
+        
         syncLocalCache();
-        renderBroadcastList();
+        renderHubFiles();
+        alert("File Migration Complete! Database successfully split into two secure vaults.");
+    } catch(e) {
+        alert("Error during file migration: " + e.message);
     }
 }
 
@@ -495,16 +580,15 @@ async function sendCustomPushNotification() {
             id: 'NOT' + Date.now(),
             title: '📢 ' + title,
             message: 'Target: ' + phone + '\n\n' + bodyText, 
-            date: dateString,
-            isPersonal: true,
-            timestamp: Date.now() // Tracker for 24h Auto-Delete
+            date: dateString
         };
 
-        // STRICT FIX FOR MOBILE APP: Force overwrite the entire array so the newest notice stays at index 0
-        appData.notices.unshift(newNotice);
-        await safeWrite('notices', appData.notices);
+        const fbKey = await atomicPush('notices', newNotice);
+        if (fbKey) newNotice._fbKey = fbKey;
         
+        appData.notices.unshift(newNotice);
         syncLocalCache();
+        
         alert(`Push notification successfully routed via Firebase to ${student.name}!`);
         
         if (typeof renderBroadcastList === 'function') {
@@ -1238,7 +1322,7 @@ async function submitTuitionFee(e) {
     }
 }
 
-async function submitRegistration(e) {
+function submitRegistration(e) {
     e.preventDefault();
     const date = document.getElementById('reg-date').value; const name = document.getElementById('reg-name').value;
     const course = document.getElementById('reg-course').value; const feeType = document.getElementById('reg-feetype').value;
@@ -1248,7 +1332,7 @@ async function submitRegistration(e) {
     const duration = document.getElementById('reg-duration').value;
     const fileInput = document.getElementById('reg-image');
 
-    const finishReg = async function(base64Image) {
+    const finishReg = function(base64Image) {
         const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image, duration, parentPhone, batch);
         
         try {
@@ -1262,15 +1346,11 @@ async function submitRegistration(e) {
             let firstName = String(name || "").trim().split(/\s+/)[0];
             let regYear = date.length >= 4 ? date.substring(0, 4) : new Date().getFullYear().toString();
             let password = `EI${firstName}${regYear}`;
-            
-            // STRICT FIX: Await the creation process and alert if it fails.
-            await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
-            await secondaryApp.auth().signOut();
-            console.log(`Student Mobile Auth Created: Email: ${email} | Pass: ${password}`);
-
+            secondaryApp.auth().createUserWithEmailAndPassword(email, password).then(() => {
+                secondaryApp.auth().signOut();
+            }).catch(err => console.error("Auto-Auth creation failed:", err));
         } catch(e) {
             console.error("Auto-Auth execution error:", e);
-            alert(`Warning: The student was registered, but their mobile login failed to create.\nReason: ${e.message}`);
         }
 
         alert(`Success! ${name} registered securely.`); 
@@ -1646,7 +1726,6 @@ function submitEditTransaction(e) {
     tx.date = document.getElementById('edit-tx-date').value; tx.title = document.getElementById('edit-tx-title').value;
     tx.amount = parseFloat(document.getElementById('edit-tx-amount').value); tx.description = document.getElementById('edit-tx-desc').value;
     
-    // Manual Stats Update
     if(tx.type === 'income') appData.stats.income += diff;
     if(tx.type === 'expense') appData.stats.expense += diff;
     appData.stats.balance = appData.stats.income - appData.stats.expense;
@@ -2246,9 +2325,9 @@ function submitBroadcast(e) {
         date: dateString
     };
 
-    // STRICT FIX: The entire notices array is overwritten in Firebase to ensure the newest alert stays at index 0.
-    appData.notices.unshift(newNotice);
-    safeWrite('notices', appData.notices).then(() => {
+    atomicPush('notices', newNotice).then(fbKey => {
+        if (fbKey) newNotice._fbKey = fbKey;
+        appData.notices.unshift(newNotice);
         syncLocalCache();
         renderBroadcastList();
         e.target.reset();
@@ -2282,11 +2361,11 @@ function renderBroadcastList() {
 
 function deleteBroadcast(index) {
     if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
+    const notice = appData.notices[index];
     appData.notices.splice(index, 1);
-    safeWrite('notices', appData.notices).then(() => {
-        syncLocalCache();
-        renderBroadcastList();
-    });
+    atomicDeleteById('notices', notice.id, notice._fbKey);
+    syncLocalCache();
+    renderBroadcastList();
 }
 
 // =========================================
