@@ -58,35 +58,79 @@ const safeWrite = async (path, data) => {
     }
 };
 
+// =========================================================
+// 🛡️ ATOMIC FIREBASE HELPERS (Prevents Data Overwriting & Loss)
+// =========================================================
+const atomicPush = async (path, data) => {
+    try {
+        await firebase.database().ref(path).push(data);
+    } catch (err) {
+        console.error(`Atomic Push Error on ${path}:`, err);
+    }
+};
+
+const atomicUpdateById = async (path, id, newData) => {
+    try {
+        const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
+        if (snapshot.exists()) {
+            const updates = {};
+            snapshot.forEach(child => { updates[child.key] = newData; });
+            await firebase.database().ref(path).update(updates);
+        } else {
+            await firebase.database().ref(path).push(newData);
+        }
+    } catch (err) {
+        console.error(`Atomic Update Error on ${path}:`, err);
+    }
+};
+
+const atomicDeleteById = async (path, id) => {
+    try {
+        const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
+        if (snapshot.exists()) {
+            const updates = {};
+            snapshot.forEach(child => { updates[child.key] = null; });
+            await firebase.database().ref(path).update(updates);
+        }
+    } catch (err) {
+        console.error(`Atomic Delete Error on ${path}:`, err);
+    }
+};
+
 async function saveDatabase() {
     try {
         await Promise.all([
-            safeWrite('students', appData.students || []),
-            safeWrite('transactions', appData.transactions || []),
             safeWrite('stats', appData.stats || { income: 0, expense: 0, balance: 0 }),
-            safeWrite('files', appData.files || []),
-            safeWrite('materials', appData.materials || []),
-            safeWrite('notices', appData.notices || []),
             safeWrite('settings', appData.settings || {}),
-            safeWrite('seating', appData.seating || {}),
-            safeWrite('batch_requests', appData.batchRequests || [])
+            safeWrite('seating', appData.seating || {})
         ]);
+        // Note: Students, Transactions, Files, and Notices are now saved atomically 
+        // to prevent data loss, so we do not bulk overwrite them here anymore.
     } catch (error) {
         console.error("Critical Firebase Sync Error:", error);
     }
 }
 
 // =========================================================
-// 🔐 PURE FIREBASE AUTHENTICATION LOGIN
+// 🔐 PURE FIREBASE AUTHENTICATION LOGIN & PAGINATION
 // =========================================================
 
-// Enterprise safety wrapper for fetching to prevent full login crashes
 const safeFetch = async (path) => {
     try {
         return await firebase.database().ref(path).once('value');
     } catch (err) {
         console.warn(`⚠️ Warning: Could not read '${path}'. Check Firebase Rules.`, err.message);
-        return { val: () => null }; // Return an empty snapshot simulator
+        return { val: () => null }; 
+    }
+};
+
+// Paginated Fetch to prevent Browser Crash on scale
+const safeFetchLimit = async (path, limit) => {
+    try {
+        return await firebase.database().ref(path).orderByChild('date').limitToLast(limit).once('value');
+    } catch (err) {
+        console.warn(`⚠️ Warning: Could not read paginated '${path}'.`, err.message);
+        return { val: () => null };
     }
 };
 
@@ -109,14 +153,14 @@ async function handleLogin(e) {
         // 1. Authenticate with Firebase Server securely
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
-        // 2. Safely load nodes individually using the crash-proof wrapper
+        // 2. Safely load nodes individually using pagination for heavy nodes
         const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap, seatSnap, reqSnap] = await Promise.all([
             safeFetch('students'),
-            safeFetch('transactions'),
+            safeFetchLimit('transactions', 250), // Limited to recent 250 to prevent freezing
             safeFetch('stats'),
             safeFetch('files'),
             safeFetch('materials'),
-            safeFetch('notices'),
+            safeFetchLimit('notices', 100), // Limited to recent 100 alerts
             safeFetch('settings'),
             safeFetch('seating'),
             safeFetch('batch_requests')
@@ -179,20 +223,24 @@ async function runStudentAuthMigration() {
 
         let successCount = 0;
         let skipCount = 0;
+        
+        const generateSecurePassword = () => {
+            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$";
+            let pwd = "";
+            for(let i=0; i<8; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+            return pwd;
+        };
 
         for (let student of appData.students) {
             let phone = String(student.phone).trim();
             if(phone) {
                 let email = `${phone}@ei.com`;
-                let firstName = String(student.name || "").trim().split(/\s+/)[0];
-                let dateStr = student.date || "";
-                let regYear = dateStr.length >= 4 ? dateStr.substring(0, 4) : new Date().getFullYear().toString();
-                let password = `EI${firstName}${regYear}`;
+                let password = generateSecurePassword(); // Secure random password generated
                 
                 try {
                     await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
                     successCount++;
-                    console.log(`Created: ${email}`);
+                    console.log(`Created: ${email} | Secure Password: ${password}`); // Export these to share with students securely
                 } catch(e) {
                     if(e.code === 'auth/email-already-in-use') {
                         skipCount++;
@@ -203,7 +251,7 @@ async function runStudentAuthMigration() {
                 await secondaryApp.auth().signOut();
             }
         }
-        alert(`Migration Complete!\n✅ Accounts Created: ${successCount}\n⏭️ Already Existed (Skipped): ${skipCount}`);
+        alert(`Migration Complete!\n✅ Accounts Created: ${successCount}\n⏭️ Already Existed (Skipped): ${skipCount}\n\nCheck console for secure student passwords.`);
     } catch (err) {
         alert("Migration encountered an error: " + err.message);
     }
@@ -363,7 +411,6 @@ function shareTransactionWA(txId) {
 
 // =========================================================
 // 🔔 PURE FIREBASE NOTIFICATION ROUTING
-// Google Apps Script completely disconnected to prevent Google blocks
 // =========================================================
 async function sendCustomPushNotification() {
     const stId = document.getElementById('tuition-student-id').value;
@@ -401,7 +448,6 @@ async function sendCustomPushNotification() {
         const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
         const dateString = now.toLocaleString('en-IN', options).replace(/am/i, 'AM').replace(/pm/i, 'PM');
         
-        // Write the alert directly into Firebase Database targeted precisely at this student's phone number
         const newNotice = {
             id: 'NOT' + Date.now(),
             title: '📢 ' + title,
@@ -410,7 +456,7 @@ async function sendCustomPushNotification() {
         };
 
         appData.notices.unshift(newNotice);
-        await safeWrite('notices', appData.notices);
+        await atomicPush('notices', newNotice);
         
         alert(`Push notification successfully routed via Firebase to ${student.name}!`);
         
@@ -588,13 +634,7 @@ function showError(el) {
 function logout() { location.reload(); }
 
 function recalculateStats() {
-    appData.stats.income = 0;
-    appData.stats.expense = 0;
-    appData.transactions.forEach(tx => {
-        if(tx.type === 'income') appData.stats.income += parseFloat(tx.amount);
-        if(tx.type === 'expense') appData.stats.expense += parseFloat(tx.amount);
-    });
-    appData.stats.balance = appData.stats.income - appData.stats.expense;
+    // Deprecated: Stats are now updated atomically during transaction writes to support pagination safely.
 }
 
 function toggleBalanceVisibility() {
@@ -1105,9 +1145,9 @@ function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, ge
         parentPhone: parentPhone || "", batch: batchId || "Unassigned"
     };
     appData.students.unshift(newStudent);
-    safeWrite('students', appData.students);
     
     recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
+    atomicPush('students', newStudent);
     renderStudentList(); 
     return id;
 }
@@ -1116,11 +1156,16 @@ function recordTransaction(type, title, amount, dateStr, desc = "") {
     const newTx = { id: 'TXN' + Math.floor(Math.random() * 9000 + 1000), type: type, title: title, amount: parseFloat(amount), date: dateStr, description: desc };
     appData.transactions.push(newTx);
     appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
-    recalculateStats(); 
     
-    safeWrite('transactions', appData.transactions);
+    // Manual stat increment
+    appData.stats.income = parseFloat(appData.stats.income || 0);
+    appData.stats.expense = parseFloat(appData.stats.expense || 0);
+    if(type === 'income') appData.stats.income += parseFloat(amount);
+    if(type === 'expense') appData.stats.expense += parseFloat(amount);
+    appData.stats.balance = appData.stats.income - appData.stats.expense;
+    
+    atomicPush('transactions', newTx);
     safeWrite('stats', appData.stats);
-    
     refreshAllUI(); 
 }
 
@@ -1489,9 +1534,11 @@ function submitEditStudent(e) {
 
 function finalizeEdit(student) { 
     closeEditModal(); 
-    recalculateStats(); 
-    safeWrite('students', appData.students);
-    safeWrite('transactions', appData.transactions);
+    atomicUpdateById('students', student.id, student);
+    
+    let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${student.id}]`));
+    studentTxs.forEach(tx => atomicUpdateById('transactions', tx.id, tx));
+
     refreshAllUI(); 
     alert("Profile updated successfully!"); 
 }
@@ -1558,11 +1605,20 @@ function submitEditTransaction(e) {
     e.preventDefault();
     const txId = document.getElementById('edit-tx-id').value; const tx = appData.transactions.find(t => t.id === txId);
     if(!tx) return;
+    
+    const diff = parseFloat(document.getElementById('edit-tx-amount').value) - parseFloat(tx.amount);
+    
     tx.date = document.getElementById('edit-tx-date').value; tx.title = document.getElementById('edit-tx-title').value;
     tx.amount = parseFloat(document.getElementById('edit-tx-amount').value); tx.description = document.getElementById('edit-tx-desc').value;
-    recalculateStats(); 
-    safeWrite('transactions', appData.transactions);
+    
+    // Manual Stats Update
+    if(tx.type === 'income') appData.stats.income += diff;
+    if(tx.type === 'expense') appData.stats.expense += diff;
+    appData.stats.balance = appData.stats.income - appData.stats.expense;
+
+    atomicUpdateById('transactions', txId, tx);
     safeWrite('stats', appData.stats);
+    
     refreshAllUI(); closeEditTransactionModal(); alert("Record updated successfully!");
 }
 
@@ -1599,7 +1655,11 @@ async function executeDelete() {
         errorMsg.classList.add('hidden'); 
         btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
         
-        await firebase.auth().signInWithEmailAndPassword('admin@ei.com', pass);
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) throw new Error("Authentication session expired.");
+        
+        const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, pass);
+        await currentUser.reauthenticateWithCredential(credential);
         
         btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
 
@@ -1607,6 +1667,11 @@ async function executeDelete() {
             if(isStudent) {
                 const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
                 if(student) {
+                    atomicDeleteById('students', stId);
+                    
+                    let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${stId}]`));
+                    studentTxs.forEach(tx => atomicDeleteById('transactions', tx.id));
+                    
                     appData.students = appData.students.filter(s => s.id !== stId);
                     appData.transactions = appData.transactions.filter(tx => {
                         let title = String(tx.title || "");
@@ -1620,10 +1685,18 @@ async function executeDelete() {
                 if(txIndex !== -1) {
                     const tx = appData.transactions[txIndex];
                     let title = String(tx.title || "");
+                    
+                    if(tx.type === 'income') appData.stats.income -= parseFloat(tx.amount);
+                    if(tx.type === 'expense') appData.stats.expense -= parseFloat(tx.amount);
+                    appData.stats.balance = appData.stats.income - appData.stats.expense;
+
+                    atomicDeleteById('transactions', txId);
+                    
                     if (title.includes('Tuition') || title.includes('Admission') || title.includes('Advance')) {
                         appData.students.forEach(student => { 
-                            if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')))) { 
+                            if (tx.title.includes(`[${student.id}]`)) { 
                                 student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
+                                atomicUpdateById('students', student.id, student);
                             } 
                         });
                     }
@@ -1631,9 +1704,6 @@ async function executeDelete() {
                     alert("Record deleted successfully.");
                 }
             }
-            recalculateStats(); 
-            safeWrite('students', appData.students);
-            safeWrite('transactions', appData.transactions);
             safeWrite('stats', appData.stats);
             refreshAllUI(); 
             closeDeleteModal(); 
@@ -1662,7 +1732,7 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
     // You can manually duplicate them into the Public Vault (materials) later using the checkbox tool.
     if (!appData.files) appData.files = [];
     appData.files.push(newFile);
-    safeWrite('files', appData.files);
+    atomicPush('files', newFile);
 
     if(callback) {
         callback();
@@ -1977,22 +2047,16 @@ async function duplicateSelectedFiles() {
             if (isMaterial) {
                 if (!appData.files) appData.files = [];
                 appData.files.push(clonedFile);
-                filesUpdated = true;
+                atomicPush('files', clonedFile); // NEW
             } else {
                 if (!appData.materials) appData.materials = [];
                 appData.materials.push(clonedFile);
-                materialsUpdated = true;
+                atomicPush('materials', clonedFile); // NEW
             }
         }
     });
 
     try {
-        const promises = [];
-        if (filesUpdated) promises.push(safeWrite('files', appData.files));
-        if (materialsUpdated) promises.push(safeWrite('materials', appData.materials));
-        
-        await Promise.all(promises);
-        
         alert("Files duplicated successfully! You can easily filter by Guest/Private to view the newly created links.");
         
         const masterCb = document.getElementById('selectAllHubFiles');
@@ -2064,7 +2128,7 @@ async function submitEditFile(e) {
         if(file.filename !== undefined) file.filename = newName;
         if(file.course !== undefined) file.course = newFolder;
 
-        await safeWrite(categoryNode, fileList);
+        await atomicUpdateById(categoryNode, id, file);
 
         alert("File details updated successfully!");
         closeEditFileModal();
@@ -2094,10 +2158,10 @@ function deleteHubFile(path, fileId, sourceNode) {
 function _removeFileFromDatabase(fileId, sourceNode) {
     if (sourceNode === 'materials') {
         appData.materials = appData.materials.filter(f => f.id !== fileId);
-        safeWrite('materials', appData.materials);
+        atomicDeleteById('materials', fileId);
     } else {
         appData.files = appData.files.filter(f => f.id !== fileId);
-        safeWrite('files', appData.files);
+        atomicDeleteById('files', fileId);
     }
     renderHubFiles();
 }
@@ -2125,7 +2189,7 @@ function submitBroadcast(e) {
     };
 
     appData.notices.unshift(newNotice);
-    safeWrite('notices', appData.notices);
+    atomicPush('notices', newNotice);
     
     renderBroadcastList();
     e.target.reset();
@@ -2158,8 +2222,9 @@ function renderBroadcastList() {
 
 function deleteBroadcast(index) {
     if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
+    const noticeId = appData.notices[index].id;
     appData.notices.splice(index, 1);
-    safeWrite('notices', appData.notices);
+    atomicDeleteById('notices', noticeId);
     renderBroadcastList();
 }
 
@@ -2401,11 +2466,12 @@ async function saveSeatingArrangement() {
     });
 
     try {
-        // Save both the newly formatted Seating Node and the Students array
-        await Promise.all([
-            safeWrite('seating', appData.seating),
-            safeWrite('students', appData.students)
-        ]);
+        await safeWrite('seating', appData.seating);
+        appData.students.forEach(st => {
+            if (st.batch === batch || oldSeatedIds.includes(st.id)) {
+                atomicUpdateById('students', st.id, st);
+            }
+        });
         alert(`Seating layout for ${batch} Batch saved successfully!`);
         filterSeatingStudents();
     } catch(e) {
@@ -2463,10 +2529,10 @@ async function approveBatchRequest(reqId) {
     
     if(st) {
         st.batch = req.requestedBatch;
-        await safeWrite('students', appData.students);
+        await atomicUpdateById('students', st.id, st);
     }
     req.status = 'Approved';
-    await safeWrite('batch_requests', appData.batchRequests);
+    await atomicUpdateById('batch_requests', req.id, req);
     
     alert(`Approved! ${st ? st.name : 'Student'} has been assigned to ${req.requestedBatch} Batch.`);
     renderBatchRequests();
@@ -2479,7 +2545,7 @@ async function rejectBatchRequest(reqId) {
     const req = appData.batchRequests.find(r => r.id === reqId);
     if(!req) return;
     req.status = 'Rejected';
-    await safeWrite('batch_requests', appData.batchRequests);
+    await atomicUpdateById('batch_requests', req.id, req);
     alert(`Request rejected.`);
     renderBatchRequests();
 }
