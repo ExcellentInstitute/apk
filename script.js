@@ -88,9 +88,12 @@ const atomicDeleteById = async (path, id) => {
     try {
         const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
         if (snapshot.exists()) {
-            const updates = {};
-            snapshot.forEach(child => { updates[child.key] = null; });
-            await firebase.database().ref(path).update(updates);
+            // SECURE FIX: Explicitly remove the child node to guarantee deletion on Firebase Realtime DB
+            const promises = [];
+            snapshot.forEach(child => { 
+                promises.push(firebase.database().ref(path + '/' + child.key).remove()); 
+            });
+            await Promise.all(promises);
         }
     } catch (err) {
         console.error(`Atomic Delete Error on ${path}:`, err);
@@ -1441,7 +1444,7 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
         listEl.innerHTML += `
             <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
                 <div class="flex items-center space-x-4">
-                    <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
+                    <div class="w-12 h-12 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
                     <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${String(tx.title || "").replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
@@ -2277,7 +2280,7 @@ function renderSeatingLayout() {
     // Generate 10 Theory Dropzones
     for(let i=1; i<=10; i++) {
         theoryContainer.innerHTML += `
-            <div id="theory-seat-${i}" class="h-20 bg-indigo-50/50 border-2 border-dashed border-indigo-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'theory-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+            <div id="theory-seat-${i}" class="h-14 sm:h-16 bg-indigo-50/50 border-2 border-dashed border-indigo-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'theory-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
                 <span class="absolute top-1 left-2 text-[9px] font-bold text-indigo-300 pointer-events-none">T-${i}</span>
             </div>`;
     }
@@ -2285,7 +2288,7 @@ function renderSeatingLayout() {
     // Generate 10 Lab Dropzones
     for(let i=1; i<=10; i++) {
         labContainer.innerHTML += `
-            <div id="practical-seat-${i}" class="h-20 bg-emerald-50/50 border-2 border-dashed border-emerald-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'practical-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+            <div id="practical-seat-${i}" class="h-14 sm:h-16 bg-emerald-50/50 border-2 border-dashed border-emerald-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'practical-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
                 <span class="absolute top-1 left-2 text-[9px] font-bold text-emerald-300 pointer-events-none">L-${i}</span>
             </div>`;
     }
