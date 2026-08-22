@@ -88,12 +88,9 @@ const atomicDeleteById = async (path, id) => {
     try {
         const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
         if (snapshot.exists()) {
-            // SECURE FIX: Explicitly remove the child node to guarantee deletion on Firebase Realtime DB
-            const promises = [];
-            snapshot.forEach(child => { 
-                promises.push(firebase.database().ref(path + '/' + child.key).remove()); 
-            });
-            await Promise.all(promises);
+            const updates = {};
+            snapshot.forEach(child => { updates[child.key] = null; });
+            await firebase.database().ref(path).update(updates);
         }
     } catch (err) {
         console.error(`Atomic Delete Error on ${path}:`, err);
@@ -156,34 +153,7 @@ async function handleLogin(e) {
         // 1. Authenticate with Firebase Server securely
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
-        // ====================================================================
-        // 🚀 NEW: CACHE-FIRST INSTANT LOGIN (Fixes slow login times)
-        // Loads previously saved data instantly so you don't wait for heavy files.
-        // ====================================================================
-        const cachedData = localStorage.getItem('excellentERP_Database');
-        if (cachedData) {
-            try {
-                appData = JSON.parse(cachedData);
-                sessionPassword = pass;
-                setDefaultDates();
-                refreshAllUI();
-                
-                document.getElementById('login-screen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('app-screen').classList.remove('hidden');
-                    document.getElementById('app-screen').classList.add('flex');
-                    document.getElementById('password').value = '';
-                    btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
-                    document.getElementById('login-screen').style.opacity = '1';
-                }, 500);
-            } catch(e) { console.warn("Cache load failed", e); }
-        }
-
-        if (!cachedData) {
-            btnText.innerHTML = '<i class="fa-solid fa-cloud-arrow-down fa-bounce mr-2"></i> Downloading Secure Vault...';
-        }
-
+        /* --- OLD LOGIC COMMENTED OUT FOR SAFETY ---
         // 2. Safely load nodes individually using pagination for heavy nodes
         const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap, seatSnap, reqSnap] = await Promise.all([
             safeFetch('students'),
@@ -208,6 +178,21 @@ async function handleLogin(e) {
             seating: seatSnap.val() || {},
             batchRequests: parseFbList(reqSnap.val())
         };
+        ------------------------------------------ */
+
+        // +++ NEW: STAGED BACKGROUND LOADING +++
+        // Stage 1: Critical UI Data ONLY (Instant Unlock)
+        const [stSnap, txSnap, statSnap, setSnap] = await Promise.all([
+            safeFetch('students'),
+            safeFetchLimit('transactions', 250), 
+            safeFetch('stats'),
+            safeFetch('settings')
+        ]);
+        
+        appData.students = parseFbList(stSnap.val());
+        appData.transactions = parseFbList(txSnap.val());
+        appData.stats = statSnap.val() || { income: 0, expense: 0, balance: 0 };
+        appData.settings = setSnap.val() || {};
 
         sessionPassword = pass; 
         
@@ -220,19 +205,44 @@ async function handleLogin(e) {
         setDefaultDates();
         refreshAllUI();
         
-        if (!cachedData) {
-            document.getElementById('login-screen').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('app-screen').classList.remove('hidden');
-                document.getElementById('app-screen').classList.add('flex');
-                document.getElementById('password').value = '';
-                btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
-                document.getElementById('login-screen').style.opacity = '1';
-            }, 500);
-        } else {
-            console.log("Background cloud sync complete. Live data is now active.");
-        }
+        document.getElementById('login-screen').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('flex');
+            document.getElementById('password').value = '';
+            btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+            document.getElementById('login-screen').style.opacity = '1';
+        }, 500);
+
+        // Stage 2: Background Data Load (Does not block login)
+        Promise.all([
+            safeFetch('files'),
+            safeFetch('materials'),
+            safeFetchLimit('notices', 100),
+            safeFetch('seating'),
+            safeFetch('batch_requests')
+        ]).then(([flSnap, matSnap, notSnap, seatSnap, reqSnap]) => {
+            appData.files = parseFbList(flSnap.val());
+            appData.materials = parseFbList(matSnap.val());
+            appData.notices = parseFbList(notSnap.val());
+            appData.seating = seatSnap.val() || {};
+            appData.batchRequests = parseFbList(reqSnap.val());
+            
+            // Refresh specific modules once loaded
+            renderHubFiles();
+            renderBroadcastList();
+            renderSeatingLayout();
+            renderBatchRequests();
+            
+            // If the admin already clicked a student before background finished, refresh the docs!
+            const activeId = document.getElementById('tuition-student-id').value;
+            if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
+                renderStudentFiles(activeId);
+            }
+            console.log("Background stage 2 data loaded successfully.");
+        }).catch(err => console.error("Background sync error:", err));
+        // +++ END NEW STAGED LOADING +++
 
     } catch(err) {
         console.error("Login System Error:", err);
@@ -1205,6 +1215,24 @@ function recordTransaction(type, title, amount, dateStr, desc = "") {
     refreshAllUI(); 
 }
 
+function submitTuitionFee(e) {
+    e.preventDefault();
+    const stId = document.getElementById('tuition-student-id').value; const date = document.getElementById('tuition-date').value;
+    const feeCategory = document.getElementById('tuition-feetype-select').value; const desc = document.getElementById('tuition-desc').value;
+    const amount = parseFloat(document.getElementById('tuition-amount').value);
+    let student = appData.students.find(s => s.id === stId);
+    if(student) {
+        if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
+        const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
+        recordTransaction("income", `${finalDesc} - ${student.name} [${student.id}]`, amount, date);
+        
+        // NEW: Lock the updated paid fee directly to Firebase to prevent rollback
+        atomicUpdateById('students', student.id, student);
+
+        alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
+    }
+}
+
 function submitRegistration(e) {
     e.preventDefault();
     const date = document.getElementById('reg-date').value; const name = document.getElementById('reg-name').value;
@@ -1444,7 +1472,7 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
         listEl.innerHTML += `
             <div class="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 mb-3 gap-4">
                 <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
+                    <div class="w-14 h-14 rounded-2xl bg-${colorClass}-50 text-${colorClass}-600 flex items-center justify-center text-2xl shadow-inner border border-${colorClass}-100 shrink-0"><i class="${iconClass}"></i></div>
                     <div><h4 class="font-extrabold text-slate-800 text-sm md:text-base">${String(tx.title || "").replace(titleReplace, '').replace(/ \[STU.*\]/, '')}</h4><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">${tx.date} ${tx.description ? '• ' + tx.description : ''}</p></div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-4 self-end sm:self-auto">
@@ -1577,45 +1605,6 @@ function finalizeEdit(student) {
 
     refreshAllUI(); 
     alert("Profile updated successfully!"); 
-}
-
-function submitTuitionFee(e) {
-    e.preventDefault();
-    const stId = document.getElementById('tuition-student-id').value; const date = document.getElementById('tuition-date').value;
-    const feeCategory = document.getElementById('tuition-feetype-select').value; const desc = document.getElementById('tuition-desc').value;
-    const amount = parseFloat(document.getElementById('tuition-amount').value);
-    let student = appData.students.find(s => s.id === stId);
-    if(student) {
-        if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
-        const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
-        recordTransaction("income", `${finalDesc} - ${student.name} [${student.id}]`, amount, date);
-        alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
-    }
-}
-
-function submitJobApp(e) {
-    e.preventDefault();
-    const date = document.getElementById('job-date').value; const name = document.getElementById('job-name').value;
-    const post = document.getElementById('job-post').value; const amount = document.getElementById('job-amount').value;
-    recordTransaction("income", `Job Desk: ${name}`, amount, date, post);
-    e.target.reset(); setDefaultDates();
-}
-
-function submitPrintIncome(e) {
-    e.preventDefault();
-    const date = document.getElementById('print-date').value; const service = document.getElementById('print-service').value;
-    const desc = document.getElementById('print-desc').value; const amount = document.getElementById('print-amount').value;
-    recordTransaction("income", `Print Desk: ${service}`, amount, date, desc);
-    e.target.reset(); setDefaultDates();
-}
-
-function submitExpense(e) {
-    e.preventDefault();
-    const date = document.getElementById('exp-date').value; const category = document.getElementById('exp-category').value;
-    const amount = document.getElementById('exp-amount').value; const desc = document.getElementById('exp-desc').value;
-    if(parseFloat(amount) > appData.stats.balance && !confirm("Expense is greater than balance. Proceed?")) return;
-    recordTransaction("expense", category, amount, date, desc);
-    e.target.reset(); setDefaultDates();
 }
 
 function openEditTransactionModal(txId) {
@@ -1950,7 +1939,8 @@ function renderStudentFiles(stId) {
                     <a href="${f.url || f.file}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name || f.filename || 'Document'}</a>
                 </td>
                 <td class="py-3 px-2 text-center">
-                    <button type="button" onclick="deleteStudentFile('${f.path}', '${f.id}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Document"><i class="fa-solid fa-trash"></i></button>
+                    <!-- NEW: FIXED BROKEN DELETE BUTTON -->
+                    <button type="button" onclick="deleteHubFile('${f.path || ''}', '${f.id}', 'files')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Document"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
         `;
@@ -2280,7 +2270,7 @@ function renderSeatingLayout() {
     // Generate 10 Theory Dropzones
     for(let i=1; i<=10; i++) {
         theoryContainer.innerHTML += `
-            <div id="theory-seat-${i}" class="h-14 sm:h-16 bg-indigo-50/50 border-2 border-dashed border-indigo-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'theory-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+            <div id="theory-seat-${i}" class="h-20 bg-indigo-50/50 border-2 border-dashed border-indigo-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'theory-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
                 <span class="absolute top-1 left-2 text-[9px] font-bold text-indigo-300 pointer-events-none">T-${i}</span>
             </div>`;
     }
@@ -2288,7 +2278,7 @@ function renderSeatingLayout() {
     // Generate 10 Lab Dropzones
     for(let i=1; i<=10; i++) {
         labContainer.innerHTML += `
-            <div id="practical-seat-${i}" class="h-14 sm:h-16 bg-emerald-50/50 border-2 border-dashed border-emerald-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'practical-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+            <div id="practical-seat-${i}" class="h-20 bg-emerald-50/50 border-2 border-dashed border-emerald-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'practical-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
                 <span class="absolute top-1 left-2 text-[9px] font-bold text-emerald-300 pointer-events-none">L-${i}</span>
             </div>`;
     }
