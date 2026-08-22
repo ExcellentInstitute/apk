@@ -37,12 +37,21 @@ window.onload = function() {
 };
 
 // =========================================================
-// 🛡️ DATA SANITIZER (PREVENTS FIREBASE OBJECT/ARRAY CRASHES)
+// 🛡️ DATA SANITIZER & GLOBAL CACHE SYNC
 // =========================================================
 function parseFbList(data) {
     if (!data) return [];
     if (Array.isArray(data)) return data.filter(e => e !== null);
     return Object.values(data).filter(e => e !== null);
+}
+
+// 🚀 NEW: Universal Cache Synchronizer
+// Ensures that every local change instantly overrides the cache 
+// so you never see "ghost" or stale data when refreshing the page.
+function syncLocalCache() {
+    if (appData.students.length > 0 || appData.transactions.length > 0) {
+        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+    }
 }
 
 // =========================================================
@@ -106,6 +115,7 @@ async function saveDatabase() {
         ]);
         // Note: Students, Transactions, Files, and Notices are now saved atomically 
         // to prevent data loss, so we do not bulk overwrite them here anymore.
+        syncLocalCache(); // Lock to cache immediately
     } catch (error) {
         console.error("Critical Firebase Sync Error:", error);
     }
@@ -248,9 +258,7 @@ async function handleLogin(e) {
         // +++ CRITICAL CACHE FIX +++
         // Only overwrite the local cache if we ACTUALLY received data from Firebase.
         // Prevents the "Silent Cache Wipe" bug.
-        if (appData.students.length > 0 || appData.transactions.length > 0) {
-            localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-        }
+        syncLocalCache();
         
         setDefaultDates();
         refreshAllUI();
@@ -284,9 +292,7 @@ async function handleLogin(e) {
             appData.batchRequests = parseFbList(reqSnap.val());
             
             // +++ CRITICAL CACHE FIX FOR BACKGROUND DATA +++
-            if (appData.students.length > 0 || appData.transactions.length > 0) {
-                localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
-            }
+            syncLocalCache();
 
             // Refresh specific modules once loaded
             renderHubFiles();
@@ -388,6 +394,7 @@ async function runFileMigration() {
             safeWrite('materials', appData.materials.length > 0 ? appData.materials : null)
         ]);
         
+        syncLocalCache();
         renderHubFiles();
         alert("File Migration Complete! Database successfully split into two secure vaults.");
     } catch(e) {
@@ -562,6 +569,7 @@ async function sendCustomPushNotification() {
 
         appData.notices.unshift(newNotice);
         await atomicPush('notices', newNotice);
+        syncLocalCache();
         
         alert(`Push notification successfully routed via Firebase to ${student.name}!`);
         
@@ -906,6 +914,7 @@ function submitSettings(e) {
     // Pure Firebase Save with Graceful Wrapper
     safeWrite('settings', appData.settings).then(() => {
         btn.innerHTML = 'Save Configuration';
+        syncLocalCache();
         alert("Settings Saved Successfully to Cloud!");
     });
 }
@@ -1253,6 +1262,7 @@ function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, ge
     
     recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
     atomicPush('students', newStudent);
+    syncLocalCache();
     renderStudentList(); 
     return id;
 }
@@ -1271,6 +1281,7 @@ function recordTransaction(type, title, amount, dateStr, desc = "") {
     
     atomicPush('transactions', newTx);
     safeWrite('stats', appData.stats);
+    syncLocalCache();
     refreshAllUI(); 
 }
 
@@ -1287,6 +1298,7 @@ function submitTuitionFee(e) {
         
         // NEW: Lock the updated paid fee directly to Firebase to prevent rollback
         atomicUpdateById('students', student.id, student);
+        syncLocalCache();
 
         alert(`₹${amount} recorded for ${student.name}!`); e.target.reset(); setDefaultDates(); selectStudent(stId); 
     }
@@ -1662,6 +1674,7 @@ function finalizeEdit(student) {
     let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${student.id}]`));
     studentTxs.forEach(tx => atomicUpdateById('transactions', tx.id, tx));
 
+    syncLocalCache();
     refreshAllUI(); 
     alert("Profile updated successfully!"); 
 }
@@ -1703,6 +1716,7 @@ function submitEditTransaction(e) {
     atomicUpdateById('transactions', txId, tx);
     safeWrite('stats', appData.stats);
     
+    syncLocalCache();
     refreshAllUI(); closeEditTransactionModal(); alert("Record updated successfully!");
 }
 
@@ -1789,6 +1803,7 @@ async function executeDelete() {
                 }
             }
             safeWrite('stats', appData.stats);
+            syncLocalCache();
             refreshAllUI(); 
             closeDeleteModal(); 
             btnText.innerHTML = 'Confirm Delete';
@@ -1817,6 +1832,7 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
     if (!appData.files) appData.files = [];
     appData.files.push(newFile);
     atomicPush('files', newFile);
+    syncLocalCache();
 
     if(callback) {
         callback();
@@ -1998,7 +2014,6 @@ function renderStudentFiles(stId) {
                     <a href="${f.url || f.file}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name || f.filename || 'Document'}</a>
                 </td>
                 <td class="py-3 px-2 text-center">
-                    <!-- NEW: FIXED BROKEN DELETE BUTTON -->
                     <button type="button" onclick="deleteHubFile('${f.path || ''}', '${f.id}', 'files')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Document"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -2006,7 +2021,6 @@ function renderStudentFiles(stId) {
     });
 }
 
-// 🆕 UPDATED: Checkboxes, Granular Control, and Separation of Vaults
 function renderHubFiles() {
     const listEl = document.getElementById('hub-files-list');
     if(!listEl) return;
@@ -2096,7 +2110,6 @@ function toggleAllHubFiles(source) {
     checkboxes.forEach(cb => cb.checked = source.checked);
 }
 
-// 🆕 NEW: Duplicates selected files to the opposite Database Node (Migrate/Copy)
 async function duplicateSelectedFiles() {
     const checkboxes = document.querySelectorAll('.hub-file-checkbox:checked');
     if (checkboxes.length === 0) {
@@ -2142,6 +2155,7 @@ async function duplicateSelectedFiles() {
     });
 
     try {
+        syncLocalCache();
         alert("Files duplicated successfully! You can easily filter by Guest/Private to view the newly created links.");
         
         const masterCb = document.getElementById('selectAllHubFiles');
@@ -2214,6 +2228,7 @@ async function submitEditFile(e) {
         if(file.course !== undefined) file.course = newFolder;
 
         await atomicUpdateById(categoryNode, id, file);
+        syncLocalCache();
 
         alert("File details updated successfully!");
         closeEditFileModal();
@@ -2221,7 +2236,6 @@ async function submitEditFile(e) {
     }
 }
 
-// 🆕 UPDATED: Explicitly targets the correct array for deletion
 function deleteHubFile(path, fileId, sourceNode) {
     if(!confirm("Are you sure you want to delete this file from the hub?")) return;
     
@@ -2248,6 +2262,7 @@ function _removeFileFromDatabase(fileId, sourceNode) {
         appData.files = appData.files.filter(f => f.id !== fileId);
         atomicDeleteById('files', fileId);
     }
+    syncLocalCache();
     renderHubFiles();
 }
 
@@ -2275,6 +2290,7 @@ function submitBroadcast(e) {
 
     appData.notices.unshift(newNotice);
     atomicPush('notices', newNotice);
+    syncLocalCache();
     
     renderBroadcastList();
     e.target.reset();
@@ -2310,6 +2326,7 @@ function deleteBroadcast(index) {
     const noticeId = appData.notices[index].id;
     appData.notices.splice(index, 1);
     atomicDeleteById('notices', noticeId);
+    syncLocalCache();
     renderBroadcastList();
 }
 
@@ -2322,6 +2339,10 @@ function renderSeatingLayout() {
     const labContainer = document.getElementById('practical-room-seats');
     
     if(!theoryContainer || !labContainer) return;
+
+    // 🚀 NEW: Overrides the Tailwind stretching flex rules to pack seats tightly together
+    theoryContainer.classList.add('content-start');
+    labContainer.classList.add('content-start');
 
     theoryContainer.innerHTML = '';
     labContainer.innerHTML = '';
@@ -2492,7 +2513,6 @@ function removeStudentFromSeat(btn, stId) {
     }
 }
 
-// 🆕 FIXED: Complete Synchronization engine for Timetable/Batch Assignments
 async function saveSeatingArrangement() {
     const batch = document.getElementById('active-seating-batch').value;
     if(!appData.seating) appData.seating = {};
@@ -2557,6 +2577,7 @@ async function saveSeatingArrangement() {
                 atomicUpdateById('students', st.id, st);
             }
         });
+        syncLocalCache();
         alert(`Seating layout for ${batch} Batch saved successfully!`);
         filterSeatingStudents();
     } catch(e) {
@@ -2619,6 +2640,8 @@ async function approveBatchRequest(reqId) {
     req.status = 'Approved';
     await atomicUpdateById('batch_requests', req.id, req);
     
+    syncLocalCache();
+    
     alert(`Approved! ${st ? st.name : 'Student'} has been assigned to ${req.requestedBatch} Batch.`);
     renderBatchRequests();
     filterSeatingStudents();
@@ -2631,6 +2654,9 @@ async function rejectBatchRequest(reqId) {
     if(!req) return;
     req.status = 'Rejected';
     await atomicUpdateById('batch_requests', req.id, req);
+    
+    syncLocalCache();
+
     alert(`Request rejected.`);
     renderBatchRequests();
 }
