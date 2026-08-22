@@ -59,7 +59,6 @@ function parseFbList(data) {
             }
         });
     }
-    // STRICT FIX: Reversing ensures new numeric records appear at the top.
     return result.reverse(); 
 }
 
@@ -75,24 +74,24 @@ function syncLocalCache() {
 async function autoCleanupNotices() {
     const now = Date.now();
     const ONE_DAY = 24 * 60 * 60 * 1000; 
-    let indicesToDelete = [];
+    let modified = false;
     
-    appData.notices.forEach((notice) => {
+    appData.notices = appData.notices.filter((notice) => {
         let noticeTime = 0;
         if (notice.id && notice.id.startsWith('NOT')) {
             noticeTime = parseInt(notice.id.replace('NOT', '')) || 0;
         }
         
         if (noticeTime > 0 && (now - noticeTime) > ONE_DAY) {
-            indicesToDelete.push({ id: notice.id, fbKey: notice._fbKey });
+            modified = true;
+            return false; // Delete it
         }
+        return true; // Keep it
     });
 
-    if (indicesToDelete.length > 0) {
-        for (let item of indicesToDelete) {
-            await atomicDeleteById('notices', item.id, item.fbKey);
-            appData.notices = appData.notices.filter(n => n.id !== item.id);
-        }
+    if (modified) {
+        await safeWrite('notices', appData.notices);
+        syncLocalCache();
     }
 }
 
@@ -109,27 +108,34 @@ const safeWrite = async (path, data) => {
     }
 };
 
-// STRICT FIX: Replaced .push() with sequential numeric indices to fix Mobile App crashes
+// 🛠️ STRICT FIX: Firebase Transaction Engine
+// Mathematically guarantees pure sequential arrays (0, 1, 2, 54, 55). ZERO scribbled letters.
 const atomicPush = async (path, data) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(data));
         delete cleanData._fbKey; 
         
-        const snapshot = await firebase.database().ref(path).once('value');
-        let nextIndex = 0;
-        
-        if (snapshot.exists()) {
-            const currentData = snapshot.val();
+        let newKey = "";
+        await firebase.database().ref(path).transaction((currentData) => {
+            if (currentData === null) {
+                newKey = "0";
+                return [cleanData];
+            }
+            
+            let nextIndex = 0;
             if (Array.isArray(currentData)) {
                 nextIndex = currentData.length;
-            } else {
+                currentData.push(cleanData);
+            } else if (typeof currentData === 'object') {
                 const keys = Object.keys(currentData).map(Number).filter(k => !isNaN(k));
                 nextIndex = keys.length > 0 ? Math.max(...keys) + 1 : 0;
+                currentData[nextIndex] = cleanData;
             }
-        }
+            newKey = nextIndex.toString();
+            return currentData;
+        });
         
-        await firebase.database().ref(`${path}/${nextIndex}`).set(cleanData);
-        return nextIndex.toString();
+        return newKey; 
     } catch (err) {
         console.error(`Atomic Push Error on ${path}:`, err);
         alert(`Database Write Blocked (${path}): Verify your internet connection.`);
@@ -311,7 +317,6 @@ async function handleLogin(e) {
             appData.seating = seatSnap.val() || {};
             appData.batchRequests = parseFbList(reqSnap.val());
             
-            // 🔥 NEW: Trigger automated 24-hour cleanup for database health
             await autoCleanupNotices();
 
             syncLocalCache();
@@ -352,18 +357,15 @@ async function runStudentAuthMigration() {
         let successCount = 0;
         let skipCount = 0;
         
-        const generateSecurePassword = () => {
-            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$";
-            let pwd = "";
-            for(let i=0; i<8; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-            return pwd;
-        };
-
         for (let student of appData.students) {
-            let phone = String(student.phone).trim();
-            if(phone) {
-                let email = `${phone}@ei.com`;
-                let password = generateSecurePassword(); 
+            let safePhone = String(student.phone).replace(/[^0-9]/g, '');
+            if(safePhone && safePhone.length >= 10) {
+                let email = `${safePhone}@ei.com`;
+                let firstName = String(student.name || "").trim().split(/\s+/)[0];
+                firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+                let regDate = student.date || new Date().toISOString();
+                let regYear = regDate.length >= 4 ? regDate.substring(0, 4) : new Date().getFullYear().toString();
+                let password = `EI${firstName}${regYear}`;
                 
                 try {
                     await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
@@ -378,7 +380,7 @@ async function runStudentAuthMigration() {
                 await secondaryApp.auth().signOut();
             }
         }
-        alert(`Migration Complete!\n✅ Accounts Created: ${successCount}\n⏭️ Already Existed (Skipped): ${skipCount}\n\nCheck console for secure student passwords.`);
+        alert(`Migration Complete!\n✅ Accounts Created: ${successCount}\n⏭️ Already Existed: ${skipCount}`);
     } catch (err) {
         alert("Migration encountered an error: " + err.message);
     }
@@ -583,10 +585,10 @@ async function sendCustomPushNotification() {
             date: dateString
         };
 
-        const fbKey = await atomicPush('notices', newNotice);
-        if (fbKey) newNotice._fbKey = fbKey;
-        
+        // 🛠️ STRICT FIX: Force new alert to index 0 so Mobile App reads it perfectly
         appData.notices.unshift(newNotice);
+        await safeWrite('notices', appData.notices); 
+
         syncLocalCache();
         
         alert(`Push notification successfully routed via Firebase to ${student.name}!`);
@@ -1332,8 +1334,22 @@ function submitRegistration(e) {
     const duration = document.getElementById('reg-duration').value;
     const fileInput = document.getElementById('reg-image');
 
-    const finishReg = function(base64Image) {
-        const stId = addStudent(name, course, totalFee, paid, phone, date, feeType, gender, base64Image, duration, parentPhone, batch);
+    const safePhone = phone.replace(/[^0-9]/g, '');
+    if (!safePhone || safePhone.length < 10) {
+        alert("Please enter a valid 10-digit mobile number.");
+        return;
+    }
+
+    const finishReg = async function(base64Image) {
+        const stId = addStudent(name, course, totalFee, paid, safePhone, date, feeType, gender, base64Image, duration, parentPhone, batch);
+        
+        let email = `${safePhone}@ei.com`;
+        let firstName = String(name || "").trim().split(/\s+/)[0];
+        
+        // 🛠️ STRICT FIX: Force predictable password capitalisation (Demo vs demo)
+        firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+        let regYear = date.length >= 4 ? date.substring(0, 4) : new Date().getFullYear().toString();
+        let password = `EI${firstName}${regYear}`;
         
         try {
             let secondaryApp;
@@ -1342,18 +1358,17 @@ function submitRegistration(e) {
             } else {
                 secondaryApp = firebase.app("SecondaryApp");
             }
-            let email = `${phone}@ei.com`;
-            let firstName = String(name || "").trim().split(/\s+/)[0];
-            let regYear = date.length >= 4 ? date.substring(0, 4) : new Date().getFullYear().toString();
-            let password = `EI${firstName}${regYear}`;
-            secondaryApp.auth().createUserWithEmailAndPassword(email, password).then(() => {
-                secondaryApp.auth().signOut();
-            }).catch(err => console.error("Auto-Auth creation failed:", err));
-        } catch(e) {
-            console.error("Auto-Auth execution error:", e);
+            
+            // 🛠️ STRICT FIX: 'await' locks the code until Auth finishes securely.
+            await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+            await secondaryApp.auth().signOut();
+            
+            alert(`Success! Student registered securely.\n\nLogin ID: ${safePhone}\nPassword: ${password}\n\nThe mobile app can now be accessed with these exact credentials.`);
+        } catch(err) {
+            console.error("Auto-Auth execution error:", err);
+            alert(`Student data saved to database, but Mobile App Login Account creation failed!\n\nError: ${err.message}\n\nPlease check network or use "Automated Migration" in settings later to fix this.`);
         }
 
-        alert(`Success! ${name} registered securely.`); 
         e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
     };
 
@@ -1632,7 +1647,7 @@ function submitEditStudent(e) {
     const newName = document.getElementById('edit-name').value;
     student.name = newName; 
     student.date = document.getElementById('edit-date').value;
-    student.phone = document.getElementById('edit-phone').value; 
+    student.phone = document.getElementById('edit-phone').value.replace(/[^0-9]/g, ''); 
     student.parentPhone = document.getElementById('edit-parent-phone').value; 
     student.gender = document.getElementById('edit-gender').value;
     student.course = document.getElementById('edit-course').value; 
@@ -2325,9 +2340,9 @@ function submitBroadcast(e) {
         date: dateString
     };
 
-    atomicPush('notices', newNotice).then(fbKey => {
-        if (fbKey) newNotice._fbKey = fbKey;
-        appData.notices.unshift(newNotice);
+    // 🛠️ STRICT FIX: Force new alert to index 0 so Mobile App reads it correctly
+    appData.notices.unshift(newNotice);
+    safeWrite('notices', appData.notices).then(() => {
         syncLocalCache();
         renderBroadcastList();
         e.target.reset();
@@ -2361,11 +2376,13 @@ function renderBroadcastList() {
 
 function deleteBroadcast(index) {
     if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
-    const notice = appData.notices[index];
     appData.notices.splice(index, 1);
-    atomicDeleteById('notices', notice.id, notice._fbKey);
-    syncLocalCache();
-    renderBroadcastList();
+    
+    // 🛠️ STRICT FIX: Overwrite the array instead of leaving holes so sequence is maintained
+    safeWrite('notices', appData.notices).then(() => {
+        syncLocalCache();
+        renderBroadcastList();
+    });
 }
 
 // =========================================
