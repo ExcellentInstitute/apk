@@ -153,6 +153,51 @@ async function handleLogin(e) {
         // 1. Authenticate with Firebase Server securely
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
+        // ====================================================================
+        // 🛡️ NEW: FIREBASE WEBSOCKET AUTH BARRIER
+        // Forces the script to wait until the RTDB establishes an authenticated 
+        // connection to prevent "Permission Denied" errors and Cache Wipes.
+        // ====================================================================
+        await new Promise((resolve, reject) => {
+            const unsubscribe = firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    unsubscribe();
+                    // Add a 500ms delay to allow the WebSocket to attach the token
+                    setTimeout(resolve, 500);
+                } else {
+                    reject(new Error("Authentication token failed to propagate."));
+                }
+            });
+        });
+
+        // ====================================================================
+        // 🚀 NEW: CACHE-FIRST INSTANT LOGIN (Fixes slow login times)
+        // Loads previously saved data instantly so you don't wait for heavy files.
+        // ====================================================================
+        const cachedData = localStorage.getItem('excellentERP_Database');
+        if (cachedData) {
+            try {
+                appData = JSON.parse(cachedData);
+                sessionPassword = pass;
+                setDefaultDates();
+                refreshAllUI();
+                
+                document.getElementById('login-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app-screen').classList.remove('hidden');
+                    document.getElementById('app-screen').classList.add('flex');
+                    document.getElementById('password').value = '';
+                    btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+                    document.getElementById('login-screen').style.opacity = '1';
+                }, 500);
+            } catch(e) { console.warn("Cache load failed", e); }
+        }
+
+        if (!cachedData) {
+            btnText.innerHTML = '<i class="fa-solid fa-cloud-arrow-down fa-bounce mr-2"></i> Downloading Secure Vault...';
+        }
+
         /* --- OLD LOGIC COMMENTED OUT FOR SAFETY ---
         // 2. Safely load nodes individually using pagination for heavy nodes
         const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap, seatSnap, reqSnap] = await Promise.all([
@@ -200,20 +245,29 @@ async function handleLogin(e) {
         appData.transactions.forEach(tx => { if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000); });
         appData.students.forEach(st => { if(!st.id) st.id = 'STU' + Math.floor(Math.random() * 90000 + 10000); if(!st.status) st.status = 'Active'; });
 
-        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+        // +++ CRITICAL CACHE FIX +++
+        // Only overwrite the local cache if we ACTUALLY received data from Firebase.
+        // Prevents the "Silent Cache Wipe" bug.
+        if (appData.students.length > 0 || appData.transactions.length > 0) {
+            localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+        }
         
         setDefaultDates();
         refreshAllUI();
         
-        document.getElementById('login-screen').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            document.getElementById('app-screen').classList.add('flex');
-            document.getElementById('password').value = '';
-            btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
-            document.getElementById('login-screen').style.opacity = '1';
-        }, 500);
+        if (!cachedData) {
+            document.getElementById('login-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                document.getElementById('app-screen').classList.add('flex');
+                document.getElementById('password').value = '';
+                btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+                document.getElementById('login-screen').style.opacity = '1';
+            }, 500);
+        } else {
+            console.log("Background cloud sync complete. Live data is now active.");
+        }
 
         // Stage 2: Background Data Load (Does not block login)
         Promise.all([
@@ -229,6 +283,11 @@ async function handleLogin(e) {
             appData.seating = seatSnap.val() || {};
             appData.batchRequests = parseFbList(reqSnap.val());
             
+            // +++ CRITICAL CACHE FIX FOR BACKGROUND DATA +++
+            if (appData.students.length > 0 || appData.transactions.length > 0) {
+                localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+            }
+
             // Refresh specific modules once loaded
             renderHubFiles();
             renderBroadcastList();
