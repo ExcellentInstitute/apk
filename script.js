@@ -59,8 +59,6 @@ function parseFbList(data) {
             }
         });
     }
-    // STRICT FIX: Reversing the array ensures newly registered students (with Push IDs) 
-    // are ALWAYS visible at the top of the database list.
     return result.reverse(); 
 }
 
@@ -88,9 +86,15 @@ const atomicPush = async (path, data) => {
         const cleanData = JSON.parse(JSON.stringify(data));
         delete cleanData._fbKey; 
         
-        const ref = firebase.database().ref(path).push();
-        await ref.set(cleanData);
-        return ref.key; 
+        // 🚀 CLEAN KEY FIX: Uses explicit ID (e.g., STU85566) instead of ugly scribbled letters
+        let keyToUse = cleanData.id;
+        if (!keyToUse) {
+            keyToUse = firebase.database().ref(path).push().key;
+            cleanData.id = keyToUse; 
+        }
+        
+        await firebase.database().ref(`${path}/${keyToUse}`).set(cleanData);
+        return keyToUse; 
     } catch (err) {
         console.error(`Atomic Push Error on ${path}:`, err);
         alert(`Database Write Blocked (${path}): Verify your internet connection.`);
@@ -103,19 +107,13 @@ const atomicUpdateById = async (path, id, newData) => {
         const cleanData = JSON.parse(JSON.stringify(newData));
         delete cleanData._fbKey; 
 
+        // Retains compatibility with legacy keys so old data isn't duplicated
         if (newData._fbKey) {
             await firebase.database().ref(`${path}/${newData._fbKey}`).set(cleanData);
             return;
         }
 
-        const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
-        if (snapshot.exists()) {
-            const updates = {};
-            snapshot.forEach(child => { updates[child.key] = cleanData; });
-            await firebase.database().ref(path).update(updates);
-        } else {
-            await firebase.database().ref(path).push(cleanData);
-        }
+        await firebase.database().ref(`${path}/${id}`).set(cleanData);
     } catch (err) {
         console.error(`Atomic Update Error on ${path}:`, err);
     }
@@ -133,6 +131,8 @@ const atomicDeleteById = async (path, id, fbKey = null) => {
             const updates = {};
             snapshot.forEach(child => { updates[child.key] = null; });
             await firebase.database().ref(path).update(updates);
+        } else {
+            await firebase.database().ref(`${path}/${id}`).remove();
         }
     } catch (err) {
         console.error(`Atomic Delete Error on ${path}:`, err);
@@ -502,9 +502,6 @@ async function sendCustomPushNotification() {
     const stId = document.getElementById('tuition-student-id').value;
     const student = appData.students.find(s => s.id === stId);
     if (!student) return;
-    
-    const phone = student.phone ? String(student.phone).trim() : "";
-    if(!phone) return alert("Cannot send notification: Student phone number is missing.");
 
     const metrics = calculateExactDues(student);
     let currentDue = metrics.currentMonthDue;
@@ -534,10 +531,11 @@ async function sendCustomPushNotification() {
         const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
         const dateString = now.toLocaleString('en-IN', options).replace(/am/i, 'AM').replace(/pm/i, 'PM');
         
+        // 🚀 TARGETING FIX: Always target via explicit ID to support dummy accounts without phones
         const newNotice = {
             id: 'NOT' + Date.now(),
             title: '📢 ' + title,
-            message: 'Target: ' + phone + '\n\n' + bodyText, 
+            message: 'Target: ' + student.id + '\n\n' + bodyText, 
             date: dateString
         };
 
@@ -558,6 +556,33 @@ async function sendCustomPushNotification() {
         alert("Network error while sending notification. Check your connection.");
     } finally {
         if(notifyBtn) notifyBtn.innerHTML = '<i class="fa-solid fa-bell text-xs"></i>';
+    }
+}
+
+// 🚀 SERVER AUTO-CLEANUP FIX: Purges 24-hour old personal notifications silently
+function cleanupOldPersonalNotifications() {
+    if (!appData.notices) return;
+    
+    const now = Date.now();
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    
+    let noticesUpdated = false;
+    
+    appData.notices = appData.notices.filter(notice => {
+        const isFeeAlert = notice.title && notice.title.includes('Pending Fee Alert');
+        if (isFeeAlert && notice.id && notice.id.startsWith('NOT')) {
+            const timestamp = parseInt(notice.id.replace('NOT', ''));
+            if (now - timestamp > ONE_DAY_MS) {
+                atomicDeleteById('notices', notice.id, notice._fbKey);
+                noticesUpdated = true;
+                return false; 
+            }
+        }
+        return true; 
+    });
+    
+    if (noticesUpdated) {
+        syncLocalCache();
     }
 }
 
@@ -756,6 +781,9 @@ function refreshAllUI() {
     renderAnalytics(); 
     checkDuesNotifications(); 
     populateSettings();
+    
+    // Purges old notices silently
+    cleanupOldPersonalNotifications();
     
     renderHubFiles();
     renderBroadcastList();
@@ -1230,7 +1258,6 @@ function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, ge
         parentPhone: parentPhone || "", batch: batchId || "Unassigned"
     };
     
-    // Save to Firebase FIRST
     atomicPush('students', newStudent).then(fbKey => {
         if (fbKey) newStudent._fbKey = fbKey;
         appData.students.unshift(newStudent);
@@ -1251,7 +1278,6 @@ async function recordTransaction(type, title, amount, dateStr, desc = "") {
     appData.transactions.push(newTx);
     appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
     
-    // Manual stat increment
     appData.stats.income = parseFloat(appData.stats.income || 0);
     appData.stats.expense = parseFloat(appData.stats.expense || 0);
     if(type === 'income') appData.stats.income += parseFloat(amount);
@@ -1686,7 +1712,6 @@ function submitEditTransaction(e) {
     tx.date = document.getElementById('edit-tx-date').value; tx.title = document.getElementById('edit-tx-title').value;
     tx.amount = parseFloat(document.getElementById('edit-tx-amount').value); tx.description = document.getElementById('edit-tx-desc').value;
     
-    // Manual Stats Update
     if(tx.type === 'income') appData.stats.income += diff;
     if(tx.type === 'expense') appData.stats.expense += diff;
     appData.stats.balance = appData.stats.income - appData.stats.expense;
