@@ -153,6 +153,34 @@ async function handleLogin(e) {
         // 1. Authenticate with Firebase Server securely
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
+        // ====================================================================
+        // 🚀 NEW: CACHE-FIRST INSTANT LOGIN (Fixes slow login times)
+        // Loads previously saved data instantly so you don't wait for heavy files.
+        // ====================================================================
+        const cachedData = localStorage.getItem('excellentERP_Database');
+        if (cachedData) {
+            try {
+                appData = JSON.parse(cachedData);
+                sessionPassword = pass;
+                setDefaultDates();
+                refreshAllUI();
+                
+                document.getElementById('login-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app-screen').classList.remove('hidden');
+                    document.getElementById('app-screen').classList.add('flex');
+                    document.getElementById('password').value = '';
+                    btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+                    document.getElementById('login-screen').style.opacity = '1';
+                }, 500);
+            } catch(e) { console.warn("Cache load failed", e); }
+        }
+
+        if (!cachedData) {
+            btnText.innerHTML = '<i class="fa-solid fa-cloud-arrow-down fa-bounce mr-2"></i> Downloading Secure Vault...';
+        }
+
         // 2. Safely load nodes individually using pagination for heavy nodes
         const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap, seatSnap, reqSnap] = await Promise.all([
             safeFetch('students'),
@@ -189,15 +217,19 @@ async function handleLogin(e) {
         setDefaultDates();
         refreshAllUI();
         
-        document.getElementById('login-screen').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            document.getElementById('app-screen').classList.add('flex');
-            document.getElementById('password').value = '';
-            btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
-            document.getElementById('login-screen').style.opacity = '1';
-        }, 500);
+        if (!cachedData) {
+            document.getElementById('login-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                document.getElementById('app-screen').classList.add('flex');
+                document.getElementById('password').value = '';
+                btnText.innerHTML = 'Secure Access <i class="fa-solid fa-arrow-right-to-bracket ml-3"></i>';
+                document.getElementById('login-screen').style.opacity = '1';
+            }, 500);
+        } else {
+            console.log("Background cloud sync complete. Live data is now active.");
+        }
 
     } catch(err) {
         console.error("Login System Error:", err);
