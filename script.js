@@ -45,9 +45,7 @@ function parseFbList(data) {
     return Object.values(data).filter(e => e !== null);
 }
 
-// 🚀 NEW: Universal Cache Synchronizer
-// Ensures that every local change instantly overrides the cache 
-// so you never see "ghost" or stale data when refreshing the page.
+// 🚀 Universal Cache Synchronizer
 function syncLocalCache() {
     if (appData.students.length > 0 || appData.transactions.length > 0) {
         localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
@@ -59,9 +57,11 @@ function syncLocalCache() {
 // =========================================================
 
 // Enterprise safety wrapper to prevent app crashes if a rule is missing
+// STRICT FIX: Added JSON sterilizer to strip 'undefined' variables which silently crash Firebase
 const safeWrite = async (path, data) => {
     try {
-        await firebase.database().ref(path).set(data);
+        const cleanData = JSON.parse(JSON.stringify(data));
+        await firebase.database().ref(path).set(cleanData);
     } catch (err) {
         console.warn(`⚠️ Warning: Could not write to '${path}'. Check Firebase Rules.`, err.message);
     }
@@ -70,23 +70,28 @@ const safeWrite = async (path, data) => {
 // =========================================================
 // 🛡️ ATOMIC FIREBASE HELPERS (Prevents Data Overwriting & Loss)
 // =========================================================
+
+// STRICT FIX: Added JSON sterilizer to guarantee Registration Sync success
 const atomicPush = async (path, data) => {
     try {
-        await firebase.database().ref(path).push(data);
+        const cleanData = JSON.parse(JSON.stringify(data));
+        await firebase.database().ref(path).push(cleanData);
     } catch (err) {
         console.error(`Atomic Push Error on ${path}:`, err);
     }
 };
 
+// STRICT FIX: Added JSON sterilizer to guarantee Edit Profile Sync success
 const atomicUpdateById = async (path, id, newData) => {
     try {
+        const cleanData = JSON.parse(JSON.stringify(newData));
         const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
         if (snapshot.exists()) {
             const updates = {};
-            snapshot.forEach(child => { updates[child.key] = newData; });
+            snapshot.forEach(child => { updates[child.key] = cleanData; });
             await firebase.database().ref(path).update(updates);
         } else {
-            await firebase.database().ref(path).push(newData);
+            await firebase.database().ref(path).push(cleanData);
         }
     } catch (err) {
         console.error(`Atomic Update Error on ${path}:`, err);
@@ -113,9 +118,7 @@ async function saveDatabase() {
             safeWrite('settings', appData.settings || {}),
             safeWrite('seating', appData.seating || {})
         ]);
-        // Note: Students, Transactions, Files, and Notices are now saved atomically 
-        // to prevent data loss, so we do not bulk overwrite them here anymore.
-        syncLocalCache(); // Lock to cache immediately
+        syncLocalCache(); 
     } catch (error) {
         console.error("Critical Firebase Sync Error:", error);
     }
@@ -164,15 +167,12 @@ async function handleLogin(e) {
         await firebase.auth().signInWithEmailAndPassword(email, pass);
 
         // ====================================================================
-        // 🛡️ NEW: FIREBASE WEBSOCKET AUTH BARRIER
-        // Forces the script to wait until the RTDB establishes an authenticated 
-        // connection to prevent "Permission Denied" errors and Cache Wipes.
+        // 🛡️ FIREBASE WEBSOCKET AUTH BARRIER
         // ====================================================================
         await new Promise((resolve, reject) => {
             const unsubscribe = firebase.auth().onAuthStateChanged(user => {
                 if (user) {
                     unsubscribe();
-                    // Add a 500ms delay to allow the WebSocket to attach the token
                     setTimeout(resolve, 500);
                 } else {
                     reject(new Error("Authentication token failed to propagate."));
@@ -181,8 +181,7 @@ async function handleLogin(e) {
         });
 
         // ====================================================================
-        // 🚀 NEW: CACHE-FIRST INSTANT LOGIN (Fixes slow login times)
-        // Loads previously saved data instantly so you don't wait for heavy files.
+        // 🚀 CACHE-FIRST INSTANT LOGIN (Fixes slow login times)
         // ====================================================================
         const cachedData = localStorage.getItem('excellentERP_Database');
         if (cachedData) {
@@ -208,34 +207,7 @@ async function handleLogin(e) {
             btnText.innerHTML = '<i class="fa-solid fa-cloud-arrow-down fa-bounce mr-2"></i> Downloading Secure Vault...';
         }
 
-        /* --- OLD LOGIC COMMENTED OUT FOR SAFETY ---
-        // 2. Safely load nodes individually using pagination for heavy nodes
-        const [stSnap, txSnap, statSnap, flSnap, matSnap, notSnap, setSnap, seatSnap, reqSnap] = await Promise.all([
-            safeFetch('students'),
-            safeFetchLimit('transactions', 250), // Limited to recent 250 to prevent freezing
-            safeFetch('stats'),
-            safeFetch('files'),
-            safeFetch('materials'),
-            safeFetchLimit('notices', 100), // Limited to recent 100 alerts
-            safeFetch('settings'),
-            safeFetch('seating'),
-            safeFetch('batch_requests')
-        ]);
-        
-        appData = {
-            students: parseFbList(stSnap.val()),
-            transactions: parseFbList(txSnap.val()),
-            stats: statSnap.val() || { income: 0, expense: 0, balance: 0 },
-            files: parseFbList(flSnap.val()),
-            materials: parseFbList(matSnap.val()),
-            notices: parseFbList(notSnap.val()),
-            settings: setSnap.val() || {},
-            seating: seatSnap.val() || {},
-            batchRequests: parseFbList(reqSnap.val())
-        };
-        ------------------------------------------ */
-
-        // +++ NEW: STAGED BACKGROUND LOADING +++
+        // +++ STAGED BACKGROUND LOADING +++
         // Stage 1: Critical UI Data ONLY (Instant Unlock)
         const [stSnap, txSnap, statSnap, setSnap] = await Promise.all([
             safeFetch('students'),
@@ -255,9 +227,6 @@ async function handleLogin(e) {
         appData.transactions.forEach(tx => { if(!tx.id) tx.id = 'TXN' + Math.floor(Math.random() * 90000 + 10000); });
         appData.students.forEach(st => { if(!st.id) st.id = 'STU' + Math.floor(Math.random() * 90000 + 10000); if(!st.status) st.status = 'Active'; });
 
-        // +++ CRITICAL CACHE FIX +++
-        // Only overwrite the local cache if we ACTUALLY received data from Firebase.
-        // Prevents the "Silent Cache Wipe" bug.
         syncLocalCache();
         
         setDefaultDates();
@@ -291,7 +260,6 @@ async function handleLogin(e) {
             appData.seating = seatSnap.val() || {};
             appData.batchRequests = parseFbList(reqSnap.val());
             
-            // +++ CRITICAL CACHE FIX FOR BACKGROUND DATA +++
             syncLocalCache();
 
             // Refresh specific modules once loaded
@@ -345,12 +313,12 @@ async function runStudentAuthMigration() {
             let phone = String(student.phone).trim();
             if(phone) {
                 let email = `${phone}@ei.com`;
-                let password = generateSecurePassword(); // Secure random password generated
+                let password = generateSecurePassword(); 
                 
                 try {
                     await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
                     successCount++;
-                    console.log(`Created: ${email} | Secure Password: ${password}`); // Export these to share with students securely
+                    console.log(`Created: ${email} | Secure Password: ${password}`); 
                 } catch(e) {
                     if(e.code === 'auth/email-already-in-use') {
                         skipCount++;
@@ -1252,15 +1220,15 @@ function getDynamicPaidFee(student) {
 function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, gender, imageBase64, durationStr, parentPhone, batchId) {
     const id = 'STU' + Math.floor(Math.random() * 90000 + 10000);
     const newStudent = { 
-        id: id, name: name, course: course, totalFee: parseFloat(totalFee), paidFee: parseFloat(paidNow), 
-        feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64, 
+        id: id, name: name, course: course, totalFee: parseFloat(totalFee) || 0, paidFee: parseFloat(paidNow) || 0, 
+        feeType: feeType, gender: gender, phone: phone, date: dateStr, image: imageBase64 || "", 
         duration: parseInt(durationStr) || 0, adWallet: 0, status: 'Active', 
         customDueAmount: "", customDueDate: "",
         parentPhone: parentPhone || "", batch: batchId || "Unassigned"
     };
     appData.students.unshift(newStudent);
     
-    recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow), dateStr);
+    recordTransaction("income", `Admission Fee - ${name} [${id}]`, parseFloat(paidNow) || 0, dateStr);
     atomicPush('students', newStudent);
     syncLocalCache();
     renderStudentList(); 
@@ -1268,15 +1236,15 @@ function addStudent(name, course, totalFee, paidNow, phone, dateStr, feeType, ge
 }
 
 function recordTransaction(type, title, amount, dateStr, desc = "") {
-    const newTx = { id: 'TXN' + Math.floor(Math.random() * 9000 + 1000), type: type, title: title, amount: parseFloat(amount), date: dateStr, description: desc };
+    const newTx = { id: 'TXN' + Math.floor(Math.random() * 9000 + 1000), type: type, title: title, amount: parseFloat(amount) || 0, date: dateStr, description: desc };
     appData.transactions.push(newTx);
     appData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
     
     // Manual stat increment
     appData.stats.income = parseFloat(appData.stats.income || 0);
     appData.stats.expense = parseFloat(appData.stats.expense || 0);
-    if(type === 'income') appData.stats.income += parseFloat(amount);
-    if(type === 'expense') appData.stats.expense += parseFloat(amount);
+    if(type === 'income') appData.stats.income += parseFloat(amount) || 0;
+    if(type === 'expense') appData.stats.expense += parseFloat(amount) || 0;
     appData.stats.balance = appData.stats.income - appData.stats.expense;
     
     atomicPush('transactions', newTx);
@@ -1289,14 +1257,14 @@ function submitTuitionFee(e) {
     e.preventDefault();
     const stId = document.getElementById('tuition-student-id').value; const date = document.getElementById('tuition-date').value;
     const feeCategory = document.getElementById('tuition-feetype-select').value; const desc = document.getElementById('tuition-desc').value;
-    const amount = parseFloat(document.getElementById('tuition-amount').value);
+    const amount = parseFloat(document.getElementById('tuition-amount').value) || 0;
     let student = appData.students.find(s => s.id === stId);
     if(student) {
         if(feeCategory === "Course Tuition Fee" || feeCategory === "Admission Fee") { student.paidFee += amount; }
         const finalDesc = desc ? `${feeCategory} (${desc})` : feeCategory;
         recordTransaction("income", `${finalDesc} - ${student.name} [${student.id}]`, amount, date);
         
-        // NEW: Lock the updated paid fee directly to Firebase to prevent rollback
+        // STRICT FIX: Lock the updated paid fee directly to Firebase to prevent rollback
         atomicUpdateById('students', student.id, student);
         syncLocalCache();
 
@@ -1620,7 +1588,7 @@ function submitEditStudent(e) {
     student.course = document.getElementById('edit-course').value; 
     student.batch = document.getElementById('edit-batch').value; 
     student.feeType = document.getElementById('edit-feetype').value;
-    student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
+    student.totalFee = parseFloat(document.getElementById('edit-totalfee').value) || 0;
     student.duration = parseInt(document.getElementById('edit-duration').value) || 0;
     student.adWallet = parseFloat(document.getElementById('edit-adwallet').value) || 0;
     
@@ -1645,7 +1613,7 @@ function submitEditStudent(e) {
     }
 
     const oldPaid = getDynamicPaidFee(student);
-    const newPaid = parseFloat(document.getElementById('edit-paidfee').value);
+    const newPaid = parseFloat(document.getElementById('edit-paidfee').value) || 0;
     student.paidFee = newPaid;
 
     if(newPaid !== oldPaid) {
@@ -1659,19 +1627,22 @@ function submitEditStudent(e) {
 
     const fileInput = document.getElementById('edit-image');
     if(croppedImages.edit) {
-        student.image = croppedImages.edit; croppedImages.edit = null; finalizeEdit(student);
+        student.image = croppedImages.edit; croppedImages.edit = null; finalizeEdit(student, oldName, newName);
     } else if(fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
-        reader.onload = function(evt) { student.image = evt.target.result; finalizeEdit(student); };
+        reader.onload = function(evt) { student.image = evt.target.result; finalizeEdit(student, oldName, newName); };
         reader.readAsDataURL(fileInput.files[0]);
-    } else { finalizeEdit(student); }
+    } else { finalizeEdit(student, oldName, newName); }
 }
 
-function finalizeEdit(student) { 
+function finalizeEdit(student, oldName, newName) { 
     closeEditModal(); 
     atomicUpdateById('students', student.id, student);
     
-    let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${student.id}]`));
+    let studentTxs = appData.transactions.filter(tx => {
+        let title = String(tx.title || "");
+        return title.includes(`[${student.id}]`) || title.includes(newName) || title.includes(oldName);
+    });
     studentTxs.forEach(tx => atomicUpdateById('transactions', tx.id, tx));
 
     syncLocalCache();
@@ -1827,8 +1798,6 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
         date: new Date().toISOString().split('T')[0], folder: folderName
     };
     
-    // Explicitly saves all new uploads strictly into the Private Vault (files)
-    // You can manually duplicate them into the Public Vault (materials) later using the checkbox tool.
     if (!appData.files) appData.files = [];
     appData.files.push(newFile);
     atomicPush('files', newFile);
@@ -1873,7 +1842,10 @@ function handleStudentFileUpload(event) {
             uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                 progressContainer.classList.add('hidden');
                 const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                const targetVal = (student.phone && student.phone.toString().trim() !== "") ? String(student.phone).trim() : student.id;
+                
+                // STRICT FIX: Ensure we use the randomized STU ID, never the phone number!
+                const targetVal = student.id; 
+                
                 const formattedFileName = "Certificate - " + student.name;
                 
                 saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
@@ -2038,7 +2010,6 @@ function renderHubFiles() {
     
     let displayList = [];
     
-    // Tag files explicitly to show exactly which database node they belong to
     appData.materials.forEach(f => {
         displayList.push({ ...f, _sourceNode: 'materials' });
     });
@@ -2049,17 +2020,14 @@ function renderHubFiles() {
         }
     });
     
-    // Apply Live Filters
     displayList = displayList.filter(f => {
         const name = String(f.name || f.title || f.filename || '').toLowerCase();
         const folder = String(f.folder || f.course || '').toLowerCase();
         const target = String(f.target || '').toUpperCase();
         
-        // Match Search Query
         const matchesSearch = name.includes(searchQ) || folder.includes(searchQ) || target.toLowerCase().includes(searchQ);
         if (!matchesSearch) return false;
         
-        // Match Visibility Dropdown based on actual DB Node, giving you 100% control
         if (vis === 'guest') {
             if (f._sourceNode !== 'materials') return false; 
         } else if (vis === 'private') {
@@ -2080,7 +2048,6 @@ function renderHubFiles() {
         const displayTarget = f.target || 'N/A';
         const displayUrl = f.url || f.file || '';
         
-        // Visual indicator of which vault the file currently lives in
         const vaultBadge = f._sourceNode === 'materials' 
             ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold ml-2 shadow-sm">GUEST</span>`
             : `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[9px] font-bold ml-2 shadow-sm">PRIVATE</span>`;
@@ -2119,12 +2086,8 @@ async function duplicateSelectedFiles() {
 
     if (!confirm(`Are you sure you want to duplicate ${checkboxes.length} selected file(s)?\n\nFiles will be cross-copied between the Public Vault (Guest) and Private Vault (Mobile App) as reference links.`)) return;
 
-    let filesUpdated = false;
-    let materialsUpdated = false;
-
     checkboxes.forEach(cb => {
         const fileId = cb.value;
-        // Determine source array
         let sourceFile = appData.materials.find(f => f.id === fileId);
         let isMaterial = true;
         
@@ -2134,22 +2097,18 @@ async function duplicateSelectedFiles() {
         }
 
         if (sourceFile) {
-            // Create a deep copy of the original object
             let clonedFile = JSON.parse(JSON.stringify(sourceFile));
-            
-            // Assign a completely unique ID to prevent overlap
             clonedFile.id = "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000000);
             clonedFile.date = new Date().toISOString().split('T')[0];
             
-            // Cross-copy logic: Moves exact replica to the opposite node
             if (isMaterial) {
                 if (!appData.files) appData.files = [];
                 appData.files.push(clonedFile);
-                atomicPush('files', clonedFile); // NEW
+                atomicPush('files', clonedFile); 
             } else {
                 if (!appData.materials) appData.materials = [];
                 appData.materials.push(clonedFile);
-                atomicPush('materials', clonedFile); // NEW
+                atomicPush('materials', clonedFile); 
             }
         }
     });
@@ -2167,15 +2126,11 @@ async function duplicateSelectedFiles() {
     }
 }
 
-// =========================================
-// ✏️ EDIT FILE METADATA MODAL LOGIC
-// =========================================
 function openEditFileModal(fileId, sourceNode) {
     let fileList = sourceNode === 'materials' ? appData.materials : appData.files;
     let file = fileList.find(f => f.id === fileId);
     if (!file) return;
 
-    // Support for Legacy File Fields
     document.getElementById('edit-file-id').value = file.id;
     document.getElementById('edit-file-category').value = sourceNode;
     document.getElementById('edit-file-name').value = file.name || file.title || file.filename || '';
@@ -2236,19 +2191,33 @@ async function submitEditFile(e) {
     }
 }
 
+// ====================================================================
+// STRICT FIX: The 404 PDF Error Engine
+// Checks if ANY duplicate file exists before deleting from physical storage
+// ====================================================================
 function deleteHubFile(path, fileId, sourceNode) {
     if(!confirm("Are you sure you want to delete this file from the hub?")) return;
     
     if(path && path.trim() !== '' && path !== 'undefined') {
-        const storageRef = firebase.storage().ref();
-        const fileRef = storageRef.child(path);
+        const allVaultFiles = [...(appData.materials || []), ...(appData.files || [])];
         
-        fileRef.delete().then(() => {
+        // Check if ANY other file uses this exact storage path
+        const isShared = allVaultFiles.some(f => f.path === path && f.id !== fileId);
+
+        if (isShared) {
+            // DO NOT delete from storage, just remove DB record
             _removeFileFromDatabase(fileId, sourceNode);
-        }).catch((error) => {
-            console.error("Firebase deletion failed:", error);
-            _removeFileFromDatabase(fileId, sourceNode);
-        });
+        } else {
+            const storageRef = firebase.storage().ref();
+            const fileRef = storageRef.child(path);
+            
+            fileRef.delete().then(() => {
+                _removeFileFromDatabase(fileId, sourceNode);
+            }).catch((error) => {
+                console.error("Firebase deletion failed:", error);
+                _removeFileFromDatabase(fileId, sourceNode);
+            });
+        }
     } else {
         _removeFileFromDatabase(fileId, sourceNode);
     }
@@ -2340,14 +2309,12 @@ function renderSeatingLayout() {
     
     if(!theoryContainer || !labContainer) return;
 
-    // 🚀 NEW: Overrides the Tailwind stretching flex rules to pack seats tightly together
     theoryContainer.classList.add('content-start');
     labContainer.classList.add('content-start');
 
     theoryContainer.innerHTML = '';
     labContainer.innerHTML = '';
     
-    // Generate 10 Theory Dropzones
     for(let i=1; i<=10; i++) {
         theoryContainer.innerHTML += `
             <div id="theory-seat-${i}" class="h-20 bg-indigo-50/50 border-2 border-dashed border-indigo-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'theory-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
@@ -2355,7 +2322,6 @@ function renderSeatingLayout() {
             </div>`;
     }
 
-    // Generate 10 Lab Dropzones
     for(let i=1; i<=10; i++) {
         labContainer.innerHTML += `
             <div id="practical-seat-${i}" class="h-20 bg-emerald-50/50 border-2 border-dashed border-emerald-200 rounded-xl flex items-center justify-center relative transition-colors" ondrop="dropSeat(event, 'practical-${i}')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
@@ -2363,7 +2329,6 @@ function renderSeatingLayout() {
             </div>`;
     }
 
-    // Populate assigned seats
     if(appData.seating && appData.seating[batch]) {
         const bSeats = appData.seating[batch];
         for(let seatId in bSeats) {
@@ -2373,14 +2338,14 @@ function renderSeatingLayout() {
                 if(st) {
                     const seatEl = document.getElementById(seatId);
                     if(seatEl) {
-                        seatEl.innerHTML = ''; // clear background text
+                        seatEl.innerHTML = ''; 
                         seatEl.appendChild(createDraggableStudentCard(st, true));
                     }
                 }
             }
         }
     }
-    filterSeatingStudents(); // Refresh left panel
+    filterSeatingStudents(); 
 }
 
 function filterSeatingStudents() {
@@ -2389,20 +2354,17 @@ function filterSeatingStudents() {
     if(!list) return;
     list.innerHTML = '';
 
-    // Find all currently seated students in the DOM for ANY batch configuration
     const seatedIds = new Set();
     document.querySelectorAll('#theory-room-seats [id^="drag-"], #practical-room-seats [id^="drag-"]').forEach(el => {
         seatedIds.add(el.dataset.id);
     });
 
-    // Filter active students who are NOT currently seated
     const activeSt = appData.students.filter(s => 
         (s.status || 'Active') === 'Active' && 
         !seatedIds.has(s.id) &&
         (String(s.name).toLowerCase().includes(q) || String(s.course).toLowerCase().includes(q))
     );
 
-    // Sort: students belonging to the active batch float to top
     const batch = document.getElementById('active-seating-batch').value;
     activeSt.sort((a, b) => {
         if(a.batch === batch && b.batch !== batch) return -1;
@@ -2487,13 +2449,12 @@ function dropSeat(ev, seatPrefix) {
     const st = appData.students.find(s => s.id === stId);
     if(!st) return;
 
-    // Clear seat if occupied
     if (target.querySelectorAll('[id^="drag-"]').length > 0) {
         target.innerHTML = '';
     }
 
     target.appendChild(createDraggableStudentCard(st, true));
-    filterSeatingStudents(); // Removes them from left panel
+    filterSeatingStudents(); 
 }
 
 function removeStudentFromSeat(btn, stId) {
@@ -2503,7 +2464,6 @@ function removeStudentFromSeat(btn, stId) {
         const seatId = seat.id;
         card.remove();
         
-        // Restore seat background text
         const prefix = seatId.includes('theory') ? 'T' : 'L';
         const num = seatId.split('-')[2];
         const color = seatId.includes('theory') ? 'text-indigo-300' : 'text-emerald-300';
@@ -2517,7 +2477,6 @@ async function saveSeatingArrangement() {
     const batch = document.getElementById('active-seating-batch').value;
     if(!appData.seating) appData.seating = {};
 
-    // 1. Identify everyone who was PREVIOUSLY seated in this batch
     const oldSeatedIds = [];
     if (appData.seating[batch]) {
         Object.values(appData.seating[batch]).forEach(id => {
@@ -2525,7 +2484,6 @@ async function saveSeatingArrangement() {
         });
     }
 
-    // 2. Clear current batch seating and start building the new arrangement
     appData.seating[batch] = {};
     const newSeatedIds = [];
 
@@ -2538,7 +2496,6 @@ async function saveSeatingArrangement() {
                 appData.seating[batch][seat.id] = stId;
                 newSeatedIds.push(stId);
 
-                // Prevent duplicates: Remove this student from ANY other batch layout if they were moved
                 for (let b in appData.seating) {
                     if (b !== batch && appData.seating[b]) {
                         for (let sId in appData.seating[b]) {
@@ -2549,7 +2506,6 @@ async function saveSeatingArrangement() {
                     }
                 }
 
-                // Update the student's personal profile specifically
                 const st = appData.students.find(s => s.id === stId);
                 if(st) { st.batch = batch; }
             }
@@ -2559,11 +2515,9 @@ async function saveSeatingArrangement() {
     processRoom('theory-room-seats');
     processRoom('practical-room-seats');
 
-    // 3. Reset any student who was REMOVED from the current batch to 'Unassigned'
     oldSeatedIds.forEach(id => {
         if (!newSeatedIds.includes(id)) {
             const st = appData.students.find(s => s.id === id);
-            // Verify they weren't just moved to another active batch during the session
             if (st && st.batch === batch) {
                 st.batch = 'Unassigned';
             }
