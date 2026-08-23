@@ -369,7 +369,8 @@
 
                             <div class="bg-amber-50/50 p-4 sm:p-6 rounded-2xl border border-amber-100">
                                 <h4 class="font-bold text-amber-800 mb-3 sm:mb-4 flex items-center text-xs sm:text-sm"><i class="fa-solid fa-coins mr-2 text-amber-500"></i> Virtual Coin Configuration</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                                <!-- NEW: Expanded grid to accommodate PDF Unlock Cost -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                                     <div>
                                         <label class="form-label text-amber-800 text-xs sm:text-sm">Allow Video Rewards?</label>
                                         <select id="set-allow-rewards" class="form-input bg-white border-amber-200 font-bold text-slate-700 cursor-pointer w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm">
@@ -380,6 +381,11 @@
                                     <div>
                                         <label class="form-label text-amber-800 text-xs sm:text-sm">Reward Coins Per Ad</label>
                                         <input type="number" step="1" id="set-reward-amt" class="form-input bg-white border-amber-200 font-black text-amber-700 shadow-inner w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="0" value="0" required>
+                                    </div>
+                                    <!-- NEW: PDF Unlock Cost Input -->
+                                    <div>
+                                        <label class="form-label text-amber-800 text-xs sm:text-sm">PDF Unlock Cost (Coins)</label>
+                                        <input type="number" step="1" id="set-pdf-unlock-cost" class="form-input bg-white border-amber-200 font-black text-amber-700 shadow-inner w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="5" value="5" required>
                                     </div>
                                 </div>
                             </div>
@@ -671,7 +677,7 @@
                         <!-- Left: Draggable Students List -->
                         <div class="w-full lg:w-1/3 premium-card flex flex-col bg-white overflow-hidden shadow-md h-[450px] lg:h-auto">
                             <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50 shrink-0">
-                                <h3 class="font-black text-slate-800 text-base sm:text-lg flex items-center"><i class="fa-solid fa-users text-indigo-500 mr-2 text-lg sm:text-xl"></i> Active Students</h3>
+                                <h3 class="font-bold text-slate-800 text-base sm:text-lg flex items-center"><i class="fa-solid fa-users text-indigo-500 mr-2 text-lg sm:text-xl"></i> Active Students</h3>
                                 <p class="text-xs text-slate-500 mt-1 mb-3 sm:mb-4 font-medium">Drag and drop students to assign seats.</p>
                                 <div class="relative">
                                     <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs sm:text-sm"></i>
@@ -690,7 +696,7 @@
                                     <div class="flex items-center gap-2.5 sm:gap-3">
                                         <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-base sm:text-lg shadow-inner shrink-0"><i class="fa-solid fa-layer-group"></i></div>
                                         <div>
-                                            <h3 class="font-black text-slate-800 text-xs sm:text-sm md:text-base leading-tight">Room Layout Manager</h3>
+                                            <h3 class="font-bold text-slate-800 text-xs sm:text-sm md:text-base leading-tight">Room Layout Manager</h3>
                                             <select id="active-seating-batch" class="bg-transparent text-xs font-bold text-indigo-600 mt-0.5 sm:mt-1 cursor-pointer outline-none border-none p-0 focus:ring-0" onchange="renderSeatingLayout()">
                                                 <option value="1st">1st Batch (Lab: 08:00 AM | Theory: 08:45 AM)</option>
                                                 <option value="2nd">2nd Batch (Theory: 08:00 AM | Lab: 08:45 AM)</option>
