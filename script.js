@@ -70,12 +70,14 @@ function syncLocalCache() {
 
 // =========================================================
 // 🧹 AUTO-CLEANUP: 24-HOUR NOTIFICATION WIPER
+// FIXED: Switched to Atomic Delete to prevent Array Overwrites
 // =========================================================
 async function autoCleanupNotices() {
     const now = Date.now();
     const ONE_DAY = 24 * 60 * 60 * 1000; 
     let modified = false;
     
+    const noticesToDelete = [];
     appData.notices = appData.notices.filter((notice) => {
         let noticeTime = 0;
         if (notice.id && notice.id.startsWith('NOT')) {
@@ -83,6 +85,7 @@ async function autoCleanupNotices() {
         }
         
         if (noticeTime > 0 && (now - noticeTime) > ONE_DAY) {
+            noticesToDelete.push(notice);
             modified = true;
             return false; // Delete it
         }
@@ -90,7 +93,9 @@ async function autoCleanupNotices() {
     });
 
     if (modified) {
-        await safeWrite('notices', appData.notices);
+        for (let notice of noticesToDelete) {
+            await atomicDeleteById('notices', notice.id, notice._fbKey);
+        }
         syncLocalCache();
     }
 }
@@ -2355,16 +2360,33 @@ function submitBroadcast(e) {
         id: 'NOT' + Date.now(),
         title: '📢 ' + title,
         message: 'Target: ' + target.toUpperCase() + '\n\n' + message,
+        target: target.toUpperCase(), // INJECTED DEDICATED TARGET KEY
         date: dateString
     };
 
-    // 🛠️ STRICT FIX: Force new alert to index 0 so Mobile App reads it correctly
-    appData.notices.unshift(newNotice);
-    safeWrite('notices', appData.notices).then(() => {
-        syncLocalCache();
-        renderBroadcastList();
-        e.target.reset();
-        alert("Broadcast Alert Sent!");
+    const btn = document.getElementById('btn-bc-send');
+    let originalBtnText = "Send Alert Now";
+    if (btn) {
+        originalBtnText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Sending...';
+        btn.disabled = true;
+    }
+
+    atomicPush('notices', newNotice).then(fbKey => {
+        if (fbKey) {
+            newNotice._fbKey = fbKey;
+            appData.notices.unshift(newNotice);
+            syncLocalCache();
+            renderBroadcastList();
+            e.target.reset();
+            alert("Broadcast Alert Sent!");
+        } else {
+            alert("Server connection failed. Could not sync notice.");
+        }
+        if (btn) {
+            btn.innerHTML = originalBtnText;
+            btn.disabled = false;
+        }
     });
 }
 
@@ -2394,10 +2416,12 @@ function renderBroadcastList() {
 
 function deleteBroadcast(index) {
     if(!confirm("Are you sure you want to permanently delete this broadcast?")) return;
-    appData.notices.splice(index, 1);
     
-    // 🛠️ STRICT FIX: Overwrite the array instead of leaving holes so sequence is maintained
-    safeWrite('notices', appData.notices).then(() => {
+    const notice = appData.notices[index];
+    if (!notice) return;
+
+    atomicDeleteById('notices', notice.id, notice._fbKey).then(() => {
+        appData.notices.splice(index, 1);
         syncLocalCache();
         renderBroadcastList();
     });
