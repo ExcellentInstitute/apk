@@ -879,6 +879,13 @@ function populateSettings() {
     document.getElementById('set-upi').value = appData.settings.upiId || '';
     
     document.getElementById('set-reward-amt').value = appData.settings.rewardPerClick ?? 0;
+    
+    // NEW: PDF Unlock Cost Configuration
+    const pdfCostEl = document.getElementById('set-pdf-unlock-cost');
+    if (pdfCostEl) {
+        pdfCostEl.value = appData.settings.pdfUnlockCost ?? 5; // Default to 5
+    }
+    
     document.getElementById('set-allow-rewards').value = appData.settings.allowVideoRewards ? "true" : "false";
     
     const qrPreview = document.getElementById('set-qr-preview');
@@ -916,11 +923,16 @@ function submitSettings(e) {
     const rewardAmt = document.getElementById('set-reward-amt').value;
     const allowRewards = document.getElementById('set-allow-rewards').value === 'true';
     
+    // NEW: Extract PDF Unlock Cost
+    const pdfCostEl = document.getElementById('set-pdf-unlock-cost');
+    const pdfUnlockCost = pdfCostEl ? pdfCostEl.value : 5;
+    
     if (!appData.settings) appData.settings = {};
     
     appData.settings.upiId = upiId;
     appData.settings.rewardPerClick = parseFloat(rewardAmt);
     appData.settings.allowVideoRewards = allowRewards;
+    appData.settings.pdfUnlockCost = parseInt(pdfUnlockCost) || 5;
     
     if (pendingQRCodeBase64) {
         appData.settings.qrCodeUrl = pendingQRCodeBase64;
@@ -2066,11 +2078,14 @@ function renderStudentFiles(stId) {
     }
     
     stFiles.forEach(f => {
+        // NEW: Sanitize URL to fix blank spaces
+        const safeUrl = String(f.url || f.file || '').replace(/ /g, '%20');
+        
         listEl.innerHTML += `
             <tr class="hover:bg-slate-100 transition-colors border-b border-slate-100">
                 <td class="py-3 px-3 text-slate-500 font-bold text-[10px]">${f.date || '-'}</td>
                 <td class="py-3 px-3 text-slate-800 font-bold max-w-[150px] truncate" title="${f.name || f.filename}">
-                    <a href="${f.url || f.file}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name || f.filename || 'Document'}</a>
+                    <a href="${safeUrl}" target="_blank" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${f.name || f.filename || 'Document'}</a>
                 </td>
                 <td class="py-3 px-2 text-center">
                     <button type="button" onclick="deleteHubFile('${f.path || ''}', '${f.id}', 'files')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Document"><i class="fa-solid fa-trash"></i></button>
@@ -2135,6 +2150,9 @@ function renderHubFiles() {
         const displayTarget = f.target || 'N/A';
         const displayUrl = f.url || f.file || '';
         
+        // NEW: Sanitize URL to fix blank spaces
+        const safeDisplayUrl = displayUrl.replace(/ /g, '%20');
+        
         const vaultBadge = f._sourceNode === 'materials' 
             ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold ml-2 shadow-sm">GUEST</span>`
             : `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[9px] font-bold ml-2 shadow-sm">PRIVATE</span>`;
@@ -2148,7 +2166,7 @@ function renderHubFiles() {
                 <td class="py-3 px-4 text-indigo-600 font-bold text-xs flex items-center">${f.category || 'Material'} ${vaultBadge}</td>
                 <td class="py-3 px-4 text-slate-600 font-bold text-xs">${displayTarget} / ${displayFolder}</td>
                 <td class="py-3 px-4 text-slate-800 font-bold text-xs max-w-[150px] truncate" title="${displayName}">
-                    <a href="${displayUrl}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${displayName}</a>
+                    <a href="${safeDisplayUrl}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${displayName}</a>
                 </td>
                 <td class="py-3 px-2 text-center whitespace-nowrap">
                     <button type="button" onclick="openEditFileModal('${f.id}', '${f._sourceNode}')" class="text-indigo-400 hover:text-indigo-600 transition-colors p-1 mr-1" title="Edit File Data"><i class="fa-solid fa-pen"></i></button>
