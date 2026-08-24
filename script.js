@@ -548,11 +548,11 @@ function shareTransactionWA(txId) {
 // 🔔 PURE FIREBASE NOTIFICATION ROUTING (FCM API v1 WEBHOOK)
 // =========================================================
 
-// 🚨 STRICT FIX: The Legacy FCM API is dead. This engine now routes the push notification 
-// request to your secure Firebase Cloud Function, preventing your private Service Account 
-// keys from being exposed in frontend JavaScript!
+// 🚨 STRICT FIX: This HTTP engine connects the Web Portal directly to Google's FCM v1 API
+// via your secure Firebase Cloud Function. It passes the required Android-specific overrides
+// so the physical device will wake up, bypass Doze Mode, and show the app logo.
 async function sendFCMPushNotification(topic, title, body) {
-    // ⚠️ CRITICAL: Replace this with the URL of your deployed Firebase Cloud Function
+    // ⚠️ INSTRUCTION: Deploy a Firebase Function to handle FCM v1 and paste its URL here.
     const cloudFunctionUrl = 'YOUR_CLOUD_FUNCTION_URL_HERE';
 
     if (cloudFunctionUrl === 'YOUR_CLOUD_FUNCTION_URL_HERE') {
@@ -562,9 +562,25 @@ async function sendFCMPushNotification(topic, title, body) {
 
     try {
         const payload = {
-            topic: topic,
-            title: title,
-            body: body
+            // We pass the exact nested 'message' object required by the FCM v1 API
+            // Your Cloud Function just needs to do: admin.messaging().send(req.body.message);
+            message: {
+                topic: topic,
+                notification: {
+                    title: title,
+                    body: body
+                },
+                android: {
+                    priority: "high",
+                    notification: {
+                        channel_id: "ei_critical_alerts_v1",
+                        icon: "launcher_icon", // 🚨 Pulls your exact app logo from Android mipmap
+                        default_sound: true,
+                        default_vibrate_timings: true,
+                        click_action: "FLUTTER_NOTIFICATION_CLICK"
+                    }
+                }
+            }
         };
 
         const response = await fetch(cloudFunctionUrl, {
@@ -625,7 +641,6 @@ async function sendCustomPushNotification() {
             date: dateString
         };
 
-        // 🛠️ STRICT FIX: Force new alert to index 0 so Mobile App reads it perfectly
         appData.notices.unshift(newNotice);
         await safeWrite('notices', appData.notices); 
 
