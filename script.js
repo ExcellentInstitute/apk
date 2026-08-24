@@ -553,9 +553,9 @@ function shareTransactionWA(txId) {
 // so the physical device will wake up, bypass Doze Mode, and show the app logo.
 async function sendFCMPushNotification(topic, title, body) {
     // ⚠️ INSTRUCTION: Deploy a Firebase Function to handle FCM v1 and paste its URL here.
-    const cloudFunctionUrl = 'YOUR_CLOUD_FUNCTION_URL_HERE';
+    const cloudFunctionUrl = 'https://console.firebase.google.com/project/excellent-institute-vault/overview';
 
-    if (cloudFunctionUrl === 'YOUR_CLOUD_FUNCTION_URL_HERE') {
+    if (cloudFunctionUrl === 'https://console.firebase.google.com/project/excellent-institute-vault/overview') {
         console.warn("Cloud Function URL is missing! Push notifications cannot be sent from the frontend.");
         return false;
     }
