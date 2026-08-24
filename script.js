@@ -1655,74 +1655,97 @@ function closeEditModal() {
     }, 300);
 }
 
-function submitEditStudent(e) {
+async function submitEditStudent(e) {
     e.preventDefault();
-    const id = document.getElementById('edit-student-id').value; let student = appData.students.find(s => s.id === id);
+    const id = document.getElementById('edit-student-id').value; 
+    let student = appData.students.find(s => s.id === id);
     if(!student) return;
 
+    // 🛠️ STRICT FIX: Clone before modifying to avoid optimistic UI states
+    let updatedStudent = { ...student };
     const oldName = student.name;
     const newName = document.getElementById('edit-name').value;
-    student.name = newName; 
-    student.date = document.getElementById('edit-date').value;
-    student.phone = document.getElementById('edit-phone').value.replace(/[^0-9]/g, ''); 
-    student.parentPhone = document.getElementById('edit-parent-phone').value; 
-    student.gender = document.getElementById('edit-gender').value;
-    student.course = document.getElementById('edit-course').value; 
-    student.batch = document.getElementById('edit-batch').value; 
-    student.feeType = document.getElementById('edit-feetype').value;
-    student.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
-    student.duration = parseInt(document.getElementById('edit-duration').value) || 0;
-    student.adWallet = parseFloat(document.getElementById('edit-adwallet').value) || 0;
     
-    student.customDueAmount = document.getElementById('edit-custom-due').value;
-    student.customDueDate = document.getElementById('edit-custom-date').value;
+    updatedStudent.name = newName; 
+    updatedStudent.date = document.getElementById('edit-date').value;
+    updatedStudent.phone = document.getElementById('edit-phone').value.replace(/[^0-9]/g, ''); 
+    updatedStudent.parentPhone = document.getElementById('edit-parent-phone').value; 
+    updatedStudent.gender = document.getElementById('edit-gender').value;
+    updatedStudent.course = document.getElementById('edit-course').value; 
+    updatedStudent.batch = document.getElementById('edit-batch').value; 
+    updatedStudent.feeType = document.getElementById('edit-feetype').value;
+    updatedStudent.totalFee = parseFloat(document.getElementById('edit-totalfee').value);
+    updatedStudent.duration = parseInt(document.getElementById('edit-duration').value) || 0;
+    updatedStudent.adWallet = parseFloat(document.getElementById('edit-adwallet').value) || 0;
+    
+    updatedStudent.customDueAmount = document.getElementById('edit-custom-due').value;
+    updatedStudent.customDueDate = document.getElementById('edit-custom-date').value;
     
     const statusSelect = document.getElementById('edit-status');
     if (statusSelect) {
-        student.status = statusSelect.value;
-    }
-    
-    if (oldName !== newName) {
-        appData.transactions.forEach(tx => {
-            let title = String(tx.title || "");
-            if (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(oldName) && !title.includes('[STU')))) { 
-                tx.title = title.replace(oldName, newName); 
-            }
-            if (tx.description && (!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || String(tx.description).includes(oldName)))) { 
-                tx.description = String(tx.description).replace(oldName, newName); 
-            }
-        });
+        updatedStudent.status = statusSelect.value;
     }
 
     const oldPaid = getDynamicPaidFee(student);
     const newPaid = parseFloat(document.getElementById('edit-paidfee').value);
-    student.paidFee = newPaid;
+    updatedStudent.paidFee = newPaid;
 
+    const fileInput = document.getElementById('edit-image');
+    if(croppedImages.edit) {
+        updatedStudent.image = croppedImages.edit; 
+        croppedImages.edit = null; 
+        await finalizeEdit(student, updatedStudent, oldName, newName, oldPaid, newPaid);
+    } else if(fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = async function(evt) { 
+            updatedStudent.image = evt.target.result; 
+            await finalizeEdit(student, updatedStudent, oldName, newName, oldPaid, newPaid); 
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else { 
+        await finalizeEdit(student, updatedStudent, oldName, newName, oldPaid, newPaid); 
+    }
+}
+
+async function finalizeEdit(originalStudent, updatedStudent, oldName, newName, oldPaid, newPaid) { 
+    closeEditModal(); 
+    
+    // 1. Await database push
+    await atomicUpdateById('students', updatedStudent.id, updatedStudent);
+    
+    // 2. Safely apply UI updates only after success
+    Object.assign(originalStudent, updatedStudent);
+    
+    if (oldName !== newName) {
+        let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${updatedStudent.id}]`));
+        for (let tx of studentTxs) {
+            let updatedTx = { ...tx };
+            let title = String(tx.title || "");
+            if (!title.includes('Job Desk:') && !title.includes('Print Desk:')) { 
+                updatedTx.title = title.replace(oldName, newName); 
+            }
+            if (tx.description && !title.includes('Job Desk:') && !title.includes('Print Desk:')) { 
+                updatedTx.description = String(tx.description).replace(oldName, newName); 
+            }
+            await atomicUpdateById('transactions', updatedTx.id, updatedTx);
+            Object.assign(tx, updatedTx);
+        }
+    }
+    
     if(newPaid !== oldPaid) {
         const diff = newPaid - oldPaid;
         let targetTx = appData.transactions.find(tx => {
             let title = String(tx.title || "");
-            return tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU')));
+            return tx.type === 'income' && !title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${updatedStudent.id}]`) || (title.includes(updatedStudent.name) && !title.includes('[STU')));
         });
-        if (targetTx) { targetTx.amount = parseFloat(targetTx.amount) + diff; if(targetTx.amount < 0) targetTx.amount = 0; }
+        if (targetTx) { 
+            let updatedTx = { ...targetTx };
+            updatedTx.amount = parseFloat(targetTx.amount) + diff; 
+            if(updatedTx.amount < 0) updatedTx.amount = 0; 
+            await atomicUpdateById('transactions', updatedTx.id, updatedTx);
+            Object.assign(targetTx, updatedTx);
+        }
     }
-
-    const fileInput = document.getElementById('edit-image');
-    if(croppedImages.edit) {
-        student.image = croppedImages.edit; croppedImages.edit = null; finalizeEdit(student);
-    } else if(fileInput.files && fileInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(evt) { student.image = evt.target.result; finalizeEdit(student); };
-        reader.readAsDataURL(fileInput.files[0]);
-    } else { finalizeEdit(student); }
-}
-
-function finalizeEdit(student) { 
-    closeEditModal(); 
-    atomicUpdateById('students', student.id, student);
-    
-    let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${student.id}]`));
-    studentTxs.forEach(tx => atomicUpdateById('transactions', tx.id, tx));
 
     syncLocalCache();
     refreshAllUI(); 
@@ -1748,25 +1771,38 @@ function closeEditTransactionModal() {
     setTimeout(() => modal.classList.add('hidden'), 300);
 }
 
-function submitEditTransaction(e) {
+// 🛠️ STRICT FIX: Removed Optimistic UI Update from Transaction Editing
+async function submitEditTransaction(e) {
     e.preventDefault();
-    const txId = document.getElementById('edit-tx-id').value; const tx = appData.transactions.find(t => t.id === txId);
+    const txId = document.getElementById('edit-tx-id').value; 
+    const tx = appData.transactions.find(t => t.id === txId);
     if(!tx) return;
     
     const diff = parseFloat(document.getElementById('edit-tx-amount').value) - parseFloat(tx.amount);
+    let updatedTx = { ...tx };
     
-    tx.date = document.getElementById('edit-tx-date').value; tx.title = document.getElementById('edit-tx-title').value;
-    tx.amount = parseFloat(document.getElementById('edit-tx-amount').value); tx.description = document.getElementById('edit-tx-desc').value;
+    updatedTx.date = document.getElementById('edit-tx-date').value; 
+    updatedTx.title = document.getElementById('edit-tx-title').value;
+    updatedTx.amount = parseFloat(document.getElementById('edit-tx-amount').value); 
+    updatedTx.description = document.getElementById('edit-tx-desc').value;
     
-    if(tx.type === 'income') appData.stats.income += diff;
-    if(tx.type === 'expense') appData.stats.expense += diff;
-    appData.stats.balance = appData.stats.income - appData.stats.expense;
+    let newStats = { ...appData.stats };
+    if(tx.type === 'income') newStats.income += diff;
+    if(tx.type === 'expense') newStats.expense += diff;
+    newStats.balance = newStats.income - newStats.expense;
 
-    atomicUpdateById('transactions', txId, tx);
-    safeWrite('stats', appData.stats);
+    // 1. Await database writes FIRST
+    await atomicUpdateById('transactions', txId, updatedTx);
+    await safeWrite('stats', newStats);
+    
+    // 2. Apply to local memory only after success
+    Object.assign(tx, updatedTx);
+    appData.stats = newStats;
     
     syncLocalCache();
-    refreshAllUI(); closeEditTransactionModal(); alert("Record updated successfully!");
+    refreshAllUI(); 
+    closeEditTransactionModal(); 
+    alert("Record updated successfully!");
 }
 
 function deleteTransaction(txId) { openDeleteModal(txId, false); }
@@ -1790,6 +1826,7 @@ function closeDeleteModal() {
     modal.classList.add('opacity-0'); content.classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300);
 }
 
+// 🛠️ STRICT FIX: Removed Optimistic UI Update from Deletion Protocol
 async function executeDelete() {
     const pass = document.getElementById('delete-password-input').value;
     const errorMsg = document.getElementById('delete-error');
@@ -1810,48 +1847,67 @@ async function executeDelete() {
         
         btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
 
-        setTimeout(() => {
+        // Fix: Added `async` to setTimeout callback so `await` operates correctly
+        setTimeout(async () => {
+            let newStats = { ...appData.stats };
+
             if(isStudent) {
-                const stId = document.getElementById('tuition-student-id').value; let student = appData.students.find(s => s.id === stId);
+                const stId = document.getElementById('tuition-student-id').value; 
+                let student = appData.students.find(s => s.id === stId);
                 if(student) {
-                    atomicDeleteById('students', stId, student._fbKey);
+                    // 1. AWAIT server deletions FIRST
+                    await atomicDeleteById('students', stId, student._fbKey);
                     
                     let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${stId}]`));
-                    studentTxs.forEach(tx => atomicDeleteById('transactions', tx.id, tx._fbKey));
+                    for (let tx of studentTxs) {
+                        await atomicDeleteById('transactions', tx.id, tx._fbKey);
+                    }
                     
+                    // 2. Modify local memory safely
                     appData.students = appData.students.filter(s => s.id !== stId);
                     appData.transactions = appData.transactions.filter(tx => {
                         let title = String(tx.title || "");
                         return !(!title.includes('Job Desk:') && !title.includes('Print Desk:') && (title.includes(`[${student.id}]`) || (title.includes(student.name) && !title.includes('[STU'))));
                     });
-                    document.getElementById('tuition-placeholder').classList.remove('hidden'); document.getElementById('tuition-active').classList.add('hidden');
+                    
+                    document.getElementById('tuition-placeholder').classList.remove('hidden'); 
+                    document.getElementById('tuition-active').classList.add('hidden');
                     alert(`${student.name} deleted.`);
                 }
             } else {
-                const txId = document.getElementById('delete-transaction-id').value; const txIndex = appData.transactions.findIndex(t => t.id === txId);
+                const txId = document.getElementById('delete-transaction-id').value; 
+                const txIndex = appData.transactions.findIndex(t => t.id === txId);
                 if(txIndex !== -1) {
                     const tx = appData.transactions[txIndex];
                     let title = String(tx.title || "");
                     
-                    if(tx.type === 'income') appData.stats.income -= parseFloat(tx.amount);
-                    if(tx.type === 'expense') appData.stats.expense -= parseFloat(tx.amount);
-                    appData.stats.balance = appData.stats.income - appData.stats.expense;
+                    if(tx.type === 'income') newStats.income -= parseFloat(tx.amount);
+                    if(tx.type === 'expense') newStats.expense -= parseFloat(tx.amount);
+                    newStats.balance = newStats.income - newStats.expense;
 
-                    atomicDeleteById('transactions', txId, tx._fbKey);
+                    // 1. AWAIT server deletions FIRST
+                    await atomicDeleteById('transactions', txId, tx._fbKey);
                     
                     if (title.includes('Tuition') || title.includes('Admission') || title.includes('Advance')) {
-                        appData.students.forEach(student => { 
+                        for (let student of appData.students) { 
                             if (tx.title.includes(`[${student.id}]`)) { 
-                                student.paidFee -= tx.amount; if(student.paidFee < 0) student.paidFee = 0; 
-                                atomicUpdateById('students', student.id, student);
+                                let updatedStudent = { ...student };
+                                updatedStudent.paidFee -= tx.amount; 
+                                if(updatedStudent.paidFee < 0) updatedStudent.paidFee = 0; 
+                                await atomicUpdateById('students', updatedStudent.id, updatedStudent);
+                                Object.assign(student, updatedStudent);
                             } 
-                        });
+                        }
                     }
+                    
+                    // 2. Modify local memory safely
+                    appData.stats = newStats;
                     appData.transactions.splice(txIndex, 1);
                     alert("Record deleted successfully.");
                 }
             }
-            safeWrite('stats', appData.stats);
+            
+            await safeWrite('stats', appData.stats);
             syncLocalCache();
             refreshAllUI(); 
             closeDeleteModal(); 
@@ -2083,7 +2139,6 @@ function renderStudentFiles(stId) {
     }
     
     stFiles.forEach(f => {
-        // NEW: Sanitize URL to fix blank spaces
         const safeUrl = String(f.url || f.file || '').replace(/ /g, '%20');
         
         listEl.innerHTML += `
@@ -2155,7 +2210,6 @@ function renderHubFiles() {
         const displayTarget = f.target || 'N/A';
         const displayUrl = f.url || f.file || '';
         
-        // NEW: Sanitize URL to fix blank spaces
         const safeDisplayUrl = displayUrl.replace(/ /g, '%20');
         
         const vaultBadge = f._sourceNode === 'materials' 
@@ -2271,6 +2325,7 @@ function closeEditFileModal() {
     }
 }
 
+// 🛠️ STRICT FIX: Removed Optimistic UI Update from File Editing
 async function submitEditFile(e) {
     e.preventDefault();
     const id = document.getElementById('edit-file-id').value;
@@ -2286,15 +2341,21 @@ async function submitEditFile(e) {
     let file = fileList.find(f => f.id === id);
     
     if (file) {
-        file.name = newName;
-        file.folder = newFolder;
-        file.target = finalTarget;
+        // 1. Prepare payload
+        let updatedFile = { ...file };
+        updatedFile.name = newName;
+        updatedFile.folder = newFolder;
+        updatedFile.target = finalTarget;
         
-        if(file.title !== undefined) file.title = newName;
-        if(file.filename !== undefined) file.filename = newName;
-        if(file.course !== undefined) file.course = newFolder;
+        if(updatedFile.title !== undefined) updatedFile.title = newName;
+        if(updatedFile.filename !== undefined) updatedFile.filename = newName;
+        if(updatedFile.course !== undefined) updatedFile.course = newFolder;
 
-        await atomicUpdateById(categoryNode, id, file);
+        // 2. Await database push FIRST
+        await atomicUpdateById(categoryNode, id, updatedFile);
+        
+        // 3. Update local memory safely
+        Object.assign(file, updatedFile);
         syncLocalCache();
 
         alert("File details updated successfully!");
@@ -2329,14 +2390,20 @@ function deleteHubFile(path, fileId, sourceNode) {
     }
 }
 
-function _removeFileFromDatabase(fileId, sourceNode) {
+// 🛠️ STRICT FIX: Await Deletion before hiding file locally
+async function _removeFileFromDatabase(fileId, sourceNode) {
     let targetFile = appData[sourceNode].find(f => f.id === fileId);
+    
+    // 1. Await database wipe FIRST
+    await atomicDeleteById(sourceNode, fileId, targetFile ? targetFile._fbKey : null);
+    
+    // 2. Update local arrays
     if (sourceNode === 'materials') {
         appData.materials = appData.materials.filter(f => f.id !== fileId);
     } else {
         appData.files = appData.files.filter(f => f.id !== fileId);
     }
-    atomicDeleteById(sourceNode, fileId, targetFile ? targetFile._fbKey : null);
+    
     syncLocalCache();
     renderHubFiles();
 }
@@ -2710,18 +2777,26 @@ function renderBatchRequests() {
     });
 }
 
+// 🛠️ STRICT FIX: Removed Optimistic UI Update from Batch Approvals
 async function approveBatchRequest(reqId) {
     const req = appData.batchRequests.find(r => r.id === reqId);
     if(!req) return;
     const st = appData.students.find(s => s.id === req.studentId);
     
+    // 1. Await database push FIRST
     if(st) {
-        st.batch = req.requestedBatch;
-        await atomicUpdateById('students', st.id, st);
+        let updatedStudent = { ...st };
+        updatedStudent.batch = req.requestedBatch;
+        await atomicUpdateById('students', updatedStudent.id, updatedStudent);
+        Object.assign(st, updatedStudent);
     }
-    req.status = 'Approved';
-    await atomicUpdateById('batch_requests', req.id, req);
     
+    let updatedReq = { ...req };
+    updatedReq.status = 'Approved';
+    await atomicUpdateById('batch_requests', updatedReq.id, updatedReq);
+    
+    // 2. Safe memory update
+    Object.assign(req, updatedReq);
     syncLocalCache();
     
     alert(`Approved! ${st ? st.name : 'Student'} has been assigned to ${req.requestedBatch} Batch.`);
@@ -2730,15 +2805,19 @@ async function approveBatchRequest(reqId) {
     if(document.getElementById('view-tuition').classList.contains('active')) renderStudentList();
 }
 
+// 🛠️ STRICT FIX: Removed Optimistic UI Update from Batch Rejections
 async function rejectBatchRequest(reqId) {
     if(!confirm("Reject this batch change request?")) return;
     const req = appData.batchRequests.find(r => r.id === reqId);
     if(!req) return;
-    req.status = 'Rejected';
-    await atomicUpdateById('batch_requests', req.id, req);
+    
+    let updatedReq = { ...req };
+    updatedReq.status = 'Rejected';
+    
+    await atomicUpdateById('batch_requests', updatedReq.id, updatedReq);
+    Object.assign(req, updatedReq);
     
     syncLocalCache();
-
     alert(`Request rejected.`);
     renderBatchRequests();
 }
