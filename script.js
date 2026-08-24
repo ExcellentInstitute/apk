@@ -545,8 +545,43 @@ function shareTransactionWA(txId) {
 }
 
 // =========================================================
-// 🔔 PURE FIREBASE NOTIFICATION ROUTING
+// 🔔 PURE FIREBASE NOTIFICATION ROUTING (FCM API v1 WEBHOOK)
 // =========================================================
+
+// 🚨 STRICT FIX: The Legacy FCM API is dead. This engine now routes the push notification 
+// request to your secure Firebase Cloud Function, preventing your private Service Account 
+// keys from being exposed in frontend JavaScript!
+async function sendFCMPushNotification(topic, title, body) {
+    // ⚠️ CRITICAL: Replace this with the URL of your deployed Firebase Cloud Function
+    const cloudFunctionUrl = 'YOUR_CLOUD_FUNCTION_URL_HERE';
+
+    if (cloudFunctionUrl === 'YOUR_CLOUD_FUNCTION_URL_HERE') {
+        console.warn("Cloud Function URL is missing! Push notifications cannot be sent from the frontend.");
+        return false;
+    }
+
+    try {
+        const payload = {
+            topic: topic,
+            title: title,
+            body: body
+        };
+
+        const response = await fetch(cloudFunctionUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        return response.ok;
+    } catch (err) {
+        console.error("Cloud Function Fetch Error:", err);
+        return false;
+    }
+}
+
 async function sendCustomPushNotification() {
     const stId = document.getElementById('tuition-student-id').value;
     const student = appData.students.find(s => s.id === stId);
@@ -595,6 +630,12 @@ async function sendCustomPushNotification() {
         await safeWrite('notices', appData.notices); 
 
         syncLocalCache();
+        
+        // 🚨 NEW FCM PIPELINE: Ping Google's servers to wake the physical device
+        const cleanPhoneTopic = phone.replace(/[^a-zA-Z0-9_]/g, '');
+        if (cleanPhoneTopic) {
+            await sendFCMPushNotification(cleanPhoneTopic, title, bodyText);
+        }
         
         alert(`Push notification successfully routed via Firebase to ${student.name}!`);
         
@@ -2104,7 +2145,7 @@ function submitAssignmentUpload(e) {
                 
                 if (!appData.materials) appData.materials = [];
                 
-                atomicPush('materials', newFile).then(fbKey => {
+                atomicPush('materials', newFile).then(async fbKey => {
                     if (fbKey) newFile._fbKey = fbKey;
                     appData.materials.push(newFile);
                     syncLocalCache();
@@ -2112,6 +2153,12 @@ function submitAssignmentUpload(e) {
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
+                    
+                    // 🚨 NEW FCM PIPELINE: Ping Google's servers to wake the physical device
+                    let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9_]/g, '_');
+                    if (target.toUpperCase() === 'ALL') safeTopic = 'ALL';
+                    await sendFCMPushNotification(safeTopic, '📝 New Assignment: ' + title, 'A new assignment has been posted to your Student Hub.');
+
                     alert("Assignment Uploaded Successfully to Public Vault!");
                 });
             });
@@ -2439,13 +2486,19 @@ function submitBroadcast(e) {
         btn.disabled = true;
     }
 
-    atomicPush('notices', newNotice).then(fbKey => {
+    atomicPush('notices', newNotice).then(async fbKey => {
         if (fbKey) {
             newNotice._fbKey = fbKey;
             appData.notices.unshift(newNotice);
             syncLocalCache();
             renderBroadcastList();
             e.target.reset();
+
+            // 🚨 NEW FCM PIPELINE: Ping Google's servers to wake the physical device
+            let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9_]/g, '_');
+            if (target.toUpperCase() === 'ALL') safeTopic = 'ALL';
+            await sendFCMPushNotification(safeTopic, newNotice.title, message);
+
             alert("Broadcast Alert Sent!");
         } else {
             alert("Server connection failed. Could not sync notice.");
