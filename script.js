@@ -2927,10 +2927,31 @@ function renderStudentStudyLogs(stId) {
                 <td class="py-3 px-3 text-slate-800 font-bold max-w-[200px] truncate" title="${log.fileName || 'Document'}">
                     <span class="text-indigo-600 font-semibold"><i class="fa-solid fa-file-lines text-indigo-400 mr-1.5"></i>${log.fileName || 'Study Material'}</span>
                 </td>
-                <td class="py-3 px-2 text-center">
+                <td class="py-3 px-2 flex items-center justify-center gap-2">
                     <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-bold uppercase tracking-wider shadow-sm"><i class="fa-solid fa-check mr-1"></i>Viewed</span>
+                    <button type="button" onclick="deleteStudyLog('${log.id}', '${stId}')" class="text-rose-300 hover:text-rose-600 transition-colors p-1" title="Delete Log"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
         `;
     });
+}
+// =========================================
+// 🗑️ DELETE STUDY LOG FUNCTION
+// =========================================
+async function deleteStudyLog(logId, stId) {
+    if (!confirm("Are you sure you want to safely delete this study log from the server?")) return;
+
+    const logIndex = appData.studyLogs.findIndex(l => l.id === logId);
+    if (logIndex !== -1) {
+        const log = appData.studyLogs[logIndex];
+        
+        // 1. Delete securely from the Firebase server
+        await atomicDeleteById('study_logs', log.id, log._fbKey);
+        
+        // 2. Remove from local browser memory
+        appData.studyLogs.splice(logIndex, 1);
+        
+        // 3. Instantly refresh the table to show it is gone
+        renderStudentStudyLogs(stId);
+    }
 }
