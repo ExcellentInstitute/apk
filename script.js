@@ -19,7 +19,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [] };
+let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [], studyLogs: [] };
 let sessionPassword = ""; 
 let cropper = null;
 let currentCropTarget = null;
@@ -314,13 +314,15 @@ async function handleLogin(e) {
             safeFetch('materials'),
             safeFetchLimit('notices', 100),
             safeFetch('seating'),
-            safeFetch('batch_requests')
-        ]).then(async ([flSnap, matSnap, notSnap, seatSnap, reqSnap]) => {
+            safeFetch('batch_requests'),
+            safeFetchLimit('study_logs', 500)
+        ]).then(async ([flSnap, matSnap, notSnap, seatSnap, reqSnap, logSnap]) => {
             appData.files = parseFbList(flSnap.val());
             appData.materials = parseFbList(matSnap.val());
             appData.notices = parseFbList(notSnap.val());
             appData.seating = seatSnap.val() || {};
             appData.batchRequests = parseFbList(reqSnap.val());
+            appData.studyLogs = parseFbList(logSnap.val());
             
             await autoCleanupNotices();
 
@@ -334,6 +336,7 @@ async function handleLogin(e) {
             const activeId = document.getElementById('tuition-student-id').value;
             if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
                 renderStudentFiles(activeId);
+                renderStudentStudyLogs(activeId);
             }
         }).catch(err => console.error("Background sync error:", err));
 
@@ -869,9 +872,10 @@ function refreshAllUI() {
     renderBatchRequests();
 
     const activeId = document.getElementById('tuition-student-id').value;
-    if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
-        selectStudent(activeId);
-    }
+            if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
+                renderStudentFiles(activeId);
+                renderStudentStudyLogs(activeId);
+            }
 }
 
 function toggleSidebar() {
@@ -1615,6 +1619,7 @@ function selectStudent(id) {
 
     renderMiniLedger(student);
     renderStudentFiles(student.id);
+    renderStudentStudyLogs(student.id);
     if(window.innerWidth < 1024) document.getElementById('tuition-active').scrollIntoView({behavior: 'smooth'});
 }
 
@@ -2888,4 +2893,44 @@ async function rejectBatchRequest(reqId) {
     syncLocalCache();
     alert(`Request rejected.`);
     renderBatchRequests();
+}
+
+// =========================================
+// 📖 STUDENT STUDY & CURRICULUM ACTIVITY
+// =========================================
+function renderStudentStudyLogs(stId) {
+    const listEl = document.getElementById('student-study-logs-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const student = appData.students.find(s => s.id === stId);
+    const stPhone = student ? String(student.phone).trim() : "";
+
+    if (!appData.studyLogs) appData.studyLogs = [];
+    
+    // Filter logs for the active student by ID or Phone
+    const logs = appData.studyLogs.filter(l => {
+        const target = String(l.studentId || l.phone || '').trim();
+        return target === stId || (stPhone && target === stPhone);
+    });
+
+    if (logs.length === 0) {
+        listEl.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-xs text-slate-400 font-bold"><i class="fa-solid fa-book-open-reader text-2xl mb-2 text-slate-300 block"></i>No study activity recorded yet.</td></tr>';
+        return;
+    }
+
+    // Sort with most recent activity at the top
+    logs.slice().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).forEach(log => {
+        listEl.innerHTML += `
+            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                <td class="py-3 px-3 text-slate-500 font-bold text-[10px] whitespace-nowrap">${log.date || '-'}</td>
+                <td class="py-3 px-3 text-slate-800 font-bold max-w-[200px] truncate" title="${log.fileName || 'Document'}">
+                    <span class="text-indigo-600 font-semibold"><i class="fa-solid fa-file-lines text-indigo-400 mr-1.5"></i>${log.fileName || 'Study Material'}</span>
+                </td>
+                <td class="py-3 px-2 text-center">
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[9px] font-bold uppercase tracking-wider shadow-sm"><i class="fa-solid fa-check mr-1"></i>Viewed</span>
+                </td>
+            </tr>
+        `;
+    });
 }
