@@ -115,6 +115,7 @@ const safeWrite = async (path, data) => {
 
 // 🛠️ STRICT FIX: Firebase Transaction Engine
 // Mathematically guarantees pure sequential arrays (0, 1, 2, 54, 55). ZERO scribbled letters.
+// 🛠️ FIX 1: Array-Preserving Push (Keeps 0, 1, 2 format for Mobile App)
 const atomicPush = async (path, data) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(data));
@@ -124,20 +125,21 @@ const atomicPush = async (path, data) => {
         await firebase.database().ref(path).transaction((currentData) => {
             if (currentData === null) {
                 newKey = "0";
-                return [cleanData];
+                return [cleanData]; // Start clean array
             }
             
-            let nextIndex = 0;
+            let cleanArray = [];
             if (Array.isArray(currentData)) {
-                nextIndex = currentData.length;
-                currentData.push(cleanData);
+                // Remove any toxic 'null' gaps before pushing
+                cleanArray = currentData.filter(item => item !== null);
             } else if (typeof currentData === 'object') {
-                const keys = Object.keys(currentData).map(Number).filter(k => !isNaN(k));
-                nextIndex = keys.length > 0 ? Math.max(...keys) + 1 : 0;
-                currentData[nextIndex] = cleanData;
+                // Fallback if it somehow became an object
+                cleanArray = Object.values(currentData).filter(item => item !== null);
             }
-            newKey = nextIndex.toString();
-            return currentData;
+            
+            newKey = cleanArray.length.toString();
+            cleanArray.push(cleanData);
+            return cleanArray; // Clean overwrite
         });
         
         return newKey; 
@@ -148,22 +150,20 @@ const atomicPush = async (path, data) => {
     }
 };
 
+// 🛠️ FIX 2: Safe Array Updater (Ignores shifting array numbers)
 const atomicUpdateById = async (path, id, newData) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(newData));
         delete cleanData._fbKey; 
 
-        if (newData._fbKey) {
-            await firebase.database().ref(`${path}/${newData._fbKey}`).set(cleanData);
-            return;
-        }
-
+        // Search the database for the exact ID to find its current index
         const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
         if (snapshot.exists()) {
             const updates = {};
             snapshot.forEach(child => { updates[child.key] = cleanData; });
             await firebase.database().ref(path).update(updates);
         } else {
+            // If it doesn't exist, push it cleanly
             await atomicPush(path, cleanData);
         }
     } catch (err) {
@@ -171,19 +171,29 @@ const atomicUpdateById = async (path, id, newData) => {
     }
 };
 
+// 🛠️ FIX 3: Clean Overwrite Delete (Removes gaps, keeps mobile app safe)
 const atomicDeleteById = async (path, id, fbKey = null) => {
     try {
-        if (fbKey) {
-            await firebase.database().ref(`${path}/${fbKey}`).remove();
-            return;
+        // Download the whole list
+        const snapshot = await firebase.database().ref(path).once('value');
+        if (!snapshot.exists()) return;
+
+        let currentData = snapshot.val();
+        let dataArray = [];
+
+        // Convert to clean array (wiping out existing nulls)
+        if (Array.isArray(currentData)) {
+            dataArray = currentData.filter(item => item !== null);
+        } else if (typeof currentData === 'object') {
+            dataArray = Object.values(currentData).filter(item => item !== null);
         }
-        
-        const snapshot = await firebase.database().ref(path).orderByChild('id').equalTo(id).once('value');
-        if (snapshot.exists()) {
-            const updates = {};
-            snapshot.forEach(child => { updates[child.key] = null; });
-            await firebase.database().ref(path).update(updates);
-        }
+
+        // Filter out the specific item we want to delete
+        const filteredArray = dataArray.filter(item => item.id !== id);
+
+        // Overwrite Firebase completely with the clean, re-numbered array
+        await firebase.database().ref(path).set(filteredArray.length > 0 ? filteredArray : null);
+
     } catch (err) {
         console.error(`Atomic Delete Error on ${path}:`, err);
     }
@@ -1919,7 +1929,7 @@ async function executeDelete() {
                     // 1. AWAIT server deletions FIRST
                     await atomicDeleteById('students', stId, student._fbKey);
                     
-                    let studentTxs = appData.transactions.filter(tx => tx.title.includes(`[${stId}]`));
+                    let studentTxs = appData.transactions.filter(tx => String(tx.title || "").includes(`[${stId}]`));
                     for (let tx of studentTxs) {
                         await atomicDeleteById('transactions', tx.id, tx._fbKey);
                     }
@@ -1951,7 +1961,7 @@ async function executeDelete() {
                     
                     if (title.includes('Tuition') || title.includes('Admission') || title.includes('Advance')) {
                         for (let student of appData.students) { 
-                            if (tx.title.includes(`[${student.id}]`)) { 
+                            if (String(tx.title || "").includes(`[${student.id}]`)) { 
                                 let updatedStudent = { ...student };
                                 updatedStudent.paidFee -= tx.amount; 
                                 if(updatedStudent.paidFee < 0) updatedStudent.paidFee = 0; 
@@ -2955,3 +2965,89 @@ async function deleteStudyLog(logId, stId) {
         renderStudentStudyLogs(stId);
     }
 }
+// =========================================================
+// 🗓️ TIMETABLE & HOLIDAY MANAGEMENT ENGINE
+// =========================================================
+let timetableData = { holidays: {}, schedules: {} };
+
+// 1. Fetch Current Timetable Data
+async function loadTimetableData() {
+    try {
+        const holSnap = await firebase.database().ref('holidays').once('value');
+        const schSnap = await firebase.database().ref('schedules').once('value');
+        
+        timetableData.holidays = holSnap.val() || {};
+        timetableData.schedules = schSnap.val() || {};
+        
+        if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
+    } catch(e) { console.error("Timetable load error:", e); }
+}
+
+// 2. Add New Holiday
+async function addInstituteHoliday() {
+    const dateStr = document.getElementById('holiday-date').value;
+    const reason = document.getElementById('holiday-reason').value.trim();
+    
+    if(!dateStr || !reason) return alert("Please select a date and provide a reason.");
+    
+    timetableData.holidays[dateStr] = reason;
+    await firebase.database().ref('holidays').set(timetableData.holidays);
+    
+    alert("Holiday officially declared and synced to Mobile Apps!");
+    document.getElementById('holiday-reason').value = '';
+    if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
+}
+
+// 3. Remove Holiday
+async function removeInstituteHoliday(dateStr) {
+    if(!confirm(`Are you sure you want to remove the holiday on ${dateStr}?`)) return;
+    
+    delete timetableData.holidays[dateStr];
+    await firebase.database().ref('holidays').set(timetableData.holidays);
+    if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
+}
+
+// 4. Update Custom Batch Timing
+async function updateBatchSchedule(e) {
+    e.preventDefault();
+    const batchName = document.getElementById('schedule-batch-name').value;
+    const labTime = document.getElementById('schedule-lab').value;
+    const theoryTime = document.getElementById('schedule-theory').value;
+    const sunTime = document.getElementById('schedule-sunday').value;
+    
+    if (!timetableData.schedules[batchName]) timetableData.schedules[batchName] = {};
+    
+    timetableData.schedules[batchName] = { lab: labTime, theory: theoryTime, sun: sunTime };
+    await firebase.database().ref('schedules').set(timetableData.schedules);
+    
+    alert(`${batchName} Batch schedule updated successfully! Mobile apps will now display this new time.`);
+}
+
+// 5. Render Holidays in UI
+function renderHolidaysAdmin() {
+    const listEl = document.getElementById('admin-holidays-list');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    const dates = Object.keys(timetableData.holidays).sort((a,b) => new Date(b) - new Date(a));
+    
+    if (dates.length === 0) {
+        listEl.innerHTML = '<p class="text-sm text-slate-500 font-bold p-4">No holidays declared.</p>';
+        return;
+    }
+    
+    dates.forEach(date => {
+        listEl.innerHTML += `
+            <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-rose-100 shadow-sm mb-2">
+                <div>
+                    <p class="font-bold text-rose-600">${date}</p>
+                    <p class="text-xs text-slate-600 font-medium">${timetableData.holidays[date]}</p>
+                </div>
+                <button onclick="removeInstituteHoliday('${date}')" class="text-rose-400 hover:text-rose-700 p-2"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+    });
+}
+
+// Load data when script runs
+setTimeout(loadTimetableData, 2000);
