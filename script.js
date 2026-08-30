@@ -3046,6 +3046,12 @@ async function loadTimetableData() {
         timetableData.holidays = holSnap.val() || {};
         timetableData.schedules = schSnap.val() || {};
         
+        // Load the global special class day setting into the dropdown
+        if (!timetableData.schedules.specialClassDay) timetableData.schedules.specialClassDay = "Sunday";
+        if (document.getElementById('special-class-day')) {
+            document.getElementById('special-class-day').value = timetableData.schedules.specialClassDay;
+        }
+        
         if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
     } catch(e) { console.error("Timetable load error:", e); }
 }
@@ -3078,16 +3084,18 @@ async function removeInstituteHoliday(dateStr) {
 async function updateBatchSchedule(e) {
     e.preventDefault();
     const batchName = document.getElementById('schedule-batch-name').value;
+    const specialDay = document.getElementById('special-class-day').value;
     const labTime = document.getElementById('schedule-lab').value;
     const theoryTime = document.getElementById('schedule-theory').value;
     const sunTime = document.getElementById('schedule-sunday').value;
     
     if (!timetableData.schedules[batchName]) timetableData.schedules[batchName] = {};
     
+    timetableData.schedules.specialClassDay = specialDay; // Save global preference
     timetableData.schedules[batchName] = { lab: labTime, theory: theoryTime, sun: sunTime };
     await firebase.database().ref('schedules').set(timetableData.schedules);
     
-    alert(`${batchName} Batch schedule updated successfully! Mobile apps will now display this new time.`);
+    alert(`Schedule updated! Special Class is now on ${specialDay}, and ${batchName} times have been saved.`);
 }
 
 // 5. Render Holidays in UI
