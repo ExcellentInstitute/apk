@@ -69,7 +69,9 @@ function syncLocalCache() {
         }
     } catch (e) {
         console.warn("Local storage limit reached. Running via live Firebase fetch.", e);
-        localStorage.removeItem('excellentERP_Database'); // Frees up space to prevent locking
+        try {
+            localStorage.removeItem('excellentERP_Database'); // Frees up space to prevent locking
+        } catch(removeErr) {}
     }
 }
 
