@@ -1691,6 +1691,66 @@ function renderJobList() { renderList('job-list', t => String(t.title || "").inc
 function renderPrintList() { renderList('print-list', t => String(t.title || "").includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
 // =========================================================
+// 💼 EXPENSE, JOB, AND PRINT DESK SUBMISSIONS
+// =========================================================
+async function submitExpense(e) {
+    e.preventDefault();
+    const date = document.getElementById('exp-date').value;
+    const category = document.getElementById('exp-category').value;
+    const amount = parseFloat(document.getElementById('exp-amount').value);
+    const desc = document.getElementById('exp-desc').value.trim();
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Processing...';
+    btn.disabled = true;
+
+    await recordTransaction("expense", category, amount, date, desc);
+    alert(`Expense of ₹${amount} recorded successfully!`);
+    
+    e.target.reset(); setDefaultDates();
+    btn.innerHTML = originalText; btn.disabled = false;
+}
+
+async function submitJobApp(e) {
+    e.preventDefault();
+    const date = document.getElementById('job-date').value;
+    const name = document.getElementById('job-name').value.trim();
+    const post = document.getElementById('job-post').value.trim();
+    const amount = parseFloat(document.getElementById('job-amount').value);
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Processing...';
+    btn.disabled = true;
+
+    await recordTransaction("income", `Job Desk: ${name} (${post})`, amount, date, `Applied for: ${post}`);
+    alert(`Job application income of ₹${amount} recorded!`);
+    
+    e.target.reset(); setDefaultDates();
+    btn.innerHTML = originalText; btn.disabled = false;
+}
+
+async function submitPrintIncome(e) {
+    e.preventDefault();
+    const date = document.getElementById('print-date').value;
+    const service = document.getElementById('print-service').value;
+    const desc = document.getElementById('print-desc').value.trim();
+    const amount = parseFloat(document.getElementById('print-amount').value);
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Processing...';
+    btn.disabled = true;
+
+    await recordTransaction("income", `Print Desk: ${service}`, amount, date, desc);
+    alert(`Print desk income of ₹${amount} recorded!`);
+    
+    e.target.reset(); setDefaultDates();
+    btn.innerHTML = originalText; btn.disabled = false;
+}
+
+// =========================================================
 // ✏️ EDIT STUDENT & TRANSACTION LOGIC
 // =========================================================
 function openEditModal() {
