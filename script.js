@@ -2250,7 +2250,7 @@ function submitAssignmentUpload(e) {
                     renderHubFiles();
                     
                     // 🚨 NEW FCM PIPELINE: Ping Google's servers to wake the physical device
-                    let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9_]/g, '_');
+                    let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9]/g, '_');
                     if (target.toUpperCase() === 'ALL') safeTopic = 'ALL';
                     await sendFCMPushNotification(safeTopic, '📝 New Assignment: ' + title, 'A new assignment has been posted to your Student Hub.');
 
@@ -2590,7 +2590,7 @@ function submitBroadcast(e) {
             e.target.reset();
 
             // 🚨 NEW FCM PIPELINE: Ping Google's servers to wake the physical device
-            let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9_]/g, '_');
+            let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9]/g, '_');
             if (target.toUpperCase() === 'ALL') safeTopic = 'ALL';
             await sendFCMPushNotification(safeTopic, newNotice.title, message);
 
