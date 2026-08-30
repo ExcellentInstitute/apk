@@ -594,10 +594,8 @@ async function sendFCMPushNotification(topic, title, body) {
                     priority: "high",
                     notification: {
                         channel_id: "ei_critical_alerts_v1",
-                        icon: "launcher_icon", // 🚨 Pulls your exact app logo from Android mipmap
                         default_sound: true,
-                        default_vibrate_timings: true,
-                        click_action: "FLUTTER_NOTIFICATION_CLICK"
+                        default_vibrate_timings: true
                     }
                 }
             }
