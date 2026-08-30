@@ -63,8 +63,13 @@ function parseFbList(data) {
 }
 
 function syncLocalCache() {
-    if (appData.students.length > 0 || appData.transactions.length > 0) {
-        localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+    try {
+        if (appData.students.length > 0 || appData.transactions.length > 0) {
+            localStorage.setItem('excellentERP_Database', JSON.stringify(appData));
+        }
+    } catch (e) {
+        console.warn("Local storage limit reached. Running via live Firebase fetch.", e);
+        localStorage.removeItem('excellentERP_Database'); // Frees up space to prevent locking
     }
 }
 
