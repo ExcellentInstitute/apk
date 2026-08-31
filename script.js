@@ -586,17 +586,12 @@ async function sendFCMPushNotification(topic, title, body) {
             // Your Cloud Function just needs to do: admin.messaging().send(req.body.message);
             message: {
                 topic: topic,
-                notification: {
+                data: {
                     title: title,
                     body: body
                 },
                 android: {
-                    priority: "high",
-                    notification: {
-                        channel_id: "ei_critical_alerts_v1",
-                        default_sound: true,
-                        default_vibrate_timings: true
-                    }
+                    priority: "high"
                 }
             }
         };
