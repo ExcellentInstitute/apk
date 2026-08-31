@@ -572,7 +572,6 @@ function shareTransactionWA(txId) {
 // via your secure Firebase Cloud Function. It passes the required Android-specific overrides
 // so the physical device will wake up, bypass Doze Mode, and show the app logo.
 async function sendFCMPushNotification(topic, title, body) {
-    // ⚠️ INSTRUCTION: Deploy a Firebase Function to handle FCM v1 and paste its URL here.
     const cloudFunctionUrl = 'https://console.firebase.google.com/project/excellent-institute-vault/overview';
 
     if (cloudFunctionUrl === 'https://console.firebase.google.com/project/excellent-institute-vault/overview') {
@@ -582,8 +581,6 @@ async function sendFCMPushNotification(topic, title, body) {
 
     try {
         const payload = {
-            // We pass the exact nested 'message' object required by the FCM v1 API
-            // Your Cloud Function just needs to do: admin.messaging().send(req.body.message);
             message: {
                 topic: topic,
                 data: {
@@ -2564,7 +2561,7 @@ function submitBroadcast(e) {
         id: 'NOT' + Date.now(),
         title: '📢 ' + title,
         message: 'Target: ' + target.toUpperCase() + '\n\n' + message,
-        target: target.toUpperCase(), // INJECTED DEDICATED TARGET KEY
+        target: target.toUpperCase(),
         date: dateString
     };
 
@@ -2584,8 +2581,8 @@ function submitBroadcast(e) {
             renderBroadcastList();
             e.target.reset();
 
-            // 🚨 NEW FCM PIPELINE: Ping Google's servers to wake the physical device
-            let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9]/g, '_');
+            // 🚨 CRITICAL FIX: Strips all special characters so topics match Flutter perfectly
+            let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9]/g, '');
             if (target.toUpperCase() === 'ALL') safeTopic = 'ALL';
             await sendFCMPushNotification(safeTopic, newNotice.title, message);
 
