@@ -1408,29 +1408,64 @@ async function submitTuitionFee(e) {
     }
 }
 
-function submitRegistration(e) {
+// =========================================================
+// 📸 FIREBASE STORAGE UPLOAD HELPER FOR PROFILES
+// =========================================================
+async function uploadProfileImage(fileData, isDataUrl) {
+    if (!fileData) return null;
+    const storageRef = firebase.storage().ref();
+    const filePath = `vault/profiles/Profile_${Date.now()}_${Math.floor(Math.random()*1000)}.jpg`;
+    const fileRef = storageRef.child(filePath);
+    
+    if (isDataUrl) {
+        await fileRef.putString(fileData, 'data_url');
+    } else {
+        await fileRef.put(fileData);
+    }
+    return await fileRef.getDownloadURL();
+}
+
+// --- REPLACE THE ENTIRE submitRegistration FUNCTION ---
+async function submitRegistration(e) {
     e.preventDefault();
-    const date = document.getElementById('reg-date').value; const name = document.getElementById('reg-name').value;
-    const course = document.getElementById('reg-course').value; const feeType = document.getElementById('reg-feetype').value;
-    const gender = document.getElementById('reg-gender').value; const phone = document.getElementById('reg-phone').value;
-    const parentPhone = document.getElementById('reg-parent-phone').value; const batch = document.getElementById('reg-batch').value;
-    const totalFee = document.getElementById('reg-totalfee').value; const paid = document.getElementById('reg-paid').value;
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Registering & Uploading...';
+    submitBtn.disabled = true;
+
+    const date = document.getElementById('reg-date').value; 
+    const name = document.getElementById('reg-name').value;
+    const course = document.getElementById('reg-course').value; 
+    const feeType = document.getElementById('reg-feetype').value;
+    const gender = document.getElementById('reg-gender').value; 
+    const phone = document.getElementById('reg-phone').value;
+    const parentPhone = document.getElementById('reg-parent-phone').value; 
+    const batch = document.getElementById('reg-batch').value;
+    const totalFee = document.getElementById('reg-totalfee').value; 
+    const paid = document.getElementById('reg-paid').value;
     const duration = document.getElementById('reg-duration').value;
     const fileInput = document.getElementById('reg-image');
 
     const safePhone = phone.replace(/[^0-9]/g, '');
     if (!safePhone || safePhone.length < 10) {
         alert("Please enter a valid 10-digit mobile number.");
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
         return;
     }
 
-    const finishReg = async function(base64Image) {
-        const stId = addStudent(name, course, totalFee, paid, safePhone, date, feeType, gender, base64Image, duration, parentPhone, batch);
+    try {
+        let imageUrl = null;
+        if (croppedImages.reg) {
+            imageUrl = await uploadProfileImage(croppedImages.reg, true);
+        } else if (fileInput.files[0]) {
+            imageUrl = await uploadProfileImage(fileInput.files[0], false);
+        }
+
+        const stId = addStudent(name, course, totalFee, paid, safePhone, date, feeType, gender, imageUrl, duration, parentPhone, batch);
         
         let email = `${safePhone}@ei.com`;
         let firstName = String(name || "").trim().split(/\s+/)[0];
-        
-        // 🛠️ STRICT FIX: Force predictable password capitalisation (Demo vs demo)
         firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
         let regYear = date.length >= 4 ? date.substring(0, 4) : new Date().getFullYear().toString();
         let password = `EI${firstName}${regYear}`;
@@ -1442,11 +1477,8 @@ function submitRegistration(e) {
             } else {
                 secondaryApp = firebase.app("SecondaryApp");
             }
-            
-            // 🛠️ STRICT FIX: 'await' locks the code until Auth finishes securely.
             await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
             await secondaryApp.auth().signOut();
-            
             alert(`Success! Student registered securely.\n\nLogin ID: ${safePhone}\nPassword: ${password}\n\nThe mobile app can now be accessed with these exact credentials.`);
         } catch(err) {
             console.error("Auto-Auth execution error:", err);
@@ -1454,16 +1486,12 @@ function submitRegistration(e) {
         }
 
         e.target.reset(); setDefaultDates(); switchTab('tuition'); croppedImages.reg = null;
-    };
-
-    if(croppedImages.reg) { finishReg(croppedImages.reg); } else { 
-        if(fileInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(evt) { finishReg(evt.target.result); };
-            reader.readAsDataURL(fileInput.files[0]);
-        } else {
-            finishReg(null);
-        }
+    } catch (error) {
+        console.error("Upload Error:", error);
+        alert("Registration failed during image upload. Check internet connection.");
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 }
 
@@ -1783,13 +1811,13 @@ function closeEditModal() {
     }, 300);
 }
 
+// --- REPLACE THE ENTIRE submitEditStudent FUNCTION ---
 async function submitEditStudent(e) {
     e.preventDefault();
     const id = document.getElementById('edit-student-id').value; 
     let student = appData.students.find(s => s.id === id);
     if(!student) return;
 
-    // 🛠️ STRICT FIX: Clone before modifying to avoid optimistic UI states
     let updatedStudent = { ...student };
     const oldName = student.name;
     const newName = document.getElementById('edit-name').value;
@@ -1819,19 +1847,33 @@ async function submitEditStudent(e) {
     updatedStudent.paidFee = newPaid;
 
     const fileInput = document.getElementById('edit-image');
-    if(croppedImages.edit) {
-        updatedStudent.image = croppedImages.edit; 
-        croppedImages.edit = null; 
+    
+    const saveBtn = e.target.closest('button') || document.activeElement;
+    let originalText = "Save Changes";
+    if (saveBtn) {
+        originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
+        saveBtn.disabled = true;
+    }
+
+    try {
+        if(croppedImages.edit) {
+            updatedStudent.image = await uploadProfileImage(croppedImages.edit, true); 
+            croppedImages.edit = null; 
+        } else if(fileInput.files && fileInput.files[0]) {
+            updatedStudent.image = await uploadProfileImage(fileInput.files[0], false); 
+        }
+        // If no new image is selected, updatedStudent.image safely remains the old URL
+
         await finalizeEdit(student, updatedStudent, oldName, newName, oldPaid, newPaid);
-    } else if(fileInput.files && fileInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = async function(evt) { 
-            updatedStudent.image = evt.target.result; 
-            await finalizeEdit(student, updatedStudent, oldName, newName, oldPaid, newPaid); 
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-    } else { 
-        await finalizeEdit(student, updatedStudent, oldName, newName, oldPaid, newPaid); 
+    } catch (err) {
+        console.error("Edit Error:", err);
+        alert("Failed to update student profile or upload image. Check your connection.");
+    } finally {
+        if (saveBtn) {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
     }
 }
 
