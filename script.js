@@ -934,7 +934,7 @@ function switchTab(tabId) {
         'expenditure': 'Expenditures', 
         'analytics': 'Profit & Loss Analytics', 
         'settings': 'System Settings',
-        'exam': 'MCQ Exam Portal'
+        'exam': 'Live Exam Control Panel'
     };
     document.getElementById('page-title').innerText = titles[tabId] || 'Dashboard';
     if(window.innerWidth < 768) {
