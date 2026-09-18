@@ -1414,7 +1414,9 @@ async function submitTuitionFee(e) {
 async function uploadProfileImage(fileData, isDataUrl) {
     if (!fileData) return null;
     const storageRef = firebase.storage().ref();
-    const filePath = `vault/profiles/Profile_${Date.now()}_${Math.floor(Math.random()*1000)}.jpg`;
+    // 🚨 CRITICAL FIX: Removed the "profiles/" subfolder. 
+    // Your Storage rules ONLY allow uploads directly into the "vault" folder.
+    const filePath = `vault/Profile_${Date.now()}_${Math.floor(Math.random()*1000)}.jpg`;
     const fileRef = storageRef.child(filePath);
     
     if (isDataUrl) {
@@ -1424,7 +1426,6 @@ async function uploadProfileImage(fileData, isDataUrl) {
     }
     return await fileRef.getDownloadURL();
 }
-
 // --- REPLACE THE ENTIRE submitRegistration FUNCTION ---
 async function submitRegistration(e) {
     e.preventDefault();
