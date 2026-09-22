@@ -583,12 +583,19 @@ async function sendFCMPushNotification(topic, title, body) {
         const payload = {
             message: {
                 topic: topic,
-                data: {
+                notification: {     // 🚨 CHANGED from "data" to "notification"
                     title: title,
                     body: body
                 },
                 android: {
-                    priority: "high"
+                    priority: "high",
+                    notification: { // 🚨 ADDED to force lock-screen wake up
+                        channel_id: "ei_critical_alerts_v1",
+                        icon: "launcher_icon",
+                        default_sound: true,
+                        default_vibrate_timings: true,
+                        click_action: "FLUTTER_NOTIFICATION_CLICK"
+                    }
                 }
             }
         };
