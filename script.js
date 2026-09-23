@@ -572,9 +572,10 @@ function shareTransactionWA(txId) {
 // via your secure Firebase Cloud Function. It passes the required Android-specific overrides
 // so the physical device will wake up, bypass Doze Mode, and show the app logo.
 async function sendFCMPushNotification(topic, title, body) {
-    const cloudFunctionUrl = 'https://console.firebase.google.com/project/excellent-institute-vault/overview';
+    // 🚨 ENGINEERED FIX: Assigning the real API endpoint to the delivery variable
+    const cloudFunctionUrl = 'https://sendfcmwebhook-mkrxdcfata-uc.a.run.app';
 
-    if (cloudFunctionUrl === 'https://sendfcmwebhook-mkrxdcfata-uc.a.run.app') {
+    if (cloudFunctionUrl === 'https://console.firebase.google.com/project/excellent-institute-vault/overview' || !cloudFunctionUrl) {
         console.warn("Cloud Function URL is missing! Push notifications cannot be sent from the frontend.");
         return false;
     }
