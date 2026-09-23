@@ -2388,18 +2388,27 @@ function renderHubFiles() {
         return;
     }
     
-    displayList.slice().reverse().forEach(f => {
+displayList.slice().reverse().forEach(f => {
         const displayName = f.name || f.title || f.filename || 'Unnamed Document';
         const displayFolder = f.folder || f.course || 'Unassigned';
         const displayTarget = f.target || 'N/A';
         const displayUrl = f.url || f.file || '';
         
+        // 🚨 ENGINEERED FIX: Detects if the payload is pure text or a PDF
+        const isText = (f.isText === true || f.isText === 'true');
+        const textContent = f.textContent || '';
+        const safeTextContent = textContent.replace(/'/g, "\\'").replace(/\n/g, '\\n');
         const safeDisplayUrl = displayUrl.replace(/ /g, '%20');
         
         const vaultBadge = f._sourceNode === 'materials' 
             ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold ml-2 shadow-sm">GUEST</span>`
             : `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[9px] font-bold ml-2 shadow-sm">PRIVATE</span>`;
         
+        // 🚨 ENGINEERED FIX: Renders a JavaScript Alert for Text, and a standard link for PDFs
+        const clickableLink = isText 
+            ? `<a href="javascript:void(0)" onclick="alert('${safeTextContent}')" class="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-align-left text-cyan-500 mr-1.5"></i>${displayName}</a>`
+            : `<a href="${safeDisplayUrl}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${displayName}</a>`;
+
         listEl.innerHTML += `
             <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
                 <td class="py-3 px-4 text-center">
@@ -2409,7 +2418,7 @@ function renderHubFiles() {
                 <td class="py-3 px-4 text-indigo-600 font-bold text-xs flex items-center">${f.category || 'Material'} ${vaultBadge}</td>
                 <td class="py-3 px-4 text-slate-600 font-bold text-xs">${displayTarget} / ${displayFolder}</td>
                 <td class="py-3 px-4 text-slate-800 font-bold text-xs max-w-[150px] truncate" title="${displayName}">
-                    <a href="${safeDisplayUrl}" target="_blank" class="hover:text-indigo-800 hover:underline transition-colors"><i class="fa-solid fa-file-pdf text-rose-500 mr-1.5"></i>${displayName}</a>
+                    ${clickableLink}
                 </td>
                 <td class="py-3 px-2 text-center whitespace-nowrap">
                     <button type="button" onclick="openEditFileModal('${f.id}', '${f._sourceNode}')" class="text-indigo-400 hover:text-indigo-600 transition-colors p-1 mr-1" title="Edit File Data"><i class="fa-solid fa-pen"></i></button>
