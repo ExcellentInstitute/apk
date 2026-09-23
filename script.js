@@ -574,7 +574,7 @@ function shareTransactionWA(txId) {
 async function sendFCMPushNotification(topic, title, body) {
     const cloudFunctionUrl = 'https://console.firebase.google.com/project/excellent-institute-vault/overview';
 
-    if (cloudFunctionUrl === 'https://console.firebase.google.com/project/excellent-institute-vault/overview') {
+    if (cloudFunctionUrl === 'https://sendfcmwebhook-mkrxdcfata-uc.a.run.app') {
         console.warn("Cloud Function URL is missing! Push notifications cannot be sent from the frontend.");
         return false;
     }
@@ -3142,6 +3142,7 @@ async function deleteStudyLog(logId, stId) {
         renderStudentStudyLogs(stId);
     }
 }
+
 // =========================================================
 // 🗓️ TIMETABLE & HOLIDAY MANAGEMENT ENGINE
 // =========================================================
@@ -3150,19 +3151,32 @@ let timetableData = { holidays: {}, schedules: {} };
 // 1. Fetch Current Timetable Data
 async function loadTimetableData() {
     try {
-        const holSnap = await firebase.database().ref('holidays').once('value');
-        const schSnap = await firebase.database().ref('schedules').once('value');
-        
-        timetableData.holidays = holSnap.val() || {};
-        timetableData.schedules = schSnap.val() || {};
-        
-        // Load the global special class day setting into the dropdown
-        if (!timetableData.schedules.specialClassDay) timetableData.schedules.specialClassDay = "Sunday";
-        if (document.getElementById('special-class-day')) {
-            document.getElementById('special-class-day').value = timetableData.schedules.specialClassDay;
-        }
-        
-        if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
+        // 🚨 ENGINEERED FIX: Real-time listener instead of 'once'
+        firebase.database().ref('holidays').on('value', (snapshot) => {
+            timetableData.holidays = snapshot.val() || {};
+            
+            // 🚨 ENGINEERED FIX: 30-Day Auto-Cleanup Logic
+            const now = Date.now();
+            const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
+            
+            for (let dateStr in timetableData.holidays) {
+                const holidayDate = new Date(dateStr).getTime();
+                if (now - holidayDate > ONE_MONTH) {
+                    delete timetableData.holidays[dateStr];
+                    firebase.database().ref('holidays/' + dateStr).remove();
+                }
+            }
+            
+            if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
+        });
+
+        firebase.database().ref('schedules').on('value', (snapshot) => {
+            timetableData.schedules = snapshot.val() || {};
+            if (!timetableData.schedules.specialClassDay) timetableData.schedules.specialClassDay = "Sunday";
+            if (document.getElementById('special-class-day')) {
+                document.getElementById('special-class-day').value = timetableData.schedules.specialClassDay;
+            }
+        });
     } catch(e) { console.error("Timetable load error:", e); }
 }
 
@@ -3173,21 +3187,19 @@ async function addInstituteHoliday() {
     
     if(!dateStr || !reason) return alert("Please select a date and provide a reason.");
     
-    timetableData.holidays[dateStr] = reason;
-    await firebase.database().ref('holidays').set(timetableData.holidays);
+    // 🚨 ENGINEERED FIX: Targeted write prevents overwriting the entire node!
+    await firebase.database().ref('holidays/' + dateStr).set(reason);
     
     alert("Holiday officially declared and synced to Mobile Apps!");
     document.getElementById('holiday-reason').value = '';
-    if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
 }
 
 // 3. Remove Holiday
 async function removeInstituteHoliday(dateStr) {
     if(!confirm(`Are you sure you want to remove the holiday on ${dateStr}?`)) return;
     
-    delete timetableData.holidays[dateStr];
-    await firebase.database().ref('holidays').set(timetableData.holidays);
-    if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
+    // 🚨 ENGINEERED FIX: Targeted delete!
+    await firebase.database().ref('holidays/' + dateStr).remove();
 }
 
 // 4. Update Custom Batch Timing
