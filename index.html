@@ -258,6 +258,7 @@
                         </div>
                         
                         <!-- Assignment Card -->
+                        <!-- 🚨 ARCHITECTURAL UPGRADE: Dual-Mode Assignment Publisher -->
                         <div class="premium-card p-5 sm:p-6 md:p-8 flex flex-col bg-gradient-to-br from-cyan-50 to-white border border-cyan-100">
                             <h3 class="text-lg sm:text-xl font-black text-cyan-900 mb-4 sm:mb-6 flex items-center"><div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center mr-3 shadow-lg shrink-0"><i class="fa-solid fa-pen-ruler text-sm sm:text-base"></i></div> Assign Task</h3>
                             <form onsubmit="submitAssignmentUpload(event)" class="space-y-3.5 sm:space-y-4 flex-1 flex flex-col">
@@ -266,10 +267,27 @@
                                     <label class="form-label text-cyan-800 text-xs sm:text-sm">Target Course(s) / Batch (Comma separated)</label>
                                     <input type="text" id="hub-ass-target" class="form-input bg-white border-cyan-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. ALL, CCA, PGDCA" required>
                                 </div>
+                                
                                 <div>
-                                    <label class="form-label text-cyan-800 text-xs sm:text-sm">Select Assignment File</label>
-                                    <input type="file" id="hub-ass-file" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-100 file:text-cyan-700 cursor-pointer bg-white border border-slate-200 rounded-xl" required>
+                                    <label class="form-label text-cyan-800 text-xs sm:text-sm">Assignment Format</label>
+                                    <select id="hub-ass-format" onchange="toggleAssignmentFormat()" class="form-input bg-white cursor-pointer font-bold text-cyan-700 w-full rounded-xl border border-cyan-200 p-2.5 sm:p-3 text-xs sm:text-sm">
+                                        <option value="file">Document (PDF / DOCX)</option>
+                                        <option value="text">Pure Text (Supports Emojis)</option>
+                                    </select>
                                 </div>
+
+                                <!-- File Input Container -->
+                                <div id="ass-file-container">
+                                    <label class="form-label text-cyan-800 text-xs sm:text-sm">Select Document File</label>
+                                    <input type="file" id="hub-ass-file" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-100 file:text-cyan-700 cursor-pointer bg-white border border-slate-200 rounded-xl">
+                                </div>
+
+                                <!-- Text Input Container -->
+                                <div id="ass-text-container" class="hidden flex-1 flex flex-col">
+                                    <label class="form-label text-cyan-800 text-xs sm:text-sm">Assignment Details (Rich Text)</label>
+                                    <textarea id="hub-ass-text" class="form-input bg-white border-cyan-200 resize-none flex-1 min-h-[120px] w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm leading-relaxed" placeholder="Type or paste your assignment here..."></textarea>
+                                </div>
+
                                 <div id="ass-progress-container" class="hidden w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-2">
                                     <div id="ass-progress-bar" class="bg-cyan-600 h-full w-0 transition-all duration-300"></div>
                                 </div>
@@ -694,9 +712,10 @@
 
                 <!-- NEW SEATING & BATCH MANAGEMENT VIEW -->
                 <div id="view-seating" class="view-section max-w-7xl mx-auto">
+                    <!-- 🚨 ENGINEERED FIX: Dual-Scrolling Logic for Desktop -->
                     <div class="flex flex-col lg:flex-row gap-4 sm:gap-6 min-h-[85vh] pb-10">
-                        <!-- Left: Draggable Students List -->
-                        <div class="w-full lg:w-1/3 premium-card flex flex-col bg-white overflow-hidden shadow-md h-[450px] lg:h-auto">
+                        <!-- Left: Draggable Students List (Scrolls independently) -->
+                        <div class="w-full lg:w-1/3 premium-card flex flex-col bg-white overflow-hidden shadow-md lg:h-[85vh] h-[450px]">
                             <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50 shrink-0">
                                 <h3 class="font-bold text-slate-800 text-base sm:text-lg flex items-center"><i class="fa-solid fa-users text-indigo-500 mr-2 text-lg sm:text-xl"></i> Active Students</h3>
                                 <p class="text-xs text-slate-500 mt-1 mb-3 sm:mb-4 font-medium">Drag and drop students to assign seats.</p>
@@ -709,10 +728,10 @@
                             </div>
                         </div>
 
-                        <!-- Right: Seating Arrangement & Inbox -->
-                        <div class="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6">
+                        <!-- Right: Seating Arrangement & Inbox (Scrolls independently) -->
+                        <div class="w-full lg:w-2/3 flex flex-col gap-4 sm:gap-6 lg:h-[85vh] overflow-y-auto custom-scrollbar pr-1">
                             <!-- Batch Selector & Rooms -->
-                            <div class="premium-card flex-1 bg-white flex flex-col shadow-md overflow-hidden min-h-[450px]">
+                            <div class="premium-card flex-1 bg-white flex flex-col shadow-md overflow-hidden min-h-[450px] shrink-0">
                                 <div class="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap justify-between items-center gap-3 shrink-0">
                                     <div class="flex items-center gap-2.5 sm:gap-3">
                                         <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-base sm:text-lg shadow-inner shrink-0"><i class="fa-solid fa-layer-group"></i></div>
@@ -863,6 +882,7 @@
                     </div>
                 </div>
 
+                <!-- EXPENDITURE VIEW -->
                 <div id="view-expenditure" class="view-section max-w-6xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 h-full">
                         <div class="lg:col-span-5">
@@ -891,7 +911,27 @@
                         </div>
                         <div class="lg:col-span-7">
                             <div class="premium-card p-5 sm:p-8 h-[450px] sm:h-[500px] lg:h-[700px] flex flex-col">
-                                <h3 class="text-lg sm:text-xl font-extrabold text-slate-800 mb-4 sm:mb-6 border-b border-slate-100 pb-3 sm:pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-2.5 sm:mr-3 text-slate-400"></i> Expenditure History</h3>
+                                <h3 class="text-lg sm:text-xl font-extrabold text-slate-800 mb-4 sm:mb-6 border-b border-slate-100 pb-3 sm:pb-4 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-2.5 sm:mr-3 text-slate-400"></i> Recent Expenditure History</h3>
+                                
+                                <!-- 🚨 ENGINEERED FIX: Expenditure Search & Filter UI -->
+                                <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3 mb-4 shrink-0">
+                                    <div class="relative flex-1">
+                                        <i class="fa-solid fa-search absolute left-3 top-2.5 sm:top-3 text-slate-400 text-xs sm:text-sm"></i>
+                                        <input type="text" id="expense-search" placeholder="Search expenses..." class="w-full rounded-xl border border-slate-200 pl-8 sm:pl-9 py-2 text-xs sm:text-sm font-medium focus:border-indigo-500 outline-none transition-all bg-white" onkeyup="renderExpenseList()">
+                                    </div>
+                                    <select id="expense-filter-category" class="rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer font-bold text-slate-600" onchange="renderExpenseList()">
+                                        <option value="all">All Categories</option>
+                                        <option value="Electricity Bill">Electricity</option>
+                                        <option value="Office Rent">Rent</option>
+                                        <option value="Staff Salary">Salary</option>
+                                        <option value="Maintenance & Repair">Maintenance</option>
+                                        <option value="Paper & Ink Supplies">Supplies</option>
+                                        <option value="Institute Promotion">Promotion</option>
+                                        <option value="Water Can">Water</option>
+                                        <option value="Miscellaneous">Misc</option>
+                                    </select>
+                                </div>
+
                                 <div class="overflow-y-auto flex-1 pr-1 sm:pr-2 space-y-3 sm:space-y-4 custom-scrollbar" id="expense-list"></div>
                             </div>
                         </div>
