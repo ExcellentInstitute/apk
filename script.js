@@ -1712,7 +1712,28 @@ function renderList(containerId, itemsFilterFn, titleReplace, iconClass, colorCl
         `;
     });
 }
-function renderExpenseList() { renderList('expense-list', t => t.type === 'expense', '', 'fa-solid fa-receipt', 'rose', 'No expenditures recorded.'); }
+// 🚨 ENGINEERED FIX: Advanced Expenditure Search & Category Filter
+function renderExpenseList() { 
+    const searchInput = document.getElementById('expense-search');
+    const categorySelect = document.getElementById('expense-filter-category');
+    
+    const searchQ = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const categoryFilter = categorySelect ? categorySelect.value : 'all';
+
+    renderList('expense-list', t => {
+        if (t.type !== 'expense') return false;
+        
+        const title = String(t.title || "").toLowerCase();
+        const desc = String(t.description || "").toLowerCase();
+        const rawTitle = String(t.title || "");
+        
+        const matchesSearch = title.includes(searchQ) || desc.includes(searchQ);
+        const matchesCategory = (categoryFilter === 'all') || (rawTitle === categoryFilter);
+        
+        return matchesSearch && matchesCategory;
+        
+    }, '', 'fa-solid fa-receipt', 'rose', 'No expenditures match your filter.'); 
+}
 function renderJobList() { renderList('job-list', t => String(t.title || "").includes('Job Desk:'), 'Job Desk: ', 'fa-solid fa-user-tie', 'blue', 'No job applications yet.'); }
 function renderPrintList() { renderList('print-list', t => String(t.title || "").includes('Print Desk:'), 'Print Desk: ', 'fa-solid fa-print', 'purple', 'No print income yet.'); }
 
@@ -2235,72 +2256,112 @@ function submitMaterialUpload(e) {
     );
 }
 
-function submitAssignmentUpload(e) {
+// 🚨 NEW: Toggles the UI between File Upload and Pure Text modes
+function toggleAssignmentFormat() {
+    const format = document.getElementById('hub-ass-format').value;
+    if (format === 'text') {
+        document.getElementById('ass-file-container').classList.add('hidden');
+        document.getElementById('ass-text-container').classList.remove('hidden');
+        document.getElementById('hub-ass-file').required = false;
+        document.getElementById('hub-ass-text').required = true;
+    } else {
+        document.getElementById('ass-file-container').classList.remove('hidden');
+        document.getElementById('ass-text-container').classList.add('hidden');
+        document.getElementById('hub-ass-file').required = true;
+        document.getElementById('hub-ass-text').required = false;
+    }
+}
+
+// 🚨 ENGINEERED FIX: Dual-Mode Payload Uploader
+async function submitAssignmentUpload(e) {
     e.preventDefault();
     const title = document.getElementById('hub-ass-title').value.trim();
     const target = document.getElementById('hub-ass-target').value.trim();
-    const fileInput = document.getElementById('hub-ass-file');
-    const fileToUpload = fileInput.files[0];
-    
-    if (!fileToUpload) return alert("Please select a file.");
+    const format = document.getElementById('hub-ass-format').value;
+    const isText = (format === 'text');
+
+    let fileToUpload = null;
+    let textContent = '';
+
+    if (isText) {
+        textContent = document.getElementById('hub-ass-text').value.trim();
+        if (!textContent) return alert("Please type your assignment details.");
+    } else {
+        fileToUpload = document.getElementById('hub-ass-file').files[0];
+        if (!fileToUpload) return alert("Please select a document file.");
+    }
 
     const btn = document.getElementById('btn-ass-upload');
     const originalBtnText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Publishing...';
     btn.disabled = true;
 
-    const storageRef = firebase.storage().ref();
-    const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const filePath = `vault/${Date.now()}_${safeName}`;
-    const fileRef = storageRef.child(filePath);
+    try {
+        let downloadURL = '';
+        let storagePath = '';
+        let sizeMB = '0.00';
 
-    const progressBar = document.getElementById('ass-progress-bar');
-    const progressContainer = document.getElementById('ass-progress-container');
-    progressContainer.classList.remove('hidden');
-    progressBar.style.width = '0%';
-
-    const uploadTask = fileRef.put(fileToUpload);
-
-    uploadTask.on('state_changed', 
-        (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-        (error) => {
-            alert("Upload failed: " + error.message);
+        // ONLY upload to Storage if it's a physical file
+        if (!isText) {
+            const storageRef = firebase.storage().ref();
+            const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
+            storagePath = `vault/${Date.now()}_${safeName}`;
+            const fileRef = storageRef.child(storagePath);
+            
+            const progressBar = document.getElementById('ass-progress-bar');
+            const progressContainer = document.getElementById('ass-progress-container');
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '10%';
+            
+            await fileRef.put(fileToUpload);
+            downloadURL = await fileRef.getDownloadURL();
+            sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
             progressContainer.classList.add('hidden');
-            btn.innerHTML = originalBtnText;
-            btn.disabled = false;
-        }, 
-        () => {
-            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                progressContainer.classList.add('hidden');
-                const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                
-                const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
-                const newFile = {
-                    id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000), name: title, category: "Assignment", target: finalTarget, url: downloadURL, path: filePath, size: sizeMB,
-                    date: new Date().toISOString().split('T')[0], folder: "Assignments"
-                };
-                
-                if (!appData.materials) appData.materials = [];
-                
-                atomicPush('materials', newFile).then(async fbKey => {
-                    if (fbKey) newFile._fbKey = fbKey;
-                    appData.materials.push(newFile);
-                    syncLocalCache();
-                    e.target.reset();
-                    btn.innerHTML = originalBtnText;
-                    btn.disabled = false;
-                    renderHubFiles();
-                    
-                    // 🚨 NEW FCM PIPELINE: Ping Google's servers to wake the physical device
-                    let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9]/g, '_');
-                    if (target.toUpperCase() === 'ALL') safeTopic = 'ALL';
-                    await sendFCMPushNotification(safeTopic, '📝 New Assignment: ' + title, 'A new assignment has been posted to your Student Hub.');
-
-                    alert("Assignment Uploaded Successfully to Public Vault!");
-                });
-            });
         }
-    );
+
+        const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
+        
+        // Build Dual-Payload
+        const newFile = {
+            id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000), 
+            name: title, 
+            category: "Assignment", 
+            target: finalTarget, 
+            url: downloadURL, 
+            path: storagePath, 
+            size: sizeMB,
+            date: new Date().toISOString().split('T')[0], 
+            folder: "Assignments",
+            isText: isText,
+            textContent: textContent
+        };
+        
+        if (!appData.materials) appData.materials = [];
+        
+        const fbKey = await atomicPush('materials', newFile);
+        if (fbKey) {
+            newFile._fbKey = fbKey;
+            appData.materials.push(newFile);
+            syncLocalCache();
+            e.target.reset();
+            if (document.getElementById('hub-ass-format').value === 'text') toggleAssignmentFormat(); // Reset UI
+            renderHubFiles();
+            
+            let safeTopic = target.toUpperCase().replace(/[^a-zA-Z0-9]/g, '_');
+            if (target.toUpperCase() === 'ALL') safeTopic = 'ALL';
+            await sendFCMPushNotification(safeTopic, '📝 New Assignment: ' + title, 'A new assignment has been posted to your Student Hub.');
+
+            alert("Assignment Published Successfully!");
+        } else {
+            alert("Database Error: Could not publish assignment.");
+        }
+    } catch (error) {
+        alert("Upload failed: " + error.message);
+        document.getElementById('ass-progress-container').classList.add('hidden');
+    } finally {
+        btn.innerHTML = originalBtnText;
+        btn.disabled = false;
+    }
 }
 
 function renderStudentFiles(stId) {
