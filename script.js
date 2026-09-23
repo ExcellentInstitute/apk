@@ -420,7 +420,7 @@ async function runFileMigration() {
 
         if (appData.files && appData.files.length > 0) {
             appData.files.forEach(f => {
-                if (f.category === 'Material' || f.category === 'Assignment') {
+                if (f.category === 'Material') {
                     if (!newPublicMaterials.some(m => m.id === f.id)) {
                         newPublicMaterials.push(f);
                     }
@@ -2336,12 +2336,12 @@ async function submitAssignmentUpload(e) {
             textContent: textContent
         };
         
-        if (!appData.materials) appData.materials = [];
+        if (!appData.files) appData.files = [];
         
-        const fbKey = await atomicPush('materials', newFile);
+        const fbKey = await atomicPush('files', newFile);
         if (fbKey) {
             newFile._fbKey = fbKey;
-            appData.materials.push(newFile);
+            appData.files.push(newFile);
             syncLocalCache();
             e.target.reset();
             if (document.getElementById('hub-ass-format').value === 'text') toggleAssignmentFormat(); // Reset UI
