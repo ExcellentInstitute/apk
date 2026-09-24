@@ -333,15 +333,16 @@ async function handleLogin(e) {
             safeFetchLimit('notices', 100),
             safeFetch('seating'),
             safeFetch('batch_requests'),
-            safeFetchLimit('study_logs', 500)
-        ]).then(async ([flSnap, matSnap, notSnap, seatSnap, reqSnap, logSnap]) => {
+            safeFetchLimit('study_logs', 500),
+            safeFetch('institute_videos') // 🚨 FIX: Added fetch command
+        ]).then(async ([flSnap, matSnap, notSnap, seatSnap, reqSnap, logSnap, vidSnap]) => { // 🚨 FIX: Added vidSnap to callback
             appData.files = parseFbList(flSnap.val());
             appData.materials = parseFbList(matSnap.val());
             appData.notices = parseFbList(notSnap.val());
             appData.seating = seatSnap.val() || {};
             appData.batchRequests = parseFbList(reqSnap.val());
             appData.studyLogs = parseFbList(logSnap.val());
-            appData.institute_videos = parseFbList(vidSnap.val());
+            appData.institute_videos = parseFbList(vidSnap.val()); // ✅ Now this works safely
             
             await autoCleanupNotices();
 
