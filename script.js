@@ -983,6 +983,13 @@ function populateSettings() {
     
     document.getElementById('set-allow-rewards').value = appData.settings.allowVideoRewards ? "true" : "false";
     
+    // 🚨 NEW: Video Hub Kill Switch Loader
+    const videoHubEl = document.getElementById('set-allow-videohub');
+    if (videoHubEl) {
+        // Defaults to true so it works immediately
+        videoHubEl.value = appData.settings.enableVideoHub !== false ? "true" : "false"; 
+    }
+    
     const qrPreview = document.getElementById('set-qr-preview');
     const qrIcon = document.getElementById('set-qr-icon');
     if (appData.settings.qrCodeUrl && appData.settings.qrCodeUrl !== "") {
@@ -1018,6 +1025,10 @@ function submitSettings(e) {
     const rewardAmt = document.getElementById('set-reward-amt').value;
     const allowRewards = document.getElementById('set-allow-rewards').value === 'true';
     
+    // 🚨 NEW: Extract Video Hub Kill Switch Status
+    const videoHubEl = document.getElementById('set-allow-videohub');
+    const allowVideoHub = videoHubEl ? (videoHubEl.value === 'true') : true;
+    
     // NEW: Extract PDF Unlock Cost
     const pdfCostEl = document.getElementById('set-pdf-unlock-cost');
     const pdfUnlockCost = pdfCostEl ? pdfCostEl.value : 5;
@@ -1028,6 +1039,7 @@ function submitSettings(e) {
     appData.settings.rewardPerClick = parseFloat(rewardAmt);
     appData.settings.allowVideoRewards = allowRewards;
     appData.settings.pdfUnlockCost = parseInt(pdfUnlockCost) || 5;
+    appData.settings.enableVideoHub = allowVideoHub; // 🚨 Saves the Kill Switch
     
     if (pendingQRCodeBase64) {
         appData.settings.qrCodeUrl = pendingQRCodeBase64;
@@ -3328,6 +3340,129 @@ function renderHolidaysAdmin() {
             </div>
         `;
     });
+}
+
+// =========================================================
+// 🎥 INSTITUTE VIDEO HUB MANAGEMENT ENGINE
+// =========================================================
+
+// 1. Live Fetcher (Loads independently to avoid slowing down login)
+function loadVideoHubData() {
+    try {
+        firebase.database().ref('institute_videos').on('value', (snapshot) => {
+            const data = snapshot.val();
+            appData.institute_videos = parseFbList(data);
+            
+            if (typeof renderVideosAdmin === 'function') {
+                renderVideosAdmin();
+            }
+        });
+    } catch(e) { console.error("Video Hub load error:", e); }
+}
+
+// Start listener slightly after boot
+setTimeout(loadVideoHubData, 2500);
+
+// 2. Publish New Video
+async function submitVideoUpload(e) {
+    e.preventDefault();
+    const title = document.getElementById('vid-title').value.trim();
+    const topic = document.getElementById('vid-topic').value.trim();
+    const url = document.getElementById('vid-url').value.trim();
+    const desc = document.getElementById('vid-desc').value.trim();
+    
+    if(!title || !url || !topic) return alert("Please provide the Title, Topic, and URL.");
+    
+    // Quick validation to ensure it's a YouTube link
+    if(!url.includes('youtu.be') && !url.includes('youtube.com')) {
+        return alert("Please provide a valid YouTube link.");
+    }
+    
+    const btn = document.getElementById('btn-vid-publish');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Publishing...';
+    btn.disabled = true;
+    
+    const newVideo = {
+        id: 'VID' + Date.now(),
+        title: title,
+        topic: topic,
+        url: url,
+        description: desc,
+        date: new Date().toISOString()
+    };
+    
+    try {
+        await atomicPush('institute_videos', newVideo);
+        alert("Video Published Successfully! It is now live in the mobile app.");
+        e.target.reset();
+    } catch (err) {
+        alert("Failed to publish video: " + err.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// 3. Render Video List
+function renderVideosAdmin() {
+    const listEl = document.getElementById('managed-videos-list');
+    const countBadge = document.getElementById('vid-count-badge');
+    if (!listEl || !countBadge) return;
+    
+    listEl.innerHTML = '';
+    
+    if (!appData.institute_videos) appData.institute_videos = [];
+    
+    // Sort Newest First
+    const sortedVids = [...appData.institute_videos].sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    countBadge.innerText = `${sortedVids.length} Videos`;
+    
+    if (sortedVids.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-film text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No videos published yet.</p></div>';
+        return;
+    }
+    
+    sortedVids.forEach(v => {
+        // 🚨 SMART EXTRACTOR: Forces Google to pay for Thumbnail Bandwidth!
+        let videoId = '';
+        if (v.url.includes('youtu.be/')) {
+            videoId = v.url.split('youtu.be/')[1].split('?')[0];
+        } else if (v.url.includes('watch?v=')) {
+            videoId = v.url.split('watch?v=')[1].split('&')[0];
+        }
+        
+        const thumbHtml = videoId ? `<img src="https://img.youtube.com/vi/${videoId}/default.jpg" class="w-20 h-14 object-cover rounded-lg shadow-sm border border-slate-200 shrink-0">` : `<div class="w-20 h-14 bg-slate-200 rounded-lg flex items-center justify-center shrink-0"><i class="fa-solid fa-video text-slate-400"></i></div>`;
+        
+        // Format Date
+        let dateDisplay = v.date;
+        try { dateDisplay = new Date(v.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); } catch(e){}
+
+        listEl.innerHTML += `
+            <div class="bg-white p-3 rounded-xl border border-slate-200 mb-3 shadow-sm flex items-center gap-4 hover:border-rose-300 transition-colors group">
+                ${thumbHtml}
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-slate-800 text-sm truncate">${v.title}</h4>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="bg-rose-50 text-rose-600 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border border-rose-100">${v.topic}</span>
+                        <span class="text-[10px] text-slate-400 font-bold">${dateDisplay}</span>
+                    </div>
+                </div>
+                <button type="button" onclick="deleteVideo('${v.id}')" class="text-slate-300 hover:text-rose-600 p-2 transition-colors opacity-0 group-hover:opacity-100 shrink-0"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+    });
+}
+
+// 4. Delete Video
+async function deleteVideo(id) {
+    if(!confirm(`Are you sure you want to permanently delete this video?`)) return;
+    
+    const vid = appData.institute_videos.find(v => v.id === id);
+    if(vid) {
+        await atomicDeleteById('institute_videos', vid.id, vid._fbKey);
+    }
 }
 
 // Load data when script runs
