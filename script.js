@@ -3171,33 +3171,44 @@ async function loadTimetableData() {
             const data = snapshot.val();
             let parsedHolidays = [];
             
-            // 🚨 ENGINEERED FIX: Dual-Parser ensures legacy text holidays don't disappear
+            // 🚨 BULLETPROOF PARSER: Prevents Web App from crashing on legacy string data
             if (data) {
+                let rawList = [];
                 if (Array.isArray(data)) {
-                    data.forEach((item, index) => {
-                        if (item && typeof item === 'object') {
-                            item._fbKey = index.toString();
-                            parsedHolidays.push(item);
-                        }
-                    });
-                } else {
+                    rawList = data;
+                } else if (typeof data === 'object') {
                     Object.keys(data).forEach(key => {
                         let item = data[key];
                         if (item && typeof item === 'object') {
+                            if (!item.date) item.date = key; // Recover date from legacy key
                             item._fbKey = key;
-                            parsedHolidays.push(item);
+                            rawList.push(item);
                         } else if (typeof item === 'string') {
-                            // Converts legacy "Date: Reason" format to an object automatically
-                            parsedHolidays.push({
-                                id: 'LEGACY_' + key,
-                                _fbKey: key,
-                                date: key,
-                                reason: item,
-                                batch: 'All'
-                            });
+                            rawList.push({ date: key, reason: item, _fbKey: key });
                         }
                     });
                 }
+                
+                // Sanitize every element to guarantee no missing fields
+                rawList.forEach((item, index) => {
+                    if (item && typeof item === 'object') {
+                        parsedHolidays.push({
+                            id: item.id || ('HOL_LEGACY_' + index),
+                            _fbKey: item._fbKey || index.toString(),
+                            date: item.date || '2026-01-01', // Fallback prevents NaN crashes
+                            reason: item.reason || 'Institute Holiday',
+                            batch: item.batch || 'All'
+                        });
+                    } else if (typeof item === 'string') {
+                        parsedHolidays.push({
+                            id: 'HOL_LEGACY_STR_' + index,
+                            _fbKey: index.toString(),
+                            date: '2026-01-01',
+                            reason: item,
+                            batch: 'All'
+                        });
+                    }
+                });
             }
             
             timetableData.holidays = parsedHolidays;
@@ -3208,7 +3219,7 @@ async function loadTimetableData() {
             
             timetableData.holidays.forEach(holiday => {
                 const holidayDate = new Date(holiday.date).getTime();
-                if (now - holidayDate > ONE_MONTH) {
+                if (!isNaN(holidayDate) && (now - holidayDate > ONE_MONTH)) {
                     atomicDeleteById('holidays', holiday.id, holiday._fbKey);
                 }
             });
@@ -3286,8 +3297,13 @@ function renderHolidaysAdmin() {
     
     listEl.innerHTML = '';
     
-    // Sort chronologically
-    const sortedHolidays = timetableData.holidays.sort((a,b) => new Date(b.date) - new Date(a.date));
+    // 🚨 MATHEMATICAL FIX: Safely sort chronologically preventing NaN crashes
+    const sortedHolidays = timetableData.holidays.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (isNaN(dateA) || isNaN(dateB)) return 0;
+        return dateB - dateA;
+    });
     
     if (sortedHolidays.length === 0) {
         listEl.innerHTML = '<p class="text-sm text-slate-500 font-bold p-4">No holidays declared.</p>';
