@@ -19,7 +19,8 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [], studyLogs: [] };
+// Change to this:
+let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [], studyLogs: [], institute_videos: [] };
 let sessionPassword = ""; 
 let cropper = null;
 let currentCropTarget = null;
@@ -340,6 +341,7 @@ async function handleLogin(e) {
             appData.seating = seatSnap.val() || {};
             appData.batchRequests = parseFbList(reqSnap.val());
             appData.studyLogs = parseFbList(logSnap.val());
+            appData.institute_videos = parseFbList(vidSnap.val());
             
             await autoCleanupNotices();
 
@@ -349,6 +351,7 @@ async function handleLogin(e) {
             renderBroadcastList();
             renderSeatingLayout();
             renderBatchRequests();
+            renderVideosAdmin();
             
             const activeId = document.getElementById('tuition-student-id').value;
             if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
@@ -3342,6 +3345,9 @@ function renderHolidaysAdmin() {
     });
 }
 
+// Load data when script runs
+setTimeout(loadTimetableData, 2000);
+
 // =========================================================
 // 🎥 INSTITUTE VIDEO HUB MANAGEMENT ENGINE
 // =========================================================
@@ -3393,7 +3399,15 @@ async function submitVideoUpload(e) {
     };
     
     try {
-        await atomicPush('institute_videos', newVideo);
+        const fbKey = await atomicPush('institute_videos', newVideo);
+        if (fbKey) newVideo._fbKey = fbKey;
+        
+        // Push locally and refresh immediately
+        if (!appData.institute_videos) appData.institute_videos = [];
+        appData.institute_videos.unshift(newVideo);
+        syncLocalCache();
+        renderVideosAdmin();
+        
         alert("Video Published Successfully! It is now live in the mobile app.");
         e.target.reset();
     } catch (err) {
@@ -3462,8 +3476,10 @@ async function deleteVideo(id) {
     const vid = appData.institute_videos.find(v => v.id === id);
     if(vid) {
         await atomicDeleteById('institute_videos', vid.id, vid._fbKey);
+        
+        // Update local memory and refresh immediately
+        appData.institute_videos = appData.institute_videos.filter(v => v.id !== id);
+        syncLocalCache();
+        renderVideosAdmin();
     }
 }
-
-// Load data when script runs
-setTimeout(loadTimetableData, 2000);
