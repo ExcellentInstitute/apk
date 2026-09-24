@@ -3162,26 +3162,26 @@ async function deleteStudyLog(logId, stId) {
 // =========================================================
 // 🗓️ TIMETABLE & HOLIDAY MANAGEMENT ENGINE
 // =========================================================
-let timetableData = { holidays: {}, schedules: {} };
+let timetableData = { holidays: [], schedules: {} };
 
 // 1. Fetch Current Timetable Data
 async function loadTimetableData() {
     try {
-        // 🚨 ENGINEERED FIX: Real-time listener instead of 'once'
+        // 🚨 ENGINEERED FIX: Switch to Real-Time Array Listener for Advanced Filtering
         firebase.database().ref('holidays').on('value', (snapshot) => {
-            timetableData.holidays = snapshot.val() || {};
+            const rawData = snapshot.val();
+            timetableData.holidays = parseFbList(rawData);
             
             // 🚨 ENGINEERED FIX: 30-Day Auto-Cleanup Logic
             const now = Date.now();
             const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
             
-            for (let dateStr in timetableData.holidays) {
-                const holidayDate = new Date(dateStr).getTime();
+            timetableData.holidays.forEach(holiday => {
+                const holidayDate = new Date(holiday.date).getTime();
                 if (now - holidayDate > ONE_MONTH) {
-                    delete timetableData.holidays[dateStr];
-                    firebase.database().ref('holidays/' + dateStr).remove();
+                    atomicDeleteById('holidays', holiday.id, holiday._fbKey);
                 }
-            }
+            });
             
             if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
         });
@@ -3196,26 +3196,39 @@ async function loadTimetableData() {
     } catch(e) { console.error("Timetable load error:", e); }
 }
 
-// 2. Add New Holiday
+// 2. Add New Holiday (Supports Batch-Specific Holidays)
 async function addInstituteHoliday() {
     const dateStr = document.getElementById('holiday-date').value;
     const reason = document.getElementById('holiday-reason').value.trim();
     
+    // Checks if you added the new dropdown to HTML, otherwise defaults to 'All'
+    const batchSelect = document.getElementById('holiday-batch');
+    const targetBatch = batchSelect ? batchSelect.value : 'All';
+    
     if(!dateStr || !reason) return alert("Please select a date and provide a reason.");
     
-    // 🚨 ENGINEERED FIX: Targeted write prevents overwriting the entire node!
-    await firebase.database().ref('holidays/' + dateStr).set(reason);
+    const newHoliday = {
+        id: 'HOL' + Date.now(),
+        date: dateStr,
+        reason: reason,
+        batch: targetBatch
+    };
     
-    alert("Holiday officially declared and synced to Mobile Apps!");
+    // 🚨 ENGINEERED FIX: Use Array Push so we can have multiple holidays on the same day!
+    await atomicPush('holidays', newHoliday);
+    
+    alert("Holiday officially declared and synced!");
     document.getElementById('holiday-reason').value = '';
 }
 
 // 3. Remove Holiday
-async function removeInstituteHoliday(dateStr) {
-    if(!confirm(`Are you sure you want to remove the holiday on ${dateStr}?`)) return;
+async function removeInstituteHoliday(id) {
+    if(!confirm(`Are you sure you want to permanently delete this holiday?`)) return;
     
-    // 🚨 ENGINEERED FIX: Targeted delete!
-    await firebase.database().ref('holidays/' + dateStr).remove();
+    const holiday = timetableData.holidays.find(h => h.id === id);
+    if(holiday) {
+        await atomicDeleteById('holidays', holiday.id, holiday._fbKey);
+    }
 }
 
 // 4. Update Custom Batch Timing
@@ -3242,21 +3255,30 @@ function renderHolidaysAdmin() {
     if (!listEl) return;
     
     listEl.innerHTML = '';
-    const dates = Object.keys(timetableData.holidays).sort((a,b) => new Date(b) - new Date(a));
     
-    if (dates.length === 0) {
+    // Sort chronologically
+    const sortedHolidays = timetableData.holidays.sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    if (sortedHolidays.length === 0) {
         listEl.innerHTML = '<p class="text-sm text-slate-500 font-bold p-4">No holidays declared.</p>';
         return;
     }
     
-    dates.forEach(date => {
+    sortedHolidays.forEach(holiday => {
+        const batchBadge = holiday.batch && holiday.batch !== 'All' 
+            ? `<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold ml-2">${holiday.batch} Batch Only</span>` 
+            : `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px] font-bold ml-2">All Batches</span>`;
+
         listEl.innerHTML += `
             <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-rose-100 shadow-sm mb-2">
                 <div>
-                    <p class="font-bold text-rose-600">${date}</p>
-                    <p class="text-xs text-slate-600 font-medium">${timetableData.holidays[date]}</p>
+                    <div class="flex items-center">
+                        <p class="font-bold text-rose-600">${holiday.date}</p>
+                        ${batchBadge}
+                    </div>
+                    <p class="text-xs text-slate-600 font-medium mt-1">${holiday.reason}</p>
                 </div>
-                <button onclick="removeInstituteHoliday('${date}')" class="text-rose-400 hover:text-rose-700 p-2"><i class="fa-solid fa-trash"></i></button>
+                <button onclick="removeInstituteHoliday('${holiday.id}')" class="text-rose-400 hover:text-rose-700 p-2"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
     });
