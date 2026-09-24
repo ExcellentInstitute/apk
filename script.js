@@ -526,19 +526,34 @@ function calculateExactDues(student) {
             elapsedMonths = stTx.length > 0 ? 1 : 0;
         }
 
-        let totalInstallments = durationMonths - 1;
-        if (totalInstallments < 1) totalInstallments = 1;
+        // ====================================================================
+        // 🚀 ENGINEERED FIX: TIME-BASED ACCRUAL ENGINE (NO VIRTUAL COINS)
+        // Flawlessly calculates target burn rates to support lump-sum payments!
+        // ====================================================================
         
-        let remainingInstallments = totalInstallments - elapsedMonths;
-        if (remainingInstallments < 1) remainingInstallments = 1;
-
-        if (elapsedMonths >= totalInstallments) {
-            currentMonthDue = totalOutstanding;
-        } else {
-            currentMonthDue = Math.ceil(totalOutstanding / remainingInstallments);
+        // 1. Calculate the Monthly Burn Rate
+        let monthlyBurnRate = totalFee / durationMonths;
+        
+        // 2. Calculate the Target Paid (How much they SHOULD have paid by today)
+        // Add 1 to elapsedMonths because the first month is owed immediately upon joining.
+        let billableMonths = elapsedMonths + 1;
+        if (billableMonths > durationMonths) {
+            billableMonths = durationMonths;
         }
-        if (currentMonthDue < 0) currentMonthDue = 0.0;
-        if (currentMonthDue > totalOutstanding) currentMonthDue = totalOutstanding;
+        
+        let targetPaid = monthlyBurnRate * billableMonths;
+        
+        // 3. Calculate Final Due
+        currentMonthDue = targetPaid - actualPaid;
+        
+        if (currentMonthDue < 0) {
+            currentMonthDue = 0.0; // Paid in advance (Lump-sum handled!)
+        }
+        if (currentMonthDue > totalOutstanding) {
+            currentMonthDue = totalOutstanding; // Can't owe more than the total remaining
+        }
+
+        currentMonthDue = Math.ceil(currentMonthDue);
     }
 
     return { 
