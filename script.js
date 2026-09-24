@@ -3167,12 +3167,42 @@ let timetableData = { holidays: [], schedules: {} };
 // 1. Fetch Current Timetable Data
 async function loadTimetableData() {
     try {
-        // 🚨 ENGINEERED FIX: Switch to Real-Time Array Listener for Advanced Filtering
         firebase.database().ref('holidays').on('value', (snapshot) => {
-            const rawData = snapshot.val();
-            timetableData.holidays = parseFbList(rawData);
+            const data = snapshot.val();
+            let parsedHolidays = [];
             
-            // 🚨 ENGINEERED FIX: 30-Day Auto-Cleanup Logic
+            // 🚨 ENGINEERED FIX: Dual-Parser ensures legacy text holidays don't disappear
+            if (data) {
+                if (Array.isArray(data)) {
+                    data.forEach((item, index) => {
+                        if (item && typeof item === 'object') {
+                            item._fbKey = index.toString();
+                            parsedHolidays.push(item);
+                        }
+                    });
+                } else {
+                    Object.keys(data).forEach(key => {
+                        let item = data[key];
+                        if (item && typeof item === 'object') {
+                            item._fbKey = key;
+                            parsedHolidays.push(item);
+                        } else if (typeof item === 'string') {
+                            // Converts legacy "Date: Reason" format to an object automatically
+                            parsedHolidays.push({
+                                id: 'LEGACY_' + key,
+                                _fbKey: key,
+                                date: key,
+                                reason: item,
+                                batch: 'All'
+                            });
+                        }
+                    });
+                }
+            }
+            
+            timetableData.holidays = parsedHolidays;
+            
+            // 30-Day Auto-Cleanup Logic
             const now = Date.now();
             const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
             
