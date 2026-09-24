@@ -3380,7 +3380,6 @@ async function submitVideoUpload(e) {
     
     if(!title || !url || !topic) return alert("Please provide the Title, Topic, and URL.");
     
-    // Quick validation to ensure it's a YouTube link
     if(!url.includes('youtu.be') && !url.includes('youtube.com')) {
         return alert("Please provide a valid YouTube link.");
     }
@@ -3400,10 +3399,10 @@ async function submitVideoUpload(e) {
     };
     
     try {
-        const fbKey = await atomicPush('institute_videos', newVideo);
-        if (fbKey) newVideo._fbKey = fbKey;
+        // 🚨 CRITICAL FIX: Forces Firebase to build the missing node instantly using direct write
+        await firebase.database().ref('institute_videos').child(newVideo.id).set(newVideo);
+        newVideo._fbKey = newVideo.id;
         
-        // Push locally and refresh immediately
         if (!appData.institute_videos) appData.institute_videos = [];
         appData.institute_videos.unshift(newVideo);
         syncLocalCache();
@@ -3476,11 +3475,15 @@ async function deleteVideo(id) {
     
     const vid = appData.institute_videos.find(v => v.id === id);
     if(vid) {
-        await atomicDeleteById('institute_videos', vid.id, vid._fbKey);
-        
-        // Update local memory and refresh immediately
-        appData.institute_videos = appData.institute_videos.filter(v => v.id !== id);
-        syncLocalCache();
-        renderVideosAdmin();
+        try {
+            // 🚨 CRITICAL FIX: Direct remove to match the new direct write setup
+            await firebase.database().ref('institute_videos').child(vid.id).remove();
+            
+            appData.institute_videos = appData.institute_videos.filter(v => v.id !== id);
+            syncLocalCache();
+            renderVideosAdmin();
+        } catch (err) {
+            alert("Error deleting video from server: " + err.message);
+        }
     }
 }
