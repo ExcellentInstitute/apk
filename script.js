@@ -3367,9 +3367,6 @@ function loadVideoHubData() {
     } catch(e) { console.error("Video Hub load error:", e); }
 }
 
-// Start listener slightly after boot
-setTimeout(loadVideoHubData, 2500);
-
 // 2. Publish New Video
 async function submitVideoUpload(e) {
     e.preventDefault();
@@ -3401,13 +3398,8 @@ async function submitVideoUpload(e) {
     try {
         // 🚨 CRITICAL FIX: Forces Firebase to build the missing node instantly using direct write
         await firebase.database().ref('institute_videos').child(newVideo.id).set(newVideo);
-        newVideo._fbKey = newVideo.id;
-        
-        if (!appData.institute_videos) appData.institute_videos = [];
-        appData.institute_videos.unshift(newVideo);
-        syncLocalCache();
-        renderVideosAdmin();
-        
+        // 🚨 FIX: Removed the manual array injection. Firebase's live listener 
+        // will automatically detect the write and update the UI instantly without duplicates!
         alert("Video Published Successfully! It is now live in the mobile app.");
         e.target.reset();
     } catch (err) {
@@ -3440,15 +3432,17 @@ function renderVideosAdmin() {
     
     sortedVids.forEach(v => {
         // 🚨 SMART EXTRACTOR: Forces Google to pay for Thumbnail Bandwidth!
-        let videoId = '';
-        if (v.url.includes('youtu.be/')) {
-            videoId = v.url.split('youtu.be/')[1].split('?')[0];
-        } else if (v.url.includes('watch?v=')) {
-            videoId = v.url.split('watch?v=')[1].split('&')[0];
-        }
+       let videoId = '';
+        try {
+            if (v.url.includes('youtu.be/')) {
+                videoId = v.url.split('youtu.be/')[1].split('?')[0];
+            } else if (v.url.includes('v=')) {
+                videoId = v.url.split('v=')[1].split('&')[0];
+            }
+        } catch(e){}
         
-        const thumbHtml = videoId ? `<img src="https://img.youtube.com/vi/${videoId}/default.jpg" class="w-20 h-14 object-cover rounded-lg shadow-sm border border-slate-200 shrink-0">` : `<div class="w-20 h-14 bg-slate-200 rounded-lg flex items-center justify-center shrink-0"><i class="fa-solid fa-video text-slate-400"></i></div>`;
-        
+        // 🚨 THUMBNAIL FIX: Upgraded to 'hqdefault.jpg' for high-quality previews that bypass restriction blocks
+        const thumbHtml = videoId ? `<img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" class="w-20 h-14 object-cover rounded-lg shadow-sm border border-slate-200 shrink-0">` : `<div class="w-20 h-14 bg-slate-200 rounded-lg flex items-center justify-center shrink-0"><i class="fa-solid fa-video text-slate-400"></i></div>`;        
         // Format Date
         let dateDisplay = v.date;
         try { dateDisplay = new Date(v.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); } catch(e){}
@@ -3486,4 +3480,139 @@ async function deleteVideo(id) {
             alert("Error deleting video from server: " + err.message);
         }
     }
+}
+
+// =========================================================
+// 📊 ATTENDANCE EXCEL EXPORT ENGINE (Ultra Lightweight)
+// =========================================================
+async function exportAttendanceToExcel() {
+    const btn = document.getElementById('export-attendance-btn');
+    if(btn) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Generating...';
+        btn.disabled = true;
+    }
+
+    try {
+        // 🚨 LOW BANDWIDTH: Only downloads the database node the exact second you request it.
+        const snapshot = await firebase.database().ref('attendance_logs').once('value');
+        if (!snapshot.exists()) {
+            alert("No attendance records found in the database yet!");
+            return;
+        }
+
+        const data = snapshot.val();
+        // UTF-8 BOM ensures Excel reads student names perfectly
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+        
+        // Excel Headers
+        csvContent += "Date,Time,Status,Student ID,Student Name,Batch,Distance from Institute (Meters)\r\n";
+
+        // Parse and Sort Newest First
+        let logsArray = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+
+        logsArray.forEach(log => {
+            const date = log.date || '-';
+            const time = log.time || '-';
+            const action = log.action || '-';
+            const id = log.studentId || '-';
+            // Escaping names to prevent Excel comma-separation bugs
+            const name = `"${(log.studentName || '-').replace(/"/g, '""')}"`; 
+            const batch = log.batch || '-';
+            const dist = log.distanceMeters || '0';
+
+            csvContent += `${date},${time},${action},${id},${name},${batch},${dist}\r\n`;
+        });
+
+        // Trigger Instant Browser Download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Excellent_Institute_Attendance_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (error) {
+        console.error("Export Failed:", error);
+        alert("Failed to generate Excel file.");
+    } finally {
+        if(btn) {
+            btn.innerHTML = '<i class="fa-solid fa-file-excel mr-2"></i> Export to Excel';
+            btn.disabled = false;
+        }
+    }
+}
+
+// =========================================================
+// 👁️ ADVANCED DUAL-MODE STUDY TRACKER
+// =========================================================
+function renderStudyTracker() {
+    const container = document.getElementById('study-tracker-list');
+    const viewMode = document.getElementById('tracker-view-mode') ? document.getElementById('tracker-view-mode').value : 'by_student'; 
+    const searchQ = document.getElementById('tracker-search') ? document.getElementById('tracker-search').value.toLowerCase().trim() : '';
+    
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!appData.studyLogs || appData.studyLogs.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-ghost text-4xl mb-4 text-slate-200 block"></i><p class="font-bold">No reading activity recorded yet.</p></div>';
+        return;
+    }
+
+    let groupedData = {};
+
+    // Grouping Engine
+    if (viewMode === 'by_student') {
+        appData.studyLogs.forEach(log => {
+            const sName = log.studentName || 'Unknown Student';
+            const sId = log.studentId || 'Unknown ID';
+            const key = `${sName} (${sId})`;
+
+            if (searchQ && !key.toLowerCase().includes(searchQ) && !(log.fileName || '').toLowerCase().includes(searchQ)) return;
+
+            if (!groupedData[key]) groupedData[key] = [];
+            groupedData[key].push(log);
+        });
+    } else {
+        appData.studyLogs.forEach(log => {
+            const fName = log.fileName || 'Unknown File';
+            const key = fName;
+
+            if (searchQ && !key.toLowerCase().includes(searchQ) && !(log.studentName || '').toLowerCase().includes(searchQ)) return;
+
+            if (!groupedData[key]) groupedData[key] = [];
+            groupedData[key].push(log);
+        });
+    }
+
+    // Render the UI UI
+    Object.keys(groupedData).sort().forEach(groupTitle => {
+        const logs = groupedData[groupTitle].sort((a, b) => b.timestamp - a.timestamp);
+        
+        let html = `
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4">
+                <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3">
+                    <i class="fa-solid ${viewMode === 'by_student' ? 'fa-user-graduate text-indigo-500' : 'fa-file-pdf text-rose-500'} mr-2"></i>
+                    ${groupTitle} <span class="text-xs text-slate-400 font-medium float-right mt-1">${logs.length} Views</span>
+                </h3>
+                <ul class="space-y-2">
+        `;
+
+        logs.forEach(log => {
+            const subText = viewMode === 'by_student' 
+                ? `<i class="fa-solid fa-book-open text-slate-400 mr-1"></i> ${log.fileName}` 
+                : `<i class="fa-solid fa-user text-slate-400 mr-1"></i> ${log.studentName} (${log.studentId})`;
+            const dateText = log.date || '-';
+            
+            html += `
+                <li class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100 text-sm">
+                    <span class="font-medium text-slate-700 truncate max-w-[70%]">${subText}</span>
+                    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">${dateText}</span>
+                </li>
+            `;
+        });
+
+        html += `</ul></div>`;
+        container.innerHTML += html;
+    });
 }
