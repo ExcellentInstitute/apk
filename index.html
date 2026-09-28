@@ -92,6 +92,7 @@
                     <div onclick="switchTab('exam')" id="nav-exam" class="nav-btn"><i class="fa-solid fa-desktop w-7 sm:w-8 text-base sm:text-lg text-emerald-400"></i> <span>Live Exam Control</span></div>
                     <div onclick="switchTab('broadcast')" id="nav-broadcast" class="nav-btn"><i class="fa-solid fa-satellite-dish w-7 sm:w-8 text-base sm:text-lg text-amber-400"></i> <span>Broadcasts (Alerts)</span></div>
                     <div onclick="switchTab('videohub')" id="nav-videohub" class="nav-btn"><i class="fa-solid fa-circle-play w-7 sm:w-8 text-base sm:text-lg text-rose-500"></i> <span>Video Hub</span></div>
+                    <div onclick="switchTab('tracker'); renderStudyTracker();" id="nav-tracker" class="nav-btn"><i class="fa-solid fa-eye w-7 sm:w-8 text-base sm:text-lg text-cyan-400"></i> <span>Document Activity</span></div>
                 </div>
 
                 <div class="mb-5 sm:mb-6"><p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Services & Forms</p><div onclick="switchTab('job')" id="nav-job" class="nav-btn"><i class="fa-solid fa-briefcase w-7 sm:w-8 text-base sm:text-lg"></i> <span>Job Applications</span></div><div onclick="switchTab('print')" id="nav-print" class="nav-btn"><i class="fa-solid fa-print w-7 sm:w-8 text-base sm:text-lg"></i> <span>Print & Xerox Desk</span></div>
@@ -159,6 +160,9 @@
                         </div>
                         
                         <div class="flex flex-wrap gap-2.5 sm:gap-3 w-full sm:w-auto">
+                            <button type="button" onclick="exportAttendanceToExcel()" id="export-attendance-btn" class="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-3 bg-emerald-500 hover:bg-emerald-600 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all flex items-center justify-center">
+                                <i class="fa-solid fa-file-excel mr-2 text-base sm:text-lg"></i> Export Attendance
+                            </button>
                             <button type="button" onclick="toggleBalanceVisibility()" id="toggle-balance-btn" class="flex-1 sm:flex-none px-3.5 sm:px-4 py-2.5 sm:py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition-colors shadow-sm border border-slate-200 flex items-center justify-center" title="Toggle Dashboard Visibility">
                                 <i class="fa-solid fa-eye mr-2"></i> Show Values
                             </button>
@@ -404,6 +408,40 @@
                                 </div>
                                 <div class="overflow-y-auto flex-1 pr-1 sm:pr-2 space-y-3 sm:space-y-4 custom-scrollbar" id="managed-videos-list"></div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🚨 NEW: DOCUMENT ACTIVITY / STUDY TRACKER VIEW -->
+                <div id="view-tracker" class="view-section max-w-6xl mx-auto">
+                    <div class="premium-card p-5 sm:p-8 bg-white border border-slate-200 shadow-sm flex flex-col">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-100 pb-4 gap-4">
+                            <div>
+                                <h3 class="text-xl font-black text-slate-800 flex items-center">
+                                    <i class="fa-solid fa-eye text-cyan-500 mr-3 text-2xl"></i> Document Activity Tracker
+                                </h3>
+                                <p class="text-xs text-slate-500 font-medium mt-1">Real-time tracker showing which student viewed which study material or file.</p>
+                            </div>
+                            <button type="button" onclick="renderStudyTracker()" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-colors border border-indigo-200 shadow-sm flex items-center">
+                                <i class="fa-solid fa-rotate mr-2"></i> Refresh Logs
+                            </button>
+                        </div>
+                        
+                        <!-- FILTER CONTROLS -->
+                        <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                            <select id="tracker-view-mode" onchange="renderStudyTracker()" class="p-3 border border-slate-200 rounded-xl bg-white font-bold text-slate-700 flex-1 shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none text-xs sm:text-sm">
+                                <option value="by_student">Group by Student (Who viewed what)</option>
+                                <option value="by_file">Group by Document/File (Who clicked which file)</option>
+                            </select>
+                            <div class="relative flex-1">
+                                <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+                                <input type="text" id="tracker-search" onkeyup="renderStudyTracker()" placeholder="Search Student Name or Document..." class="w-full p-3 pl-9 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none text-xs sm:text-sm bg-white">
+                            </div>
+                        </div>
+                        
+                        <!-- LIST CONTAINER -->
+                        <div id="study-tracker-list" class="w-full">
+                            <!-- Dynamically rendered via script.js -->
                         </div>
                     </div>
                 </div>
