@@ -3297,13 +3297,17 @@ async function updateBatchSchedule(e) {
     const theoryTime = document.getElementById('schedule-theory').value;
     const sunTime = document.getElementById('schedule-sunday').value;
     
-    if (!timetableData.schedules[batchName]) timetableData.schedules[batchName] = {};
+    // 🚨 SMART MERGE FIX: Uses update() to perfectly merge without wiping other batches
+    const updates = {};
+    updates['specialClassDay'] = specialDay;
+    updates[batchName] = { lab: labTime, theory: theoryTime, sun: sunTime };
     
-    timetableData.schedules.specialClassDay = specialDay; // Save global preference
-    timetableData.schedules[batchName] = { lab: labTime, theory: theoryTime, sun: sunTime };
-    await firebase.database().ref('schedules').set(timetableData.schedules);
-    
-    alert(`Schedule updated! Special Class is now on ${specialDay}, and ${batchName} times have been saved.`);
+    try {
+        await firebase.database().ref('schedules').update(updates);
+        alert(`Schedule updated! Special Class is now on ${specialDay}, and ${batchName} times have been saved.`);
+    } catch (error) {
+        alert("Failed to update schedule. Check your connection.");
+    }
 }
 
 // 5. Render Holidays in UI
