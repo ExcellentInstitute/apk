@@ -451,7 +451,7 @@ async function runFileMigration() {
 }
 
 // =========================================================
-// 🧮 UNIFIED DYNAMIC FLOATING EMI MATH
+// 🧮 UNIVERSAL EMI MATH ENGINE (Synced with Mobile App)
 // =========================================================
 function calculateExactDues(student) {
     let safeParse = (val) => {
@@ -483,6 +483,20 @@ function calculateExactDues(student) {
     
     let totalOutstanding = totalFee - actualPaid; 
     if (totalOutstanding < 0) totalOutstanding = 0.0;
+    
+    // 🚨 FIX: Custom Override Check
+    if (student.customDueAmount && String(student.customDueAmount).trim() !== "") {
+        let customDue = safeParse(student.customDueAmount);
+        if (customDue > 0) {
+            return {
+                currentMonthDue: customDue,
+                totalOutstanding: customDue,
+                actualPaid: actualPaid,
+                adDiscount: adWallet,
+                adminExplanation: `OVERRIDE ACTIVE:\\nAdmin has manually forced the due amount to ₹${customDue}.\\nStandard EMI math is temporarily suspended.`
+            };
+        }
+    }
 
     let feeStructure = (student.feeType || student.feeStructure || student['Fee Structure'] || student.fee_structure || 'Monthly').toString().trim();
     let durationMonths = 12;
@@ -496,9 +510,11 @@ function calculateExactDues(student) {
     }
 
     let currentMonthDue = 0.0;
+    let explanation = '';
 
     if (feeStructure.toLowerCase().includes('one-time') || feeStructure.toLowerCase().includes('onetime') || feeStructure.toLowerCase().includes('lumpsum')) {
         currentMonthDue = totalOutstanding;
+        explanation = `ONE-TIME FEE DETECTED:\\n\\nThe entire outstanding balance (₹${totalOutstanding}) is due immediately. Burn rate logic does not apply to one-time payments.`;
     } else {
         let elapsedMonths = 0;
         let dateStr = (student.date || student['Admission Date'] || "").toString();
@@ -530,41 +546,29 @@ function calculateExactDues(student) {
             elapsedMonths = stTx.length > 0 ? 1 : 0;
         }
 
-        // ====================================================================
-        // 🚀 ENGINEERED FIX: TIME-BASED ACCRUAL ENGINE (NO VIRTUAL COINS)
-        // Flawlessly calculates target burn rates to support lump-sum payments!
-        // ====================================================================
-        
-        // 1. Calculate the Monthly Burn Rate
         let monthlyBurnRate = totalFee / durationMonths;
-        
-        // 2. Calculate the Target Paid (How much they SHOULD have paid by today)
-        // Add 1 to elapsedMonths because the first month is owed immediately upon joining.
         let billableMonths = elapsedMonths + 1;
         if (billableMonths > durationMonths) {
             billableMonths = durationMonths;
         }
         
         let targetPaid = monthlyBurnRate * billableMonths;
-        
-        // 3. Calculate Final Due
         currentMonthDue = targetPaid - actualPaid;
         
-        if (currentMonthDue < 0) {
-            currentMonthDue = 0.0; // Paid in advance (Lump-sum handled!)
-        }
-        if (currentMonthDue > totalOutstanding) {
-            currentMonthDue = totalOutstanding; // Can't owe more than the total remaining
-        }
+        if (currentMonthDue < 0) currentMonthDue = 0.0;
+        if (currentMonthDue > totalOutstanding) currentMonthDue = totalOutstanding;
 
         currentMonthDue = Math.ceil(currentMonthDue);
+        
+        explanation = `DYNAMIC EMI MATH:\\n• Total Fee: ₹${totalFee}\\n• Course Duration: ${durationMonths} Months\\n• Burn Rate: ₹${monthlyBurnRate.toFixed(1)} per month\\n• Admission Date: ${dateStr}\\n• Time Elapsed: ${elapsedMonths} full months\\n• Billable Limit (Current + Month 1 Advance): ${billableMonths} months\\n-------------------------\\n• Target Expected by Today: ₹${targetPaid.toFixed(1)}\\n• Amount Actually Paid: ₹${actualPaid}\\n-------------------------\\n• Formula: (Target Expected - Actually Paid)\\n• Math Result: ₹${(targetPaid - actualPaid).toFixed(1)}\\n• UI Display (Ceiled & Capped): ₹${currentMonthDue}`;
     }
 
     return { 
         currentMonthDue: currentMonthDue, 
         totalOutstanding: totalOutstanding, 
         actualPaid: actualPaid, 
-        adDiscount: adWallet 
+        adDiscount: adWallet,
+        adminExplanation: explanation
     };
 }
 
@@ -1568,8 +1572,7 @@ function renderStudentList() {
 
     const filteredStudents = appData.students.filter(st => {
         const metrics = calculateExactDues(st);
-        let dues = metrics.totalOutstanding;
-        if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
+        let dues = metrics.currentMonthDue;
         
         const matchSearch = String(st.name || "").toLowerCase().includes(searchQ) || String(st.id || "").toLowerCase().includes(searchQ);
         const matchDue = dueF === 'all' || (dueF === 'pending' && dues > 0) || (dueF === 'cleared' && dues <= 0);
@@ -1585,8 +1588,7 @@ function renderStudentList() {
 
     filteredStudents.forEach(st => {
         const metrics = calculateExactDues(st);
-        let dues = metrics.totalOutstanding;
-        if (st.customDueAmount && st.customDueAmount !== "") dues = parseFloat(st.customDueAmount);
+        let dues = metrics.currentMonthDue;
 
         const avatar = st.image ? `<img src="${st.image}" class="w-full h-full object-cover">` : `<span class="font-bold text-lg">${String(st.name || "?").charAt(0)}</span>`;
         const card = document.createElement('div');
@@ -1671,10 +1673,8 @@ function selectStudent(id) {
         else badgeEl.classList.add('hidden');
     }
 
-    let displayDue = metrics.totalOutstanding;
-    if (student.customDueAmount && student.customDueAmount !== "") {
-        displayDue = parseFloat(student.customDueAmount);
-    }
+    // 🚨 FIX: Automatically extracts the correct current due from the universal engine
+    let displayDue = metrics.currentMonthDue;
 
     const dueEl = document.getElementById('active-student-dues');
     dueEl.innerText = `₹${displayDue.toFixed(2)}`;
@@ -1683,13 +1683,18 @@ function selectStudent(id) {
 
     const dueLabel = dueEl.previousElementSibling;
     if(dueLabel) {
+        let labelText = '';
         if (student.customDueDate && student.customDueDate !== "") {
-            dueLabel.innerText = 'Due By: ' + student.customDueDate;
+            labelText = 'Due By: ' + student.customDueDate;
             dueLabel.classList.add('text-rose-500');
         } else {
-            dueLabel.innerText = 'Pending Course Dues';
+            labelText = 'Pending Course Dues';
             dueLabel.classList.remove('text-rose-500');
         }
+        
+        // 🚨 NEW: Injects the "Admin Explanation" Info Icon
+        const safeExplanation = metrics.adminExplanation.replace(/'/g, "\\'").replace(/\n/g, '\\n');
+        dueLabel.innerHTML = `${labelText} <button onclick="alert('${safeExplanation}')" class="ml-1 text-blue-400 hover:text-blue-600" title="View Math Breakdown"><i class="fa-solid fa-circle-info"></i></button>`;
     }
 
     renderMiniLedger(student);
