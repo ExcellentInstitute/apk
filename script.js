@@ -3625,3 +3625,147 @@ function renderStudyTracker() {
         container.innerHTML += html;
     });
 }
+// =========================================================
+// ⏱️ ATTENDANCE, SEATING & FAULT TRACKER (Low Bandwidth)
+// =========================================================
+let currentAttendanceData = {};
+let currentSystemFaults = {};
+let currentLiveSeating = {};
+
+async function loadDailyAttendanceTracker() {
+    // Looks for a date picker in your HTML, defaults to today if none exists
+    const dateInput = document.getElementById('attendance-date-filter');
+    const targetDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+    const listEl = document.getElementById('attendance-tracker-list');
+    
+    if (listEl) listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-spinner fa-spin text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">Scanning satellite records...</p></div>';
+    
+    try {
+        // 🚨 LOW BANDWIDTH ARCHITECTURE: 
+        // Only queries the exact date requested by the Admin. Does not download the entire database history!
+        const [attSnap, seatSnap, faultSnap] = await Promise.all([
+            firebase.database().ref('attendance_logs').orderByChild('date').equalTo(targetDate).once('value'),
+            firebase.database().ref(`live_seating/${targetDate}`).once('value'),
+            firebase.database().ref('system_faults').orderByChild('date').equalTo(targetDate).once('value')
+        ]);
+        
+        currentAttendanceData = attSnap.val() || {};
+        currentLiveSeating = seatSnap.val() || {};
+        currentSystemFaults = faultSnap.val() || {};
+        
+        renderAttendanceUI(targetDate);
+    } catch (e) {
+        console.error("Attendance Fetch Error:", e);
+        if (listEl) listEl.innerHTML = '<div class="text-center text-rose-400 mt-10 font-bold"><i class="fa-solid fa-triangle-exclamation text-4xl mb-4 block"></i>Failed to sync with Firebase.</div>';
+    }
+}
+
+function renderAttendanceUI(targetDate) {
+    const listEl = document.getElementById('attendance-tracker-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    // Convert to Array & Sort (Newest First)
+    let logsArray = Object.keys(currentAttendanceData).map(key => ({
+        _fbKey: key, ...currentAttendanceData[key]
+    })).sort((a, b) => b.timestamp - a.timestamp);
+
+    if (logsArray.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-ghost text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No activity recorded for this date.</p></div>';
+        return;
+    }
+
+    logsArray.forEach(log => {
+        const isEntry = log.action === 'ENTRY';
+        const badgeColor = isEntry ? 'emerald' : 'rose';
+        const icon = isEntry ? 'fa-arrow-right-to-bracket' : 'fa-arrow-right-from-bracket';
+        
+        // Find if this student has a live seat claimed today
+        let claimedSeat = 'None';
+        if (currentLiveSeating[log.batch]) {
+            for (const [seatKey, studentId] of Object.entries(currentLiveSeating[log.batch])) {
+                if (studentId === log.studentId) {
+                    claimedSeat = seatKey.replace('practical-seat-', 'E');
+                    break;
+                }
+            }
+        }
+
+        // Check if student filed a fault report
+        let faultReport = '';
+        let faultKey = null;
+        for (const [fKey, fData] of Object.entries(currentSystemFaults)) {
+            if (fData.studentId === log.studentId && fData.batch === log.batch) {
+                faultReport = fData.fault;
+                faultKey = fKey;
+                break;
+            }
+        }
+
+        // UI Builder: System Fault Warning Card
+        let faultHtml = faultReport 
+            ? `<div class="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs flex justify-between items-start shadow-inner">
+                   <div class="flex-1 mr-2"><span class="font-black text-amber-600 block mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>SYSTEM FAULT REPORTED</span><span class="text-slate-700 font-medium">${faultReport}</span></div>
+                   <button onclick="deleteSystemFault('${faultKey}', '${targetDate}')" class="text-amber-400 hover:text-amber-600 transition-colors p-1" title="Resolve & Delete Fault"><i class="fa-solid fa-check-double text-base"></i></button>
+               </div>`
+            : '';
+
+        // UI Builder: Live Seating Badge
+        let seatHtml = claimedSeat !== 'None' 
+            ? `<div class="flex items-center gap-1 mt-1.5"><span class="bg-indigo-100 text-indigo-700 font-black px-2 py-0.5 rounded text-[9px] shadow-sm"><i class="fa-solid fa-computer mr-1"></i>${claimedSeat}</span><button onclick="unassignLiveSeat('${targetDate}', '${log.batch}', '${claimedSeat}')" class="text-slate-300 hover:text-rose-500 text-[10px] ml-1 transition-colors" title="Force Unassign"><i class="fa-solid fa-circle-xmark"></i></button></div>` 
+            : '';
+
+        listEl.innerHTML += `
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all mb-4 group relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-${badgeColor}-400"></div>
+                <div class="flex justify-between items-start pl-2">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="bg-${badgeColor}-100 text-${badgeColor}-700 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider shadow-sm"><i class="fa-solid ${icon} mr-1"></i>${log.action}</span>
+                            <span class="text-[10px] font-bold text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${log.time || '-'}</span>
+                        </div>
+                        <h4 class="font-extrabold text-slate-800 text-base flex items-center">${log.studentName}</h4>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${log.studentId} • ${log.batch} Batch</p>
+                        ${seatHtml}
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <div class="flex items-center gap-1 text-[10px] font-bold ${log.distanceMeters <= 100 ? 'text-emerald-500' : 'text-rose-500'} bg-slate-50 px-2 py-1 rounded border border-slate-100 shadow-sm">
+                            <i class="fa-solid fa-location-crosshairs"></i> ${log.distanceMeters}m
+                        </div>
+                        <button onclick="deleteAttendanceLog('${log._fbKey}', '${targetDate}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2 mt-2 opacity-0 group-hover:opacity-100" title="Delete Log"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+                ${faultHtml}
+            </div>
+        `;
+    });
+}
+
+// 2. Action Handlers (With Real-Time UI Refreshes)
+async function deleteAttendanceLog(logKey, targetDate) {
+    if(!confirm("Are you sure you want to permanently delete this attendance record?")) return;
+    try {
+        await firebase.database().ref(`attendance_logs/${logKey}`).remove();
+        delete currentAttendanceData[logKey];
+        renderAttendanceUI(targetDate);
+    } catch(e) { alert("Failed to delete log."); }
+}
+
+async function unassignLiveSeat(targetDate, batch, seatName) {
+    if(!confirm(`Force unassign ${seatName} for the ${batch} batch? This will open it up for other students.`)) return;
+    const seatNode = seatName.replace('E', 'practical-seat-');
+    try {
+        await firebase.database().ref(`live_seating/${targetDate}/${batch}/${seatNode}`).remove();
+        delete currentLiveSeating[batch][seatNode];
+        renderAttendanceUI(targetDate);
+    } catch(e) { alert("Failed to unassign seat."); }
+}
+
+async function deleteSystemFault(faultKey, targetDate) {
+    if(!confirm("Mark this fault as resolved and delete the report?")) return;
+    try {
+        await firebase.database().ref(`system_faults/${faultKey}`).remove();
+        delete currentSystemFaults[faultKey];
+        renderAttendanceUI(targetDate);
+    } catch(e) { alert("Failed to delete fault report."); }
+}
