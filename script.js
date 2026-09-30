@@ -958,6 +958,7 @@ function switchTab(tabId) {
         'registration': 'New Admission', 
         'tuition': 'Student Database', 
         'seating': 'Batch & Seating Management',
+        'attendance': 'Daily Attendance Tracker',
         'filehub': 'Institute File Hub', 
         'broadcast': 'Alerts & Notifications', 
         'job': 'Job Applications', 
