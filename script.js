@@ -731,7 +731,7 @@ function shareStudentWA() {
 
 function setDefaultDates() {
     const today = new Date().toISOString().split('T')[0];
-    ['reg-date', 'tuition-date', 'job-date', 'print-date', 'exp-date'].forEach(id => {
+    ['reg-date', 'tuition-date', 'job-date', 'print-date', 'exp-date', 'attendance-date-filter'].forEach(id => {
         if(document.getElementById(id)) document.getElementById(id).value = today;
     });
     if(document.getElementById('assumed-date')) {
@@ -3642,7 +3642,9 @@ let currentLiveSeating = {};
 async function loadDailyAttendanceTracker() {
     // Looks for a date picker in your HTML, defaults to today if none exists
     const dateInput = document.getElementById('attendance-date-filter');
-    const targetDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dateInput && !dateInput.value) dateInput.value = todayStr;
+    const targetDate = (dateInput && dateInput.value) ? dateInput.value : todayStr;
     const listEl = document.getElementById('attendance-tracker-list');
     
     if (listEl) listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-spinner fa-spin text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">Scanning satellite records...</p></div>';
