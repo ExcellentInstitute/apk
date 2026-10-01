@@ -3687,77 +3687,187 @@ function renderAttendanceUI(targetDate) {
     if (!listEl) return;
     listEl.innerHTML = '';
 
-    // Convert to Array & Sort (Newest First)
-    let logsArray = Object.keys(currentAttendanceData).map(key => ({
-        _fbKey: key, ...currentAttendanceData[key]
-    })).sort((a, b) => b.timestamp - a.timestamp);
-
-    if (logsArray.length === 0) {
-        listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-ghost text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No activity recorded for this date.</p></div>';
+    const allKeys = Object.keys(currentAttendanceData);
+    if (allKeys.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-ghost text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No attendance activity recorded for this date.</p></div>';
         return;
     }
 
-    logsArray.forEach(log => {
-        const isEntry = log.action === 'ENTRY';
-        const badgeColor = isEntry ? 'emerald' : 'rose';
-        const icon = isEntry ? 'fa-arrow-right-to-bracket' : 'fa-arrow-right-from-bracket';
-        
-        // Find if this student has a live seat claimed today
-        let claimedSeat = 'None';
-        if (currentLiveSeating[log.batch]) {
-            for (const [seatKey, studentId] of Object.entries(currentLiveSeating[log.batch])) {
-                if (studentId === log.studentId) {
-                    claimedSeat = seatKey.replace('practical-seat-', 'E');
+    // 1. Pair ENTRY and EXIT logs per student
+    const studentRecords = {};
+    allKeys.forEach(key => {
+        const log = currentAttendanceData[key];
+        const studentId = log.studentId || 'UNKNOWN';
+        const batch = log.batch || 'Unassigned';
+        const pairKey = `${studentId}_${batch}`;
+
+        if (!studentRecords[pairKey]) {
+            studentRecords[pairKey] = {
+                studentId: studentId,
+                studentName: log.studentName || 'Student',
+                batch: batch,
+                entry: null,
+                exit: null
+            };
+        }
+
+        if (log.action === 'ENTRY') {
+            if (!studentRecords[pairKey].entry || log.timestamp > studentRecords[pairKey].entry.timestamp) {
+                studentRecords[pairKey].entry = { _fbKey: key, ...log };
+            }
+        } else if (log.action === 'EXIT') {
+            if (!studentRecords[pairKey].exit || log.timestamp > studentRecords[pairKey].exit.timestamp) {
+                studentRecords[pairKey].exit = { _fbKey: key, ...log };
+            }
+        }
+    });
+
+    // 2. Group paired records by Batch
+    const batchGroups = {};
+    const standardBatches = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
+
+    Object.values(studentRecords).forEach(record => {
+        const b = record.batch || 'Unassigned';
+        if (!batchGroups[b]) batchGroups[b] = [];
+        batchGroups[b].push(record);
+    });
+
+    // Sort batches in order, followed by any remaining custom batches
+    const sortedBatchNames = Object.keys(batchGroups).sort((a, b) => {
+        const aIndex = standardBatches.indexOf(a);
+        const bIndex = standardBatches.indexOf(b);
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return a.localeCompare(b);
+    });
+
+    // 3. Render Batch Sections
+    sortedBatchNames.forEach(batchName => {
+        const records = batchGroups[batchName];
+        let missingExitCount = 0;
+
+        records.forEach(r => {
+            if (r.entry && !r.exit) missingExitCount++;
+        });
+
+        const missingBadge = missingExitCount > 0
+            ? `<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-rose-200 animate-pulse"><i class="fa-solid fa-triangle-exclamation mr-1"></i>${missingExitCount} Missing Exit</span>`
+            : `<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-emerald-200"><i class="fa-solid fa-circle-check mr-1"></i>All Exits Recorded</span>`;
+
+        let rowsHtml = '';
+        records.forEach(r => {
+            // Find live seat assignment
+            let claimedSeat = 'None';
+            if (currentLiveSeating[r.batch]) {
+                for (const [seatKey, sId] of Object.entries(currentLiveSeating[r.batch])) {
+                    if (sId === r.studentId) {
+                        claimedSeat = seatKey.replace('practical-seat-', 'E');
+                        break;
+                    }
+                }
+            }
+
+            // Find fault report
+            let faultReport = '';
+            let faultKey = null;
+            for (const [fKey, fData] of Object.entries(currentSystemFaults)) {
+                if (fData.studentId === r.studentId && fData.batch === r.batch) {
+                    faultReport = fData.fault;
+                    faultKey = fKey;
                     break;
                 }
             }
-        }
 
-        // Check if student filed a fault report
-        let faultReport = '';
-        let faultKey = null;
-        for (const [fKey, fData] of Object.entries(currentSystemFaults)) {
-            if (fData.studentId === log.studentId && fData.batch === log.batch) {
-                faultReport = fData.fault;
-                faultKey = fKey;
-                break;
-            }
-        }
+            const seatBadge = claimedSeat !== 'None'
+                ? `<div class="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg text-xs font-bold text-indigo-700">
+                       <i class="fa-solid fa-computer"></i> ${claimedSeat}
+                       <button onclick="unassignLiveSeat('${targetDate}', '${r.batch}', '${claimedSeat}')" class="text-slate-400 hover:text-rose-600 ml-1" title="Unassign Seat"><i class="fa-solid fa-circle-xmark"></i></button>
+                   </div>`
+                : `<span class="text-slate-400 text-xs italic font-medium">Unassigned</span>`;
 
-        // UI Builder: System Fault Warning Card
-        let faultHtml = faultReport 
-            ? `<div class="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs flex justify-between items-start shadow-inner">
-                   <div class="flex-1 mr-2"><span class="font-black text-amber-600 block mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>SYSTEM FAULT REPORTED</span><span class="text-slate-700 font-medium">${faultReport}</span></div>
-                   <button onclick="deleteSystemFault('${faultKey}', '${targetDate}')" class="text-amber-400 hover:text-amber-600 transition-colors p-1" title="Resolve & Delete Fault"><i class="fa-solid fa-check-double text-base"></i></button>
-               </div>`
-            : '';
+            // IN Punch Column
+            const inPunchHtml = r.entry
+                ? `<div class="bg-emerald-50/70 border border-emerald-200/60 rounded-xl p-2.5 flex items-center justify-between">
+                       <div>
+                           <div class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider flex items-center">
+                               <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> IN PUNCH
+                           </div>
+                           <div class="text-sm font-extrabold text-slate-800 mt-0.5">${r.entry.time || '-'}</div>
+                           <div class="text-[10px] font-bold ${r.entry.distanceMeters <= 100 ? 'text-emerald-600' : 'text-rose-500'}">
+                               <i class="fa-solid fa-location-crosshairs mr-0.5"></i> ${r.entry.distanceMeters}m
+                           </div>
+                       </div>
+                       <button onclick="deleteAttendanceLog('${r.entry._fbKey}', '${targetDate}')" class="text-slate-300 hover:text-rose-600 transition-colors p-1" title="Delete IN Log"><i class="fa-solid fa-trash text-xs"></i></button>
+                   </div>`
+                : `<div class="bg-slate-100 rounded-xl p-2.5 text-center text-xs font-bold text-slate-400 border border-dashed border-slate-200">No IN Record</div>`;
 
-        // UI Builder: Live Seating Badge
-        let seatHtml = claimedSeat !== 'None' 
-            ? `<div class="flex items-center gap-1 mt-1.5"><span class="bg-indigo-100 text-indigo-700 font-black px-2 py-0.5 rounded text-[9px] shadow-sm"><i class="fa-solid fa-computer mr-1"></i>${claimedSeat}</span><button onclick="unassignLiveSeat('${targetDate}', '${log.batch}', '${claimedSeat}')" class="text-slate-300 hover:text-rose-500 text-[10px] ml-1 transition-colors" title="Force Unassign"><i class="fa-solid fa-circle-xmark"></i></button></div>` 
-            : '';
+            // OUT Punch Column with Missing Indicator
+            const outPunchHtml = r.exit
+                ? `<div class="bg-rose-50/70 border border-rose-200/60 rounded-xl p-2.5 flex items-center justify-between">
+                       <div>
+                           <div class="text-[10px] font-bold text-rose-700 uppercase tracking-wider flex items-center">
+                               <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> OUT PUNCH
+                           </div>
+                           <div class="text-sm font-extrabold text-slate-800 mt-0.5">${r.exit.time || '-'}</div>
+                           <div class="text-[10px] font-bold ${r.exit.distanceMeters <= 100 ? 'text-emerald-600' : 'text-rose-500'}">
+                               <i class="fa-solid fa-location-crosshairs mr-0.5"></i> ${r.exit.distanceMeters}m
+                           </div>
+                       </div>
+                       <button onclick="deleteAttendanceLog('${r.exit._fbKey}', '${targetDate}')" class="text-slate-300 hover:text-rose-600 transition-colors p-1" title="Delete OUT Log"><i class="fa-solid fa-trash text-xs"></i></button>
+                   </div>`
+                : `<div class="bg-amber-50 border border-amber-300/80 rounded-xl p-2.5 flex items-center justify-center text-center">
+                       <div>
+                           <div class="text-xs font-black text-amber-700 flex items-center justify-center">
+                               <i class="fa-solid fa-person-running mr-1 text-sm text-amber-600"></i> STILL IN CLASS
+                           </div>
+                           <div class="text-[10px] font-bold text-amber-600/90 mt-0.5">Exit Punch Missing</div>
+                       </div>
+                   </div>`;
+
+            // Fault Report Indicator
+            const faultHtml = faultReport
+                ? `<div class="mt-2.5 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs flex justify-between items-start">
+                       <div>
+                           <span class="font-bold text-amber-700 block mb-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Fault Reported:</span>
+                           <span class="text-slate-700">${faultReport}</span>
+                       </div>
+                       <button onclick="deleteSystemFault('${faultKey}', '${targetDate}')" class="text-amber-500 hover:text-amber-700 text-xs font-bold shrink-0 ml-2" title="Resolve & Remove Report"><i class="fa-solid fa-check mr-1"></i>Resolve</button>
+                   </div>`
+                : '';
+
+            rowsHtml += `
+                <div class="p-3.5 sm:p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-slate-300 transition-all mb-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2 mb-3">
+                        <div>
+                            <div class="font-extrabold text-slate-800 text-sm sm:text-base">${r.studentName}</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${r.studentId}</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Computer:</span>
+                            ${seatBadge}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${inPunchHtml}
+                        ${outPunchHtml}
+                    </div>
+                    ${faultHtml}
+                </div>
+            `;
+        });
 
         listEl.innerHTML += `
-            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all mb-4 group relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-1 h-full bg-${badgeColor}-400"></div>
-                <div class="flex justify-between items-start pl-2">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="bg-${badgeColor}-100 text-${badgeColor}-700 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider shadow-sm"><i class="fa-solid ${icon} mr-1"></i>${log.action}</span>
-                            <span class="text-[10px] font-bold text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${log.time || '-'}</span>
-                        </div>
-                        <h4 class="font-extrabold text-slate-800 text-base flex items-center">${log.studentName}</h4>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${log.studentId} • ${log.batch} Batch</p>
-                        ${seatHtml}
+            <div class="mb-6 bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-2 border-b border-slate-200">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-sm">${batchName.substring(0, 2)}</span>
+                        <h4 class="font-extrabold text-slate-800 text-base sm:text-lg">${batchName} Batch</h4>
+                        <span class="text-xs font-bold text-slate-500">(${records.length} Student${records.length > 1 ? 's' : ''})</span>
                     </div>
-                    <div class="flex flex-col items-end">
-                        <div class="flex items-center gap-1 text-[10px] font-bold ${log.distanceMeters <= 100 ? 'text-emerald-500' : 'text-rose-500'} bg-slate-50 px-2 py-1 rounded border border-slate-100 shadow-sm">
-                            <i class="fa-solid fa-location-crosshairs"></i> ${log.distanceMeters}m
-                        </div>
-                        <button onclick="deleteAttendanceLog('${log._fbKey}', '${targetDate}')" class="text-rose-300 hover:text-rose-600 transition-colors p-2 mt-2 opacity-0 group-hover:opacity-100" title="Delete Log"><i class="fa-solid fa-trash"></i></button>
-                    </div>
+                    <div>${missingBadge}</div>
                 </div>
-                ${faultHtml}
+                <div>${rowsHtml}</div>
             </div>
         `;
     });
