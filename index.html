@@ -508,6 +508,19 @@
                                     </select>
                                 </div>
                             </div>
+                            <!-- AdMob Master Switch -->
+                            <div class="bg-emerald-50/50 p-4 sm:p-6 rounded-2xl border border-emerald-100 mt-4">
+                                <h4 class="font-bold text-emerald-800 mb-3 sm:mb-4 flex items-center text-xs sm:text-sm">
+                                    <i class="fa-solid fa-rectangle-ad mr-2 text-emerald-500"></i> AdMob Master Switch
+                                </h4>
+                                <div>
+                                    <label class="form-label text-emerald-800 text-xs sm:text-sm">Enable In-App Ads (Banners, Interstitials, Rewarded)?</label>
+                                    <select id="set-allow-ads" class="form-input bg-white border-emerald-200 font-bold text-slate-700 cursor-pointer w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm">
+                                        <option value="true">Yes, Ads Enabled</option>
+                                        <option value="false">No, Ads Disabled (Kill Switch Active)</option>
+                                    </select>
+                                </div>
+                            </div>
                             
                             <button type="submit" id="btn-save-settings" class="w-full py-3.5 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all cursor-pointer text-base sm:text-lg transform hover:-translate-y-0.5 active:translate-y-0">Save Configuration</button>
                         </form>
