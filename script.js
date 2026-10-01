@@ -3802,12 +3802,13 @@ function renderAttendanceUI(targetDate) {
                    </div>`
                 : `<div class="bg-slate-100 rounded-xl p-2.5 text-center text-xs font-bold text-slate-400 border border-dashed border-slate-200">No IN Record</div>`;
 
-            // OUT Punch Column with Missing Indicator
+            // OUT Punch Column with Missing Indicator & Admin Force Exit
             const outPunchHtml = r.exit
                 ? `<div class="bg-rose-50/70 border border-rose-200/60 rounded-xl p-2.5 flex items-center justify-between">
                        <div>
                            <div class="text-[10px] font-bold text-rose-700 uppercase tracking-wider flex items-center">
                                <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> OUT PUNCH
+                               ${r.exit.note ? `<span class="bg-amber-500 text-white text-[7px] px-1.5 py-0.5 rounded ml-1.5 shadow-sm">${r.exit.note}</span>` : ''}
                            </div>
                            <div class="text-sm font-extrabold text-slate-800 mt-0.5">${r.exit.time || '-'}</div>
                            <div class="text-[10px] font-bold ${r.exit.distanceMeters <= 100 ? 'text-emerald-600' : 'text-rose-500'}">
@@ -3816,13 +3817,16 @@ function renderAttendanceUI(targetDate) {
                        </div>
                        <button onclick="deleteAttendanceLog('${r.exit._fbKey}', '${targetDate}')" class="text-slate-300 hover:text-rose-600 transition-colors p-1" title="Delete OUT Log"><i class="fa-solid fa-trash text-xs"></i></button>
                    </div>`
-                : `<div class="bg-amber-50 border border-amber-300/80 rounded-xl p-2.5 flex items-center justify-center text-center">
-                       <div>
+                : `<div class="bg-amber-50 border border-amber-300/80 rounded-xl p-2.5 flex items-center justify-center text-center relative group overflow-hidden">
+                       <div class="transition-opacity group-hover:opacity-0">
                            <div class="text-xs font-black text-amber-700 flex items-center justify-center">
                                <i class="fa-solid fa-person-running mr-1 text-sm text-amber-600"></i> STILL IN CLASS
                            </div>
                            <div class="text-[10px] font-bold text-amber-600/90 mt-0.5">Exit Punch Missing</div>
                        </div>
+                       <button onclick="forceAdminPunchOut('${r.studentId}', '${r.studentName.replace(/'/g, "\\'")}', '${r.batch}', '${targetDate}')" class="absolute inset-0 bg-amber-500 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
+                           <i class="fa-solid fa-power-off mr-1.5"></i> Force Out
+                       </button>
                    </div>`;
 
             // Fault Report Indicator
@@ -3900,4 +3904,48 @@ async function deleteSystemFault(faultKey, targetDate) {
         delete currentSystemFaults[faultKey];
         renderAttendanceUI(targetDate);
     } catch(e) { alert("Failed to delete fault report."); }
+}
+async function forceAdminPunchOut(studentId, studentName, batch, targetDate) {
+    if(!confirm(`Force an Exit Punch for ${studentName}?\nThis will mark them as "FORGOT TO PUNCH OUT" and unassign their computer seat.`)) return;
+
+    try {
+        const now = new Date();
+        let hours = now.getHours();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; 
+        const min = now.getMinutes().toString().padStart(2, '0');
+        const sec = now.getSeconds().toString().padStart(2, '0');
+        const timeString = `${hours.toString().padStart(2, '0')}:${min}:${sec} ${ampm}`;
+
+        const logPayload = {
+            studentId: studentId,
+            studentName: studentName,
+            batch: batch,
+            action: 'EXIT',
+            distanceMeters: 0, 
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            date: targetDate,
+            time: timeString,
+            note: 'FORGOT TO PUNCH OUT'
+        };
+
+        await firebase.database().ref('attendance_logs').push().set(logPayload);
+        
+        // Automatically unassign their live seat if they had one claimed!
+        if (currentLiveSeating[batch]) {
+            for (const [seatKey, sId] of Object.entries(currentLiveSeating[batch])) {
+                if (sId === studentId) {
+                    await firebase.database().ref(`live_seating/${targetDate}/${batch}/${seatKey}`).remove();
+                    break;
+                }
+            }
+        }
+
+        // Instantly refresh the UI
+        loadDailyAttendanceTracker();
+        
+    } catch(e) { 
+        alert("Failed to force punch out. Check your connection."); 
+    }
 }
