@@ -998,10 +998,15 @@ function populateSettings() {
         // Defaults to true so it works immediately
         videoHubEl.value = appData.settings.enableVideoHub !== false ? "true" : "false"; 
     }
-    const adsEl = document.getElementById('set-allow-ads');
-    if (adsEl) {
-        adsEl.value = appData.settings.enableAds !== false ? "true" : "false";
-    }
+    const bannerAdsEl = document.getElementById('set-allow-banner-ads');
+    if (bannerAdsEl) bannerAdsEl.value = appData.settings.enableBannerAds !== false ? "true" : "false";
+
+    const interstitialAdsEl = document.getElementById('set-allow-interstitial-ads');
+    if (interstitialAdsEl) interstitialAdsEl.value = appData.settings.enableInterstitialAds !== false ? "true" : "false";
+
+    const rewardedAdsEl = document.getElementById('set-allow-rewarded-ads');
+    if (rewardedAdsEl) rewardedAdsEl.value = appData.settings.enableRewardedAds !== false ? "true" : "false";
+    
     const qrPreview = document.getElementById('set-qr-preview');
     const qrIcon = document.getElementById('set-qr-icon');
     if (appData.settings.qrCodeUrl && appData.settings.qrCodeUrl !== "") {
@@ -1041,8 +1046,14 @@ function submitSettings(e) {
     const videoHubEl = document.getElementById('set-allow-videohub');
     const allowVideoHub = videoHubEl ? (videoHubEl.value === 'true') : true;
     //New : ad controler
-    const adsEl = document.getElementById('set-allow-ads');
-    const allowAds = adsEl ? (adsEl.value === 'true') : true;
+    const bannerAdsEl = document.getElementById('set-allow-banner-ads');
+    const allowBannerAds = bannerAdsEl ? (bannerAdsEl.value === 'true') : true;
+
+    const interstitialAdsEl = document.getElementById('set-allow-interstitial-ads');
+    const allowInterstitialAds = interstitialAdsEl ? (interstitialAdsEl.value === 'true') : true;
+
+    const rewardedAdsEl = document.getElementById('set-allow-rewarded-ads');
+    const allowRewardedAds = rewardedAdsEl ? (rewardedAdsEl.value === 'true') : true;
     // NEW: Extract PDF Unlock Cost
     const pdfCostEl = document.getElementById('set-pdf-unlock-cost');
     const pdfUnlockCost = pdfCostEl ? pdfCostEl.value : 5;
@@ -1054,7 +1065,9 @@ function submitSettings(e) {
     appData.settings.allowVideoRewards = allowRewards;
     appData.settings.pdfUnlockCost = parseInt(pdfUnlockCost) || 5;
     appData.settings.enableVideoHub = allowVideoHub; // 🚨 Saves the Kill Switch
-    appData.settings.enableAds = allowAds;
+    appData.settings.enableBannerAds = allowBannerAds;
+    appData.settings.enableInterstitialAds = allowInterstitialAds;
+    appData.settings.enableRewardedAds = allowRewardedAds;
     
     if (pendingQRCodeBase64) {
         appData.settings.qrCodeUrl = pendingQRCodeBase64;
