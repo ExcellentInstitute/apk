@@ -3949,3 +3949,78 @@ async function forceAdminPunchOut(studentId, studentName, batch, targetDate) {
         alert("Failed to force punch out. Check your connection."); 
     }
 }
+// =========================================================
+// 🛠️ ADMIN MANUAL PUNCH IN/OUT (For Students Without Phones)
+// =========================================================
+async function adminManualPunch(action) {
+    const stId = document.getElementById('tuition-student-id').value;
+    const student = appData.students.find(s => s.id === stId);
+    
+    if (!student) {
+        return alert("Please select a student from the Student Database first.");
+    }
+    
+    const actionText = action === 'ENTRY' ? 'Punch IN' : 'Punch OUT';
+    if (!confirm(`Manually record ${actionText} for ${student.name}?`)) return;
+
+    const targetDate = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    let hours = now.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12; 
+    const min = now.getMinutes().toString().padStart(2, '0');
+    const sec = now.getSeconds().toString().padStart(2, '0');
+    const timeString = `${hours.toString().padStart(2, '0')}:${min}:${sec} ${ampm}`;
+
+    const logPayload = {
+        studentId: student.id,
+        studentName: student.name,
+        batch: student.batch || 'Unassigned',
+        action: action,
+        distanceMeters: 0, 
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        date: targetDate,
+        time: timeString,
+        note: 'ADMIN MANUAL PUNCH'
+    };
+
+    try {
+        const btnId = action === 'ENTRY' ? 'btn-manual-in' : 'btn-manual-out';
+        const btn = document.getElementById(btnId);
+        let originalText = "";
+        if(btn) {
+            originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+        }
+
+        // Push directly to Firebase
+        await firebase.database().ref('attendance_logs').push().set(logPayload);
+        
+        // If punching out, automatically clear them from the live seating map
+        if (action === 'EXIT' && currentLiveSeating[student.batch]) {
+            for (const [seatKey, sId] of Object.entries(currentLiveSeating[student.batch])) {
+                if (sId === student.id) {
+                    await firebase.database().ref(`live_seating/${targetDate}/${student.batch}/${seatKey}`).remove();
+                    break;
+                }
+            }
+        }
+
+        alert(`Success! ${student.name} has been marked ${action === 'ENTRY' ? 'PRESENT (IN)' : 'LEFT (OUT)'}.`);
+        
+        if(btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+        
+        // Refresh the attendance tracking board in the background
+        if (typeof loadDailyAttendanceTracker === 'function') {
+            loadDailyAttendanceTracker();
+        }
+
+    } catch (error) {
+        alert("Failed to submit manual punch. Check connection.");
+        console.error(error);
+    }
+}
