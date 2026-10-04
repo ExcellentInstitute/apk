@@ -760,6 +760,21 @@
                                         <div class="py-1 sm:py-0"><p class="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5">Total Paid</p><p class="text-xs sm:text-sm font-bold text-emerald-600" id="active-student-paidfee">₹0</p></div>
                                         <div class="py-1 sm:py-0 col-span-2 sm:col-span-1"><p class="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5"><i class="fa-solid fa-coins text-amber-500 mr-1"></i> Virtual Coins</p><p class="text-xs sm:text-sm font-bold text-amber-500" id="active-student-adwallet">0 Coins</p></div>
                                     </div>
+                                    <!-- MANUAL ATTENDANCE CONTROLS (NO PHONE) -->
+                                    <div class="p-3.5 sm:p-4 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
+                                        <div class="flex items-center gap-2 text-slate-700 text-xs font-bold">
+                                            <i class="fa-solid fa-fingerprint text-indigo-600 text-sm"></i>
+                                            <span>Manual Attendance Punch:</span>
+                                        </div>
+                                        <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                                            <button id="btn-manual-in" type="button" onclick="adminManualPunch('ENTRY')" class="flex-1 sm:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center transform active:scale-95">
+                                                <i class="fa-solid fa-arrow-right-to-bracket mr-1.5"></i> Punch IN
+                                            </button>
+                                            <button id="btn-manual-out" type="button" onclick="adminManualPunch('EXIT')" class="flex-1 sm:flex-none px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center transform active:scale-95">
+                                                <i class="fa-solid fa-arrow-right-from-bracket mr-1.5"></i> Punch OUT
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1 overflow-visible">
