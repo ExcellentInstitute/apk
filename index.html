@@ -779,14 +779,41 @@
                                     <div class="p-3.5 sm:p-4 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
                                         <div class="flex items-center gap-2 text-slate-700 text-xs font-bold">
                                             <i class="fa-solid fa-fingerprint text-indigo-600 text-sm"></i>
-                                            <span>Manual Attendance Punch:</span>
+                                            <span>Manual Punch:</span>
                                         </div>
-                                        <div class="flex items-center gap-2.5 w-full sm:w-auto">
-                                            <button id="btn-manual-in" type="button" onclick="adminManualPunch('ENTRY')" class="flex-1 sm:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center transform active:scale-95">
-                                                <i class="fa-solid fa-arrow-right-to-bracket mr-1.5"></i> Punch IN
+                                        <div class="flex items-center gap-2.5 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+                                            <select id="manual-punch-system" class="form-input bg-white border-slate-200 text-xs font-bold rounded-lg px-2 py-2 text-slate-600 outline-none focus:border-indigo-500">
+                                                <option value="none">No System</option>
+                                                <optgroup label="Theory Room">
+                                                    <option value="theory-seat-1">T-1</option>
+                                                    <option value="theory-seat-2">T-2</option>
+                                                    <option value="theory-seat-3">T-3</option>
+                                                    <option value="theory-seat-4">T-4</option>
+                                                    <option value="theory-seat-5">T-5</option>
+                                                    <option value="theory-seat-6">T-6</option>
+                                                    <option value="theory-seat-7">T-7</option>
+                                                    <option value="theory-seat-8">T-8</option>
+                                                    <option value="theory-seat-9">T-9</option>
+                                                    <option value="theory-seat-10">T-10</option>
+                                                </optgroup>
+                                                <optgroup label="Practical Lab">
+                                                    <option value="practical-seat-1">L-1</option>
+                                                    <option value="practical-seat-2">L-2</option>
+                                                    <option value="practical-seat-3">L-3</option>
+                                                    <option value="practical-seat-4">L-4</option>
+                                                    <option value="practical-seat-5">L-5</option>
+                                                    <option value="practical-seat-6">L-6</option>
+                                                    <option value="practical-seat-7">L-7</option>
+                                                    <option value="practical-seat-8">L-8</option>
+                                                    <option value="practical-seat-9">L-9</option>
+                                                    <option value="practical-seat-10">L-10</option>
+                                                </optgroup>
+                                            </select>
+                                            <button id="btn-manual-in" type="button" onclick="adminManualPunch('ENTRY')" class="flex-1 sm:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center justify-center transform active:scale-95 whitespace-nowrap">
+                                                <i class="fa-solid fa-arrow-right-to-bracket mr-1.5"></i> IN
                                             </button>
-                                            <button id="btn-manual-out" type="button" onclick="adminManualPunch('EXIT')" class="flex-1 sm:flex-none px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center transform active:scale-95">
-                                                <i class="fa-solid fa-arrow-right-from-bracket mr-1.5"></i> Punch OUT
+                                            <button id="btn-manual-out" type="button" onclick="adminManualPunch('EXIT')" class="flex-1 sm:flex-none px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg font-bold text-xs shadow-sm transition-all flex items-center justify-center transform active:scale-95 whitespace-nowrap">
+                                                <i class="fa-solid fa-arrow-right-from-bracket mr-1.5"></i> OUT
                                             </button>
                                         </div>
                                     </div>
