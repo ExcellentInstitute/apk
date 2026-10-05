@@ -541,6 +541,13 @@
                             <button type="submit" id="btn-save-settings" class="w-full py-3.5 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all cursor-pointer text-base sm:text-lg transform hover:-translate-y-0.5 active:translate-y-0">Save Configuration</button>
                         </form>
                     </div>
+                    <!-- NEW: DATA REMOVAL REQUESTS INBOX -->
+                    <div class="premium-card h-80 bg-white flex flex-col shadow-md overflow-hidden mt-6 border-rose-200">
+                        <div class="p-4 border-b border-rose-100 bg-rose-50 flex items-center justify-between">
+                            <h3 class="font-bold text-rose-900 text-sm flex items-center"><i class="fa-solid fa-user-shield text-rose-500 mr-2 text-lg"></i> Privacy & Deletion Requests</h3>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-rose-50/30" id="data-removal-list"></div>
+                    </div>
                 </div>
 
                 <!-- ANALYTICS VIEW -->
@@ -685,6 +692,14 @@
                             </div>
                         </div>
                     </form>
+                    <!-- NEW: PUBLIC REGISTRATIONS INBOX -->
+                    <div class="premium-card h-80 bg-white flex flex-col shadow-md overflow-hidden mt-6">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                            <h3 class="font-bold text-slate-800 text-sm flex items-center"><i class="fa-solid fa-globe text-indigo-500 mr-2 text-lg"></i> Web Applications</h3>
+                            <span class="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-indigo-200" id="public-reg-count">0 Pending</span>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/30" id="public-reg-list"></div>
+                    </div>
                 </div>
 
                 <!-- TUITION VIEW -->
