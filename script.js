@@ -20,7 +20,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 
 // Change to this:
-let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [], studyLogs: [], institute_videos: [] };
+let appData = { students: [], transactions: [], stats: { income: 0, expense: 0, balance: 0 }, files: [], materials: [], notices: [], settings: {}, seating: {}, batchRequests: [], studyLogs: [], institute_videos: [], publicRegistrations: [], dataRemovalRequests: [] };
 let sessionPassword = ""; 
 let cropper = null;
 let currentCropTarget = null;
@@ -334,15 +334,19 @@ async function handleLogin(e) {
             safeFetch('seating'),
             safeFetch('batch_requests'),
             safeFetchLimit('study_logs', 500),
-            safeFetch('institute_videos') // 🚨 FIX: Added fetch command
-        ]).then(async ([flSnap, matSnap, notSnap, seatSnap, reqSnap, logSnap, vidSnap]) => { // 🚨 FIX: Added vidSnap to callback
+            safeFetch('institute_videos'),
+            safeFetch('public_registrations'),
+            safeFetch('data_removal_requests')
+        ]).then(async ([flSnap, matSnap, notSnap, seatSnap, reqSnap, logSnap, vidSnap, pubRegSnap, delReqSnap]) => { 
             appData.files = parseFbList(flSnap.val());
             appData.materials = parseFbList(matSnap.val());
             appData.notices = parseFbList(notSnap.val());
             appData.seating = seatSnap.val() || {};
             appData.batchRequests = parseFbList(reqSnap.val());
             appData.studyLogs = parseFbList(logSnap.val());
-            appData.institute_videos = parseFbList(vidSnap.val()); // ✅ Now this works safely
+            appData.institute_videos = parseFbList(vidSnap.val()); 
+            appData.publicRegistrations = parseFbList(pubRegSnap.val());
+            appData.dataRemovalRequests = parseFbList(delReqSnap.val());
             
             await autoCleanupNotices();
 
@@ -353,6 +357,8 @@ async function handleLogin(e) {
             renderSeatingLayout();
             renderBatchRequests();
             renderVideosAdmin();
+            renderPublicRegistrations();
+            renderDataRemovalRequests();
             
             const activeId = document.getElementById('tuition-student-id').value;
             if(activeId && !document.getElementById('tuition-active').classList.contains('hidden')) {
@@ -4023,4 +4029,152 @@ async function adminManualPunch(action) {
         alert("Failed to submit manual punch. Check connection.");
         console.error(error);
     }
+}
+// =========================================================
+// 🛡️ PUBLIC REGISTRATIONS & PRIVACY DATA MANAGEMENT
+// =========================================================
+
+function renderPublicRegistrations() {
+    const listEl = document.getElementById('public-reg-list');
+    const countBadge = document.getElementById('public-reg-count');
+    if(!listEl) return;
+
+    listEl.innerHTML = '';
+    const pendingReqs = appData.publicRegistrations || [];
+    if(countBadge) countBadge.innerText = `${pendingReqs.length} Pending`;
+
+    if(pendingReqs.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 mt-6"><i class="fa-solid fa-file-signature text-3xl mb-2 text-indigo-300 block"></i><p class="font-bold text-xs">No new applications.</p></div>';
+        return;
+    }
+
+    pendingReqs.forEach(req => {
+        // Format date beautifully
+        let dateDisplay = req.date;
+        try { dateDisplay = new Date(req.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch(e){}
+
+        listEl.innerHTML += `
+            <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-col mb-3">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm leading-tight">${req.name}</h4>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1"><i class="fa-solid fa-phone mr-1"></i>${req.phone} • F/N: ${req.fatherName || 'N/A'}</p>
+                    </div>
+                    <span class="bg-indigo-100 text-indigo-700 text-[8px] font-black px-2 py-1 rounded tracking-widest shrink-0">NEW LEAD</span>
+                </div>
+                <p class="text-xs text-slate-700 mb-2 mt-1 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <i class="fa-solid fa-graduation-cap text-indigo-500 mr-1.5"></i>
+                    Applied for <strong class="text-indigo-700">${req.course}</strong>
+                </p>
+                <p class="text-[9px] text-slate-400 font-bold mb-3 text-right">${dateDisplay}</p>
+                <div class="flex gap-2">
+                    <button type="button" onclick="deletePublicRegistration('${req.id}')" class="flex-1 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-colors border border-rose-200"><i class="fa-solid fa-trash mr-1"></i> Delete Request</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+async function deletePublicRegistration(reqId) {
+    if(!confirm("Delete this admission application?")) return;
+    const req = appData.publicRegistrations.find(r => r.id === reqId);
+    if(req) {
+        await atomicDeleteById('public_registrations', req.id, req._fbKey);
+        appData.publicRegistrations = appData.publicRegistrations.filter(r => r.id !== reqId);
+        renderPublicRegistrations();
+    }
+}
+
+function renderDataRemovalRequests() {
+    const listEl = document.getElementById('data-removal-list');
+    if(!listEl) return;
+
+    listEl.innerHTML = '';
+    const pendingReqs = appData.dataRemovalRequests || [];
+
+    if(pendingReqs.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 mt-6"><i class="fa-solid fa-shield-halved text-3xl mb-2 text-emerald-300 block"></i><p class="font-bold text-xs">No pending deletion requests.</p></div>';
+        return;
+    }
+
+    pendingReqs.forEach(req => {
+        // Find matching active student by phone number
+        const student = appData.students.find(s => {
+            const sPhone = String(s.phone).replace(/[^0-9]/g, '');
+            const rPhone = String(req.phone).replace(/[^0-9]/g, '');
+            return sPhone === rPhone;
+        });
+
+        const studentInfo = student 
+            ? `<span class="text-rose-600 font-bold"><i class="fa-solid fa-user-check mr-1"></i> Match Found: ${student.name} (${student.id})</span>`
+            : `<span class="text-slate-400 font-bold"><i class="fa-solid fa-user-xmark mr-1"></i> No matching active profile found</span>`;
+
+        listEl.innerHTML += `
+            <div class="bg-rose-50 p-4 rounded-xl border border-rose-200 shadow-sm flex flex-col mb-3">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h4 class="font-bold text-rose-900 text-sm leading-tight">Privacy Deletion Request</h4>
+                        <p class="text-[10px] text-rose-700 font-bold uppercase tracking-wider mt-1">Requested Phone: ${req.phone}</p>
+                    </div>
+                    <span class="bg-rose-500 text-white text-[8px] font-black px-2 py-1 rounded tracking-widest shrink-0">URGENT</span>
+                </div>
+                <div class="text-xs mb-3 mt-1 bg-white p-2 rounded-lg border border-rose-100">
+                    ${studentInfo}
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    ${student ? `<button type="button" onclick="executePrivacyDeletion('${req.id}', '${student.id}')" class="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm"><i class="fa-solid fa-skull mr-1"></i> Delete Profile Only</button>` : ''}
+                    <button type="button" onclick="deleteDataRemovalRequest('${req.id}')" class="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[11px] font-bold transition-colors"><i class="fa-solid fa-xmark mr-1"></i> Dismiss Request</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+async function deleteDataRemovalRequest(reqId) {
+    if(!confirm("Dismiss this privacy request without taking action?")) return;
+    const req = appData.dataRemovalRequests.find(r => r.id === reqId);
+    if(req) {
+        await atomicDeleteById('data_removal_requests', req.id, req._fbKey);
+        appData.dataRemovalRequests = appData.dataRemovalRequests.filter(r => r.id !== reqId);
+        renderDataRemovalRequests();
+    }
+}
+
+async function executePrivacyDeletion(reqId, studentId) {
+    if(!confirm("CRITICAL WARNING:\n\nThis will permanently delete the student's profile and profile picture to comply with privacy rules.\n\nTransactions and accounting ledgers will remain INTACT. Proceed?")) return;
+
+    const student = appData.students.find(s => s.id === studentId);
+    const req = appData.dataRemovalRequests.find(r => r.id === reqId);
+
+    if(student) {
+        // 1. Delete image from Storage if it exists
+        if(student.image && student.image.includes('firebasestorage')) {
+            try {
+                const imageRef = firebase.storage().refFromURL(student.image);
+                await imageRef.delete();
+            } catch(e) { console.warn("Image already deleted or not found."); }
+        }
+
+        // 2. Delete student profile from DB
+        await atomicDeleteById('students', student.id, student._fbKey);
+        appData.students = appData.students.filter(s => s.id !== studentId);
+    }
+
+    // 3. Delete the request itself
+    if(req) {
+        await atomicDeleteById('data_removal_requests', req.id, req._fbKey);
+        appData.dataRemovalRequests = appData.dataRemovalRequests.filter(r => r.id !== reqId);
+    }
+
+    syncLocalCache();
+    renderStudentList();
+    renderDataRemovalRequests();
+    
+    // Clear active tuition view if that student was open
+    if(document.getElementById('tuition-student-id') && document.getElementById('tuition-student-id').value === studentId) {
+        document.getElementById('tuition-placeholder').classList.remove('hidden');
+        document.getElementById('tuition-active').classList.add('hidden');
+    }
+
+    alert("Privacy Deletion Complete.\n\nUser profile and photo have been purged. Financial transactions were kept for accounting integrity.");
 }
