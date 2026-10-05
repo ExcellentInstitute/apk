@@ -3954,9 +3954,8 @@ async function forceAdminPunchOut(studentId, studentName, batch, targetDate) {
     } catch(e) { 
         alert("Failed to force punch out. Check your connection."); 
     }
-}
-// =========================================================
-// 🛠️ ADMIN MANUAL PUNCH IN/OUT (For Students Without Phones)
+}// =========================================================
+// 🛠️ ADMIN MANUAL PUNCH IN/OUT WITH SYSTEM ASSIGNMENT
 // =========================================================
 async function adminManualPunch(action) {
     const stId = document.getElementById('tuition-student-id').value;
@@ -3966,8 +3965,18 @@ async function adminManualPunch(action) {
         return alert("Please select a student from the Student Database first.");
     }
     
+    const systemSelect = document.getElementById('manual-punch-system');
+    const selectedSystem = systemSelect ? systemSelect.value : 'none';
+
     const actionText = action === 'ENTRY' ? 'Punch IN' : 'Punch OUT';
-    if (!confirm(`Manually record ${actionText} for ${student.name}?`)) return;
+    let confirmMsg = `Manually record ${actionText} for ${student.name}?`;
+    
+    if (action === 'ENTRY' && selectedSystem !== 'none') {
+        const sysLabel = selectedSystem.replace('theory-seat-', 'T-').replace('practical-seat-', 'L-');
+        confirmMsg = `Manually record Punch IN for ${student.name} and assign them to ${sysLabel}?`;
+    }
+
+    if (!confirm(confirmMsg)) return;
 
     const targetDate = new Date().toISOString().split('T')[0];
     const now = new Date();
@@ -4000,11 +4009,14 @@ async function adminManualPunch(action) {
             btn.disabled = true;
         }
 
-        // Push directly to Firebase
+        // 1. Push attendance log
         await firebase.database().ref('attendance_logs').push().set(logPayload);
         
-        // If punching out, automatically clear them from the live seating map
-        if (action === 'EXIT' && currentLiveSeating[student.batch]) {
+        // 2. Handle Live Seating Assignment/Removal
+        if (action === 'ENTRY' && selectedSystem !== 'none') {
+            await firebase.database().ref(`live_seating/${targetDate}/${student.batch}/${selectedSystem}`).set(student.id);
+        } 
+        else if (action === 'EXIT' && currentLiveSeating[student.batch]) {
             for (const [seatKey, sId] of Object.entries(currentLiveSeating[student.batch])) {
                 if (sId === student.id) {
                     await firebase.database().ref(`live_seating/${targetDate}/${student.batch}/${seatKey}`).remove();
@@ -4020,7 +4032,7 @@ async function adminManualPunch(action) {
             btn.disabled = false;
         }
         
-        // Refresh the attendance tracking board in the background
+        // Refresh the attendance tracking board to show the assigned system
         if (typeof loadDailyAttendanceTracker === 'function') {
             loadDailyAttendanceTracker();
         }
