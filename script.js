@@ -4122,7 +4122,7 @@ function renderDataRemovalRequests() {
                     ${studentInfo}
                 </div>
                 <div class="flex flex-col sm:flex-row gap-2">
-                    ${student ? `<button type="button" onclick="executePrivacyDeletion('${req.id}', '${student.id}')" class="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm"><i class="fa-solid fa-skull mr-1"></i> Delete Profile Only</button>` : ''}
+                    ${student ? `<button type="button" onclick="executePrivacyDeletion('${req.id}', '${student.id}')" class="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold transition-colors shadow-sm"><i class="fa-solid fa-image mr-1"></i> Delete Photo Only</button>` : ''}
                     <button type="button" onclick="deleteDataRemovalRequest('${req.id}')" class="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[11px] font-bold transition-colors"><i class="fa-solid fa-xmark mr-1"></i> Dismiss Request</button>
                 </div>
             </div>
@@ -4130,18 +4130,8 @@ function renderDataRemovalRequests() {
     });
 }
 
-async function deleteDataRemovalRequest(reqId) {
-    if(!confirm("Dismiss this privacy request without taking action?")) return;
-    const req = appData.dataRemovalRequests.find(r => r.id === reqId);
-    if(req) {
-        await atomicDeleteById('data_removal_requests', req.id, req._fbKey);
-        appData.dataRemovalRequests = appData.dataRemovalRequests.filter(r => r.id !== reqId);
-        renderDataRemovalRequests();
-    }
-}
-
 async function executePrivacyDeletion(reqId, studentId) {
-    if(!confirm("CRITICAL WARNING:\n\nThis will permanently delete the student's profile and profile picture to comply with privacy rules.\n\nTransactions and accounting ledgers will remain INTACT. Proceed?")) return;
+    if(!confirm("Are you sure you want to permanently delete this student's profile image?\n\nTheir registration data, contact number, and financial transactions will remain completely untouched.")) return;
 
     const student = appData.students.find(s => s.id === studentId);
     const req = appData.dataRemovalRequests.find(r => r.id === reqId);
@@ -4155,9 +4145,12 @@ async function executePrivacyDeletion(reqId, studentId) {
             } catch(e) { console.warn("Image already deleted or not found."); }
         }
 
-        // 2. Delete student profile from DB
-        await atomicDeleteById('students', student.id, student._fbKey);
-        appData.students = appData.students.filter(s => s.id !== studentId);
+        // 2. Safely wipe the image URL from the database, keeping everything else intact
+        let updatedStudent = { ...student };
+        updatedStudent.image = null; 
+        
+        await atomicUpdateById('students', updatedStudent.id, updatedStudent);
+        Object.assign(student, updatedStudent);
     }
 
     // 3. Delete the request itself
@@ -4170,11 +4163,10 @@ async function executePrivacyDeletion(reqId, studentId) {
     renderStudentList();
     renderDataRemovalRequests();
     
-    // Clear active tuition view if that student was open
+    // Refresh active tuition view to instantly remove the avatar from the screen if that student is currently selected
     if(document.getElementById('tuition-student-id') && document.getElementById('tuition-student-id').value === studentId) {
-        document.getElementById('tuition-placeholder').classList.remove('hidden');
-        document.getElementById('tuition-active').classList.add('hidden');
+        selectStudent(studentId);
     }
 
-    alert("Privacy Deletion Complete.\n\nUser profile and photo have been purged. Financial transactions were kept for accounting integrity.");
+    alert("Privacy Deletion Complete.\n\nThe profile photo has been purged. All student data, phone numbers, and ledgers are completely intact.");
 }
