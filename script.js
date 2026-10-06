@@ -4142,6 +4142,17 @@ function renderDataRemovalRequests() {
     });
 }
 
+async function deleteDataRemovalRequest(reqId) {
+    if(!confirm("Dismiss this privacy request without taking action?")) return;
+    const req = appData.dataRemovalRequests.find(r => r.id === reqId);
+    if(req && req._fbKey) {
+        // Direct deletion using the unique Firebase push key
+        await firebase.database().ref(`data_removal_requests/${req._fbKey}`).remove();
+        appData.dataRemovalRequests = appData.dataRemovalRequests.filter(r => r.id !== reqId);
+        renderDataRemovalRequests();
+    }
+}
+
 async function executePrivacyDeletion(reqId, studentId) {
     if(!confirm("Are you sure you want to permanently delete this student's profile image?\n\nTheir registration data, contact number, and financial transactions will remain completely untouched.")) return;
 
@@ -4166,8 +4177,8 @@ async function executePrivacyDeletion(reqId, studentId) {
     }
 
     // 3. Delete the request itself
-    if(req) {
-        await atomicDeleteById('data_removal_requests', req.id, req._fbKey);
+    if(req && req._fbKey) {
+        await firebase.database().ref(`data_removal_requests/${req._fbKey}`).remove();
         appData.dataRemovalRequests = appData.dataRemovalRequests.filter(r => r.id !== reqId);
     }
 
@@ -4175,7 +4186,7 @@ async function executePrivacyDeletion(reqId, studentId) {
     renderStudentList();
     renderDataRemovalRequests();
     
-    // Refresh active tuition view to instantly remove the avatar from the screen if that student is currently selected
+    // Refresh active tuition view to instantly remove the avatar from the screen
     if(document.getElementById('tuition-student-id') && document.getElementById('tuition-student-id').value === studentId) {
         selectStudent(studentId);
     }
