@@ -2208,14 +2208,75 @@ async function executeDelete() {
 }
 
 // =========================================
-// 🗂️ THE SMART-SPLIT FILE UPLOADER
+// 🗂️ THE SMART-SPLIT FILE & CERTIFICATE UPLOADER
+// Routes Study Materials -> 'materials' node | Certificates -> 'files' node
 // =========================================
+
+// Automatically injects the File/Certificate dropdown into File Hub if not in HTML yet
+function initFileHubUploadDropdown() {
+    const titleInput = document.getElementById('hub-mat-title');
+    if (!titleInput || document.getElementById('hub-mat-type')) return;
+
+    const titleWrapper = titleInput.parentElement;
+    if (!titleWrapper || !titleWrapper.parentElement) return;
+
+    const dropdownDiv = document.createElement('div');
+    dropdownDiv.innerHTML = `
+        <label class="form-label text-indigo-800 text-xs sm:text-sm">Select Upload Type</label>
+        <select id="hub-mat-type" onchange="toggleMaterialUploadType()" class="form-input bg-white cursor-pointer font-bold text-indigo-700 w-full rounded-xl border border-indigo-200 p-2.5 sm:p-3 text-xs sm:text-sm">
+            <option value="Material">📚 Study Material (Goes to Materials Node)</option>
+            <option value="Certificate">🎓 Student Certificate (Goes to Files / Certificates Node)</option>
+        </select>
+    `;
+    titleWrapper.parentElement.insertBefore(dropdownDiv, titleWrapper);
+}
+
+// Switches folder lock & placeholders based on dropdown selection
+function toggleMaterialUploadType() {
+    const typeSelect = document.getElementById('hub-mat-type');
+    const folderInput = document.getElementById('hub-mat-folder');
+    const titleInput = document.getElementById('hub-mat-title');
+    const targetInput = document.getElementById('hub-mat-target');
+    const submitBtn = document.getElementById('btn-mat-upload');
+
+    if (!typeSelect || !folderInput) return;
+
+    if (typeSelect.value === 'Certificate') {
+        folderInput.value = 'Certificates';
+        folderInput.readOnly = true;
+        folderInput.classList.remove('bg-white');
+        folderInput.classList.add('bg-slate-100', 'text-slate-500', 'cursor-not-allowed', 'font-bold');
+        if (titleInput) titleInput.placeholder = 'e.g. Certificate - Student Name';
+        if (targetInput) targetInput.placeholder = 'Student Phone Number or ID (e.g. 9124723488 or STU12345)';
+        if (submitBtn) submitBtn.innerText = 'Publish Certificate';
+    } else {
+        if (folderInput.value === 'Certificates') folderInput.value = '';
+        folderInput.readOnly = false;
+        folderInput.classList.add('bg-white');
+        folderInput.classList.remove('bg-slate-100', 'text-slate-500', 'cursor-not-allowed', 'font-bold');
+        if (titleInput) titleInput.placeholder = 'e.g. Python Chapter 1';
+        if (targetInput) targetInput.placeholder = 'e.g. ALL, PGDCA, DCA, CCA';
+        if (submitBtn) submitBtn.innerText = 'Publish Material';
+    }
+}
+
+// Attach dropdown initializer on load
+window.addEventListener('DOMContentLoaded', initFileHubUploadDropdown);
+setTimeout(initFileHubUploadDropdown, 1000);
+
 function saveFileToDatabase(name, category, target, url, path, size, folderName = "Certificates", callback = null) {
-    const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
+    const finalTarget = String(target).split(',').map(t => t.trim().toUpperCase()).join(', ');
 
     const newFile = {
-        id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000), name: name, category: category, target: finalTarget, url: url, path: path, size: size,
-        date: new Date().toISOString().split('T')[0], folder: folderName
+        id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+        name: name,
+        category: category,
+        target: finalTarget,
+        url: url,
+        path: path,
+        size: size,
+        date: new Date().toISOString().split('T')[0],
+        folder: folderName
     };
     
     if (!appData.files) appData.files = [];
@@ -2225,7 +2286,7 @@ function saveFileToDatabase(name, category, target, url, path, size, folderName 
         appData.files.push(newFile);
         syncLocalCache();
 
-        if(callback) {
+        if (callback) {
             callback();
         } else {
             const stId = document.getElementById('tuition-student-id').value;
@@ -2266,13 +2327,15 @@ function handleStudentFileUpload(event) {
                 progressContainer.classList.add('hidden');
                 const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
                 
-                const targetVal = student.id; 
-                
+                // Uses student phone number if available (matching existing files node structure), fallback to ID
+                const cleanPhone = student.phone ? String(student.phone).replace(/[^0-9]/g, '') : '';
+                const targetVal = cleanPhone.length >= 10 ? cleanPhone : student.id; 
                 const formattedFileName = "Certificate - " + student.name;
                 
                 saveFileToDatabase(formattedFileName, "Certificate", targetVal, downloadURL, filePath, sizeMB, "Certificates", () => {
                     renderStudentFiles(stId);
-                    alert("Document saved securely to Private Vault!");
+                    renderHubFiles();
+                    alert("Certificate saved securely to 'files' node under folder 'Certificates'!");
                 });
                 document.getElementById('student-doc-upload').value = '';
             });
@@ -2282,13 +2345,25 @@ function handleStudentFileUpload(event) {
 
 function submitMaterialUpload(e) {
     e.preventDefault();
+    initFileHubUploadDropdown();
+
+    const uploadType = document.getElementById('hub-mat-type') ? document.getElementById('hub-mat-type').value : 'Material';
+    const isCertificate = (uploadType === 'Certificate');
+
     const title = document.getElementById('hub-mat-title').value.trim();
-    const folder = document.getElementById('hub-mat-folder').value.trim() || 'General';
+    const rawFolder = document.getElementById('hub-mat-folder').value.trim() || 'General';
     const target = document.getElementById('hub-mat-target').value.trim();
     const fileInput = document.getElementById('hub-mat-file');
     const fileToUpload = fileInput.files[0];
     
     if (!fileToUpload) return alert("Please select a file.");
+
+    // Route strictly based on dropdown selection:
+    // Certificate -> node: 'files', category: 'Certificate', folder: 'Certificates'
+    // Study Material -> node: 'materials', category: 'Material', folder: rawFolder
+    const targetNode = isCertificate ? 'files' : 'materials';
+    const finalCategory = isCertificate ? 'Certificate' : 'Material';
+    const finalFolder = isCertificate ? 'Certificates' : rawFolder;
 
     const btn = document.getElementById('btn-mat-upload');
     const originalBtnText = btn.innerHTML;
@@ -2322,21 +2397,38 @@ function submitMaterialUpload(e) {
                 
                 const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
                 const newFile = {
-                    id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000), name: title, category: "Material", target: finalTarget, url: downloadURL, path: filePath, size: sizeMB,
-                    date: new Date().toISOString().split('T')[0], folder: folder
+                    id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                    name: title,
+                    category: finalCategory,
+                    target: finalTarget,
+                    url: downloadURL,
+                    path: filePath,
+                    size: sizeMB,
+                    date: new Date().toISOString().split('T')[0],
+                    folder: finalFolder
                 };
                 
-                if (!appData.materials) appData.materials = [];
+                if (!appData[targetNode]) appData[targetNode] = [];
                 
-                atomicPush('materials', newFile).then(fbKey => {
+                atomicPush(targetNode, newFile).then(fbKey => {
                     if (fbKey) newFile._fbKey = fbKey;
-                    appData.materials.push(newFile);
+                    appData[targetNode].push(newFile);
                     syncLocalCache();
                     e.target.reset();
+                    toggleMaterialUploadType();
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                     renderHubFiles();
-                    alert("Material Uploaded Successfully to Public Vault!");
+
+                    // Also refresh student profile files list if a student is open
+                    const activeStId = document.getElementById('tuition-student-id') ? document.getElementById('tuition-student-id').value : '';
+                    if (activeStId) renderStudentFiles(activeStId);
+
+                    if (isCertificate) {
+                        alert("🎓 Certificate uploaded to 'files' node (Category: Certificate | Folder: Certificates)!");
+                    } else {
+                        alert("📚 Study Material uploaded to 'materials' node!");
+                    }
                 });
             });
         }
