@@ -3650,16 +3650,14 @@ function renderStudyTracker() {
         html += `</ul></div>`;
         container.innerHTML += html;
     });
-}
-// =========================================================
-// ⏱️ ATTENDANCE, SEATING & FAULT TRACKER (Low Bandwidth)
+}// =========================================================
+// ⏱️ ATTENDANCE, SEATING & PC LOCK CONTROLLER (Low Bandwidth)
 // =========================================================
 let currentAttendanceData = {};
 let currentSystemFaults = {};
 let currentLiveSeating = {};
 
 async function loadDailyAttendanceTracker() {
-    // Looks for a date picker in your HTML, defaults to today if none exists
     const dateInput = document.getElementById('attendance-date-filter');
     const todayStr = new Date().toISOString().split('T')[0];
     if (dateInput && !dateInput.value) dateInput.value = todayStr;
@@ -3669,8 +3667,6 @@ async function loadDailyAttendanceTracker() {
     if (listEl) listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-spinner fa-spin text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">Scanning satellite records...</p></div>';
     
     try {
-        // 🚨 LOW BANDWIDTH ARCHITECTURE: 
-        // Only queries the exact date requested by the Admin. Does not download the entire database history!
         const [attSnap, seatSnap, faultSnap] = await Promise.all([
             firebase.database().ref('attendance_logs').orderByChild('date').equalTo(targetDate).once('value'),
             firebase.database().ref(`live_seating/${targetDate}`).once('value'),
@@ -3681,10 +3677,186 @@ async function loadDailyAttendanceTracker() {
         currentLiveSeating = seatSnap.val() || {};
         currentSystemFaults = faultSnap.val() || {};
         
+        renderLivePcControlPanel(targetDate);
         renderAttendanceUI(targetDate);
     } catch (e) {
         console.error("Attendance Fetch Error:", e);
         if (listEl) listEl.innerHTML = '<div class="text-center text-rose-400 mt-10 font-bold"><i class="fa-solid fa-triangle-exclamation text-4xl mb-4 block"></i>Failed to sync with Firebase.</div>';
+    }
+}
+
+// 🖥️ RENDER TOP REMOTE CONTROL PANEL FOR E1 - E10
+function renderLivePcControlPanel(targetDate) {
+    const gridEl = document.getElementById('live-pc-control-grid');
+    if (!gridEl) return;
+    gridEl.innerHTML = '';
+
+    const activePcs = (currentLiveSeating && currentLiveSeating['_active_pcs']) ? currentLiveSeating['_active_pcs'] : {};
+
+    for (let i = 1; i <= 10; i++) {
+        const seatKey = `practical-seat-${i}`;
+        const seatLabel = `E${i}`;
+        const pcInfo = activePcs[seatKey] || {};
+        const isUnlocked = pcInfo.state === 'UNLOCKED';
+        const occupantName = pcInfo.activeStudentName ? String(pcInfo.activeStudentName).split(' ')[0] : (isUnlocked ? 'Admin' : 'Locked');
+        const occupantBatch = pcInfo.activeBatch ? `${pcInfo.activeBatch}` : '';
+
+        const cardBg = isUnlocked 
+            ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300' 
+            : 'bg-slate-800/90 border-slate-700 text-slate-400';
+
+        const btnClass = isUnlocked
+            ? 'bg-rose-500 hover:bg-rose-600 text-white'
+            : 'bg-emerald-500 hover:bg-emerald-600 text-white';
+
+        const btnIcon = isUnlocked ? 'fa-lock' : 'fa-lock-open';
+        const btnText = isUnlocked ? 'Lock' : 'Unlock';
+        const nextState = isUnlocked ? 'LOCKED' : 'UNLOCKED';
+
+        gridEl.innerHTML += `
+            <div class="p-2 rounded-xl border ${cardBg} flex flex-col justify-between items-center text-center transition-all">
+                <div class="flex items-center justify-between w-full px-1">
+                    <span class="text-xs font-black text-white">${seatLabel}</span>
+                    <i class="fa-solid ${isUnlocked ? 'fa-lock-open text-emerald-400' : 'fa-lock text-rose-400'} text-[10px]"></i>
+                </div>
+                <div class="my-1.5 w-full truncate">
+                    <p class="text-[10px] font-extrabold text-white truncate" title="${pcInfo.activeStudentName || ''}">${occupantName}</p>
+                    <p class="text-[8px] font-bold uppercase tracking-wider opacity-75 truncate">${occupantBatch || (isUnlocked ? 'Manual' : 'Idle')}</p>
+                </div>
+                <button type="button" onclick="toggleAdminPcLock('${targetDate}', '${seatKey}', '${nextState}')" class="w-full py-1 px-1.5 rounded-lg text-[10px] font-extrabold ${btnClass} transition-colors shadow-sm flex items-center justify-center gap-1 cursor-pointer">
+                    <i class="fa-solid ${btnIcon}"></i> ${btnText}
+                </button>
+            </div>
+        `;
+    }
+}
+
+// 🔓 REMOTE UNLOCK / LOCK SINGLE PC FROM WEB APP
+async function toggleAdminPcLock(targetDate, seatKey, targetState, studentId = null, studentName = null, batch = null) {
+    const seatLabel = seatKey.replace('practical-seat-', 'E');
+    const nowMs = Date.now();
+    const pcRef = firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}`);
+
+    try {
+        if (targetState === 'UNLOCKED') {
+            const payload = {
+                seatKey: seatKey,
+                state: 'UNLOCKED',
+                activeStudentId: studentId || 'ADMIN_REMOTE',
+                activeStudentName: studentName || 'Admin Unlocked',
+                activeBatch: batch || 'Admin',
+                adminOverride: !studentId,
+                labStartMs: nowMs,
+                labEndMs: nowMs + (60 * 60 * 1000),
+                batchEndMs: nowMs + (90 * 60 * 1000),
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            };
+            await pcRef.update(payload);
+            if (!currentLiveSeating['_active_pcs']) currentLiveSeating['_active_pcs'] = {};
+            currentLiveSeating['_active_pcs'][seatKey] = { ...(currentLiveSeating['_active_pcs'][seatKey] || {}), ...payload };
+        } else {
+            const payload = {
+                seatKey: seatKey,
+                state: 'LOCKED',
+                activeStudentId: null,
+                activeStudentName: null,
+                activeBatch: null,
+                adminOverride: false,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            };
+            await pcRef.update(payload);
+            if (!currentLiveSeating['_active_pcs']) currentLiveSeating['_active_pcs'] = {};
+            currentLiveSeating['_active_pcs'][seatKey] = { ...(currentLiveSeating['_active_pcs'][seatKey] || {}), ...payload };
+        }
+
+        renderLivePcControlPanel(targetDate);
+        renderAttendanceUI(targetDate);
+    } catch (e) {
+        alert(`Failed to change lock state for ${seatLabel}: ` + e.message);
+    }
+}
+
+// 🔓 REMOTE UNLOCK / LOCK ALL 10 PCs AT ONCE
+async function adminUnlockAllPcs(targetState) {
+    const dateInput = document.getElementById('attendance-date-filter');
+    const targetDate = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().split('T')[0];
+    const actionLabel = targetState === 'UNLOCKED' ? 'UNLOCK' : 'LOCK';
+
+    if (!confirm(`Are you sure you want to remotely ${actionLabel} all 10 Lab Computers (E1 - E10)?`)) return;
+
+    const nowMs = Date.now();
+    const updates = {};
+
+    for (let i = 1; i <= 10; i++) {
+        const seatKey = `practical-seat-${i}`;
+        if (targetState === 'UNLOCKED') {
+            updates[`${seatKey}/seatKey`] = seatKey;
+            updates[`${seatKey}/state`] = 'UNLOCKED';
+            updates[`${seatKey}/activeStudentId`] = 'ADMIN_REMOTE';
+            updates[`${seatKey}/activeStudentName`] = 'Admin Unlocked';
+            updates[`${seatKey}/activeBatch`] = 'Admin';
+            updates[`${seatKey}/adminOverride`] = true;
+            updates[`${seatKey}/labStartMs`] = nowMs;
+            updates[`${seatKey}/labEndMs`] = nowMs + (60 * 60 * 1000);
+            updates[`${seatKey}/batchEndMs`] = nowMs + (90 * 60 * 1000);
+            updates[`${seatKey}/updatedAt`] = firebase.database.ServerValue.TIMESTAMP;
+        } else {
+            updates[`${seatKey}/seatKey`] = seatKey;
+            updates[`${seatKey}/state`] = 'LOCKED';
+            updates[`${seatKey}/activeStudentId`] = null;
+            updates[`${seatKey}/activeStudentName`] = null;
+            updates[`${seatKey}/activeBatch`] = null;
+            updates[`${seatKey}/adminOverride`] = false;
+            updates[`${seatKey}/updatedAt`] = firebase.database.ServerValue.TIMESTAMP;
+        }
+    }
+
+    try {
+        await firebase.database().ref(`live_seating/${targetDate}/_active_pcs`).update(updates);
+        await loadDailyAttendanceTracker();
+    } catch (e) {
+        alert("Failed to update all PCs: " + e.message);
+    }
+}
+
+// 🔄 HANDOVER HELPER: Recalculates next active student when someone leaves a PC
+async function recalculateActivePcOwnerWeb(targetDate, seatKey) {
+    const pcRef = firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}`);
+    const snap = await pcRef.once('value');
+    if (!snap.exists()) return;
+
+    const data = snap.val() || {};
+    const slots = data.slots || {};
+    let nextActiveSlot = null;
+
+    for (const [bKey, slotObj] of Object.entries(slots)) {
+        if (slotObj && slotObj.status === 'ACTIVE') {
+            nextActiveSlot = slotObj;
+            break;
+        }
+    }
+
+    if (nextActiveSlot) {
+        await pcRef.update({
+            activeStudentId: nextActiveSlot.studentId,
+            activeStudentName: nextActiveSlot.studentName,
+            activeBatch: nextActiveSlot.batch,
+            state: 'UNLOCKED',
+            adminOverride: false,
+            labStartMs: nextActiveSlot.labStartMs || Date.now(),
+            labEndMs: nextActiveSlot.labEndMs || (Date.now() + 45 * 60 * 1000),
+            batchEndMs: nextActiveSlot.batchEndMs || (Date.now() + 90 * 60 * 1000),
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+    } else {
+        await pcRef.update({
+            activeStudentId: null,
+            activeStudentName: null,
+            activeBatch: null,
+            state: 'LOCKED',
+            adminOverride: false,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
     }
 }
 
@@ -3698,6 +3870,8 @@ function renderAttendanceUI(targetDate) {
         listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-ghost text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">No attendance activity recorded for this date.</p></div>';
         return;
     }
+
+    const activePcs = (currentLiveSeating && currentLiveSeating['_active_pcs']) ? currentLiveSeating['_active_pcs'] : {};
 
     // 1. Pair ENTRY and EXIT logs per student
     const studentRecords = {};
@@ -3738,7 +3912,6 @@ function renderAttendanceUI(targetDate) {
         batchGroups[b].push(record);
     });
 
-    // Sort batches in order, followed by any remaining custom batches
     const sortedBatchNames = Object.keys(batchGroups).sort((a, b) => {
         const aIndex = standardBatches.indexOf(a);
         const bIndex = standardBatches.indexOf(b);
@@ -3765,14 +3938,21 @@ function renderAttendanceUI(targetDate) {
         records.forEach(r => {
             // Find live seat assignment
             let claimedSeat = 'None';
+            let rawSeatKey = null;
             if (currentLiveSeating[r.batch]) {
                 for (const [seatKey, sId] of Object.entries(currentLiveSeating[r.batch])) {
                     if (sId === r.studentId) {
-                        claimedSeat = seatKey.replace('practical-seat-', 'E');
+                        rawSeatKey = seatKey;
+                        claimedSeat = seatKey.replace('practical-seat-', 'E').replace('theory-seat-', 'T-');
                         break;
                     }
                 }
             }
+
+            // Check if this student currently has the PC unlocked in _active_pcs
+            const pcStateObj = (rawSeatKey && activePcs[rawSeatKey]) ? activePcs[rawSeatKey] : null;
+            const isCurrentlyUnlockedForStudent = pcStateObj && pcStateObj.state === 'UNLOCKED' && pcStateObj.activeStudentId === r.studentId;
+            const safeStudentName = String(r.studentName || 'Student').replace(/'/g, "\\'");
 
             // Find fault report
             let faultReport = '';
@@ -3785,9 +3965,16 @@ function renderAttendanceUI(targetDate) {
                 }
             }
 
+            const unlockBtnHtml = (rawSeatKey && rawSeatKey.startsWith('practical-seat-'))
+                ? (isCurrentlyUnlockedForStudent
+                    ? `<button onclick="toggleAdminPcLock('${targetDate}', '${rawSeatKey}', 'LOCKED')" class="px-2 py-0.5 bg-emerald-500 hover:bg-rose-500 text-white rounded-md text-[10px] font-extrabold transition-colors shadow-sm" title="PC is Unlocked for this student. Click to Lock."><i class="fa-solid fa-lock-open mr-1"></i>Unlocked</button>`
+                    : `<button onclick="toggleAdminPcLock('${targetDate}', '${rawSeatKey}', 'UNLOCKED', '${r.studentId}', '${safeStudentName}', '${r.batch}')" class="px-2 py-0.5 bg-amber-500 hover:bg-emerald-600 text-white rounded-md text-[10px] font-extrabold transition-colors shadow-sm" title="Click to Force Unlock ${claimedSeat} for ${safeStudentName}"><i class="fa-solid fa-key mr-1"></i>Unlock PC</button>`)
+                : '';
+
             const seatBadge = claimedSeat !== 'None'
-                ? `<div class="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-lg text-xs font-bold text-indigo-700">
+                ? `<div class="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700">
                        <i class="fa-solid fa-computer"></i> ${claimedSeat}
+                       ${unlockBtnHtml}
                        <button onclick="unassignLiveSeat('${targetDate}', '${r.batch}', '${claimedSeat}')" class="text-slate-400 hover:text-rose-600 ml-1" title="Unassign Seat"><i class="fa-solid fa-circle-xmark"></i></button>
                    </div>`
                 : `<span class="text-slate-400 text-xs italic font-medium">Unassigned</span>`;
@@ -3830,7 +4017,7 @@ function renderAttendanceUI(targetDate) {
                            </div>
                            <div class="text-[10px] font-bold text-amber-600/90 mt-0.5">Exit Punch Missing</div>
                        </div>
-                       <button onclick="forceAdminPunchOut('${r.studentId}', '${r.studentName.replace(/'/g, "\\'")}', '${r.batch}', '${targetDate}')" class="absolute inset-0 bg-amber-500 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
+                       <button onclick="forceAdminPunchOut('${r.studentId}', '${safeStudentName}', '${r.batch}', '${targetDate}')" class="absolute inset-0 bg-amber-500 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
                            <i class="fa-solid fa-power-off mr-1.5"></i> Force Out
                        </button>
                    </div>`;
@@ -3853,7 +4040,7 @@ function renderAttendanceUI(targetDate) {
                             <div class="font-extrabold text-slate-800 text-sm sm:text-base">${r.studentName}</div>
                             <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${r.studentId}</div>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Computer:</span>
                             ${seatBadge}
                         </div>
@@ -3883,7 +4070,7 @@ function renderAttendanceUI(targetDate) {
     });
 }
 
-// 2. Action Handlers (With Real-Time UI Refreshes)
+// 2. Action Handlers (Synced with _active_pcs Lock Engine)
 async function deleteAttendanceLog(logKey, targetDate) {
     if(!confirm("Are you sure you want to permanently delete this attendance record?")) return;
     try {
@@ -3894,12 +4081,18 @@ async function deleteAttendanceLog(logKey, targetDate) {
 }
 
 async function unassignLiveSeat(targetDate, batch, seatName) {
-    if(!confirm(`Force unassign ${seatName} for the ${batch} batch? This will open it up for other students.`)) return;
-    const seatNode = seatName.replace('E', 'practical-seat-');
+    if(!confirm(`Force unassign ${seatName} for the ${batch} batch? This will also release/lock the computer if no paired batch is using it.`)) return;
+    const seatNode = seatName.startsWith('T-') ? seatName.replace('T-', 'theory-seat-') : seatName.replace('E', 'practical-seat-');
     try {
         await firebase.database().ref(`live_seating/${targetDate}/${batch}/${seatNode}`).remove();
-        delete currentLiveSeating[batch][seatNode];
-        renderAttendanceUI(targetDate);
+        if (currentLiveSeating[batch]) delete currentLiveSeating[batch][seatNode];
+
+        if (seatNode.startsWith('practical-seat-')) {
+            await firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatNode}/slots/${batch}`).remove();
+            await recalculateActivePcOwnerWeb(targetDate, seatNode);
+        }
+
+        await loadDailyAttendanceTracker();
     } catch(e) { alert("Failed to unassign seat."); }
 }
 
@@ -3911,15 +4104,15 @@ async function deleteSystemFault(faultKey, targetDate) {
         renderAttendanceUI(targetDate);
     } catch(e) { alert("Failed to delete fault report."); }
 }
+
 async function forceAdminPunchOut(studentId, studentName, batch, targetDate) {
-    if(!confirm(`Force an Exit Punch for ${studentName}?\nThis will mark them as "FORGOT TO PUNCH OUT" and unassign their computer seat.`)) return;
+    if(!confirm(`Force an Exit Punch for ${studentName}?\nThis will mark them as "FORGOT TO PUNCH OUT" and lock/handover their computer seat.`)) return;
 
     try {
         const now = new Date();
         let hours = now.getHours();
         const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12; 
+        hours = hours % 12 || 12; 
         const min = now.getMinutes().toString().padStart(2, '0');
         const sec = now.getSeconds().toString().padStart(2, '0');
         const timeString = `${hours.toString().padStart(2, '0')}:${min}:${sec} ${ampm}`;
@@ -3938,24 +4131,27 @@ async function forceAdminPunchOut(studentId, studentName, batch, targetDate) {
 
         await firebase.database().ref('attendance_logs').push().set(logPayload);
         
-        // Automatically unassign their live seat if they had one claimed!
         if (currentLiveSeating[batch]) {
             for (const [seatKey, sId] of Object.entries(currentLiveSeating[batch])) {
                 if (sId === studentId) {
                     await firebase.database().ref(`live_seating/${targetDate}/${batch}/${seatKey}`).remove();
+                    if (seatKey.startsWith('practical-seat-')) {
+                        await firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}/slots/${batch}/status`).set('PUNCHED_OUT');
+                        await recalculateActivePcOwnerWeb(targetDate, seatKey);
+                    }
                     break;
                 }
             }
         }
 
-        // Instantly refresh the UI
         loadDailyAttendanceTracker();
-        
     } catch(e) { 
         alert("Failed to force punch out. Check your connection."); 
     }
-}// =========================================================
-// 🛠️ ADMIN MANUAL PUNCH IN/OUT WITH SYSTEM ASSIGNMENT
+}
+
+// =========================================================
+// 🛠️ ADMIN MANUAL PUNCH IN/OUT WITH AUTO-SEAT & PC UNLOCK
 // =========================================================
 async function adminManualPunch(action) {
     const stId = document.getElementById('tuition-student-id').value;
@@ -3965,15 +4161,27 @@ async function adminManualPunch(action) {
         return alert("Please select a student from the Student Database first.");
     }
     
+    const batch = student.batch || 'Unassigned';
     const systemSelect = document.getElementById('manual-punch-system');
-    const selectedSystem = systemSelect ? systemSelect.value : 'none';
+    let selectedSystem = systemSelect ? systemSelect.value : 'none';
+
+    // Auto-detect pre-configured practical seat from Batch & Seating if dropdown was left on "No System"
+    if (action === 'ENTRY' && selectedSystem === 'none' && batch !== 'Unassigned' && appData.seating && appData.seating[batch]) {
+        for (let i = 1; i <= 10; i++) {
+            const k = `practical-seat-${i}`;
+            if (appData.seating[batch][k] === student.id) {
+                selectedSystem = k;
+                break;
+            }
+        }
+    }
 
     const actionText = action === 'ENTRY' ? 'Punch IN' : 'Punch OUT';
     let confirmMsg = `Manually record ${actionText} for ${student.name}?`;
     
     if (action === 'ENTRY' && selectedSystem !== 'none') {
-        const sysLabel = selectedSystem.replace('theory-seat-', 'T-').replace('practical-seat-', 'L-');
-        confirmMsg = `Manually record Punch IN for ${student.name} and assign them to ${sysLabel}?`;
+        const sysLabel = selectedSystem.replace('theory-seat-', 'T-').replace('practical-seat-', 'E');
+        confirmMsg = `Manually record Punch IN for ${student.name} and unlock/assign ${sysLabel}?`;
     }
 
     if (!confirm(confirmMsg)) return;
@@ -3990,13 +4198,14 @@ async function adminManualPunch(action) {
     const logPayload = {
         studentId: student.id,
         studentName: student.name,
-        batch: student.batch || 'Unassigned',
+        batch: batch,
         action: action,
         distanceMeters: 0, 
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         date: targetDate,
         time: timeString,
-        note: 'ADMIN MANUAL PUNCH'
+        note: 'ADMIN MANUAL PUNCH',
+        ...(selectedSystem !== 'none' ? { seat: selectedSystem.replace('practical-seat-', 'E').replace('theory-seat-', 'T-') } : {})
     };
 
     try {
@@ -4012,14 +4221,48 @@ async function adminManualPunch(action) {
         // 1. Push attendance log
         await firebase.database().ref('attendance_logs').push().set(logPayload);
         
-        // 2. Handle Live Seating Assignment/Removal
-        if (action === 'ENTRY' && selectedSystem !== 'none') {
-            await firebase.database().ref(`live_seating/${targetDate}/${student.batch}/${selectedSystem}`).set(student.id);
+        // 2. Handle Live Seating & _active_pcs Unlock/Lock
+        if (action === 'ENTRY' && selectedSystem !== 'none' && batch !== 'Unassigned') {
+            await firebase.database().ref(`live_seating/${targetDate}/${batch}/${selectedSystem}`).set(student.id);
+
+            if (selectedSystem.startsWith('practical-seat-')) {
+                const nowMs = Date.now();
+                const pcRef = firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${selectedSystem}`);
+                await pcRef.child(`slots/${batch}`).set({
+                    studentId: student.id,
+                    studentName: student.name,
+                    batch: batch,
+                    seatKey: selectedSystem,
+                    labStartMs: nowMs,
+                    labEndMs: nowMs + (45 * 60 * 1000),
+                    batchEndMs: nowMs + (90 * 60 * 1000),
+                    forceUnlockNow: true,
+                    status: 'ACTIVE',
+                    updatedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+                await pcRef.update({
+                    activeStudentId: student.id,
+                    activeStudentName: student.name,
+                    activeBatch: batch,
+                    seatKey: selectedSystem,
+                    state: 'UNLOCKED',
+                    adminOverride: false,
+                    labStartMs: nowMs,
+                    labEndMs: nowMs + (45 * 60 * 1000),
+                    batchEndMs: nowMs + (90 * 60 * 1000),
+                    updatedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
         } 
-        else if (action === 'EXIT' && currentLiveSeating[student.batch]) {
-            for (const [seatKey, sId] of Object.entries(currentLiveSeating[student.batch])) {
+        else if (action === 'EXIT' && batch !== 'Unassigned') {
+            const bSnap = await firebase.database().ref(`live_seating/${targetDate}/${batch}`).once('value');
+            const bSeats = bSnap.val() || {};
+            for (const [seatKey, sId] of Object.entries(bSeats)) {
                 if (sId === student.id) {
-                    await firebase.database().ref(`live_seating/${targetDate}/${student.batch}/${seatKey}`).remove();
+                    if (seatKey.startsWith('practical-seat-')) {
+                        await firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}/slots/${batch}/status`).set('PUNCHED_OUT');
+                        await recalculateActivePcOwnerWeb(targetDate, seatKey);
+                    }
                     break;
                 }
             }
@@ -4032,7 +4275,6 @@ async function adminManualPunch(action) {
             btn.disabled = false;
         }
         
-        // Refresh the attendance tracking board to show the assigned system
         if (typeof loadDailyAttendanceTracker === 'function') {
             loadDailyAttendanceTracker();
         }
