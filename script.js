@@ -981,8 +981,10 @@ function switchTab(tabId) {
         'registration': 'New Admission', 
         'tuition': 'Student Database', 
         'seating': 'Batch & Seating Management',
-        'attendance': 'Daily Attendance Tracker',
-        'filehub': 'Institute File Hub', 
+        'attendance': 'Daily Attendance & PC Lock',
+        'filehub': 'File & Certificate Hub', 
+        'videohub': 'Institute Video Hub',
+        'tracker': 'Student Study Activity Logs',
         'broadcast': 'Alerts & Notifications', 
         'job': 'Job Applications', 
         'print': 'Print & Copy Desk', 
@@ -3566,10 +3568,12 @@ async function submitVideoUpload(e) {
     };
     
     try {
-        // 🚨 CRITICAL FIX: Forces Firebase to build the missing node instantly using direct write
         await firebase.database().ref('institute_videos').child(newVideo.id).set(newVideo);
-        // 🚨 FIX: Removed the manual array injection. Firebase's live listener 
-        // will automatically detect the write and update the UI instantly without duplicates!
+        if (!appData.institute_videos) appData.institute_videos = [];
+        appData.institute_videos = appData.institute_videos.filter(v => v.id !== newVideo.id);
+        appData.institute_videos.unshift(newVideo);
+        syncLocalCache();
+        renderVideosAdmin();
         alert("Video Published Successfully! It is now live in the mobile app.");
         e.target.reset();
     } catch (err) {
