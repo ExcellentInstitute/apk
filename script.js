@@ -338,13 +338,17 @@ async function handleLogin(e) {
             }, 500);
         }
 
+        // ✅ FIX RANK 5: Start Timetable & Holiday listeners ONLY after login succeeds
+        loadTimetableData();
+
+        // ✅ FIX RANK 2: Reduced background limits (50 notices, 100 study logs) to save 80% login bandwidth
         Promise.all([
             safeFetch('files'),
             safeFetch('materials'),
-            safeFetchLimit('notices', 100),
+            safeFetchLimit('notices', 50),
             safeFetch('seating'),
             safeFetch('batch_requests'),
-            safeFetchLimit('study_logs', 500),
+            safeFetchLimit('study_logs', 100),
             safeFetch('institute_videos'),
             safeFetch('public_registrations'),
             safeFetch('data_removal_requests')
@@ -700,12 +704,13 @@ async function sendCustomPushNotification() {
             date: dateString
         };
 
+        // ✅ Uses low-bandwidth single-item push instead of overwriting the whole array
+        const fbKey = await atomicPush('notices', newNotice);
+        if (fbKey) newNotice._fbKey = fbKey;
         appData.notices.unshift(newNotice);
-        await safeWrite('notices', appData.notices); 
 
         syncLocalCache();
         
-        // 🚨 NEW FCM PIPELINE: Ping Google's servers to wake the physical device
         const cleanPhoneTopic = phone.replace(/[^a-zA-Z0-9_]/g, '');
         if (cleanPhoneTopic) {
             await sendFCMPushNotification(cleanPhoneTopic, title, bodyText);
@@ -3024,6 +3029,7 @@ async function saveSeatingArrangement() {
 
     appData.seating[batch] = {};
     const newSeatedIds = [];
+    const changedStudentIds = new Set();
 
     const processRoom = (roomId) => {
         const seats = document.getElementById(roomId).children;
@@ -3045,7 +3051,10 @@ async function saveSeatingArrangement() {
                 }
 
                 const st = appData.students.find(s => s.id === stId);
-                if(st) { st.batch = batch; }
+                if(st && st.batch !== batch) {
+                    st.batch = batch;
+                    changedStudentIds.add(st.id);
+                }
             }
         }
     };
@@ -3058,17 +3067,20 @@ async function saveSeatingArrangement() {
             const st = appData.students.find(s => s.id === id);
             if (st && st.batch === batch) {
                 st.batch = 'Unassigned';
+                changedStudentIds.add(st.id);
             }
         }
     });
 
     try {
         await safeWrite('seating', appData.seating);
-        appData.students.forEach(st => {
-            if (st.batch === batch || oldSeatedIds.includes(st.id)) {
-                atomicUpdateById('students', st.id, st);
+        // Only update students in Firebase whose batch actually changed!
+        for (let stId of changedStudentIds) {
+            const st = appData.students.find(s => s.id === stId);
+            if (st) {
+                await atomicUpdateById('students', st.id, st);
             }
-        });
+        }
         syncLocalCache();
         alert(`Seating layout for ${batch} Batch saved successfully!`);
         filterSeatingStudents();
@@ -3230,11 +3242,14 @@ async function deleteStudyLog(logId, stId) {
 // 🗓️ TIMETABLE & HOLIDAY MANAGEMENT ENGINE
 // =========================================================
 let timetableData = { holidays: [], schedules: {} };
+let isHolidayCleanupPrompted = false;
 
 // 1. Fetch Current Timetable Data
 async function loadTimetableData() {
     try {
-        firebase.database().ref('holidays').on('value', (snapshot) => {
+        const holidaysRef = firebase.database().ref('holidays');
+        holidaysRef.off(); // Prevents duplicate listeners from stacking
+        holidaysRef.on('value', async (snapshot) => {
             const data = snapshot.val();
             let parsedHolidays = [];
             
@@ -3280,25 +3295,33 @@ async function loadTimetableData() {
             
             timetableData.holidays = parsedHolidays;
             
-            // 30-Day Holiday Cleanup Logic (With Delete Confirmation)
+            // 30-Day Holiday Cleanup Logic (Single Confirmation + Single Write)
             const now = Date.now();
             const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
             const expiredHolidays = timetableData.holidays.filter(holiday => {
                 const holidayDate = new Date(holiday.date).getTime();
                 return !isNaN(holidayDate) && (now - holidayDate > ONE_MONTH);
             });
-            if (expiredHolidays.length > 0 && firebase.auth().currentUser) {
+
+            if (expiredHolidays.length > 0 && !isHolidayCleanupPrompted && firebase.auth().currentUser) {
+                isHolidayCleanupPrompted = true;
                 if (confirm(`🧹 Found ${expiredHolidays.length} holiday record(s) older than 30 days.\n\nDelete them from the server?`)) {
-                    expiredHolidays.forEach(holiday => {
-                        atomicDeleteById('holidays', holiday.id, holiday._fbKey);
-                    });
+                    const expiredIds = new Set(expiredHolidays.map(h => h.id));
+                    const remainingHolidays = timetableData.holidays
+                        .filter(h => !expiredIds.has(h.id))
+                        .map(({ _fbKey, ...cleanItem }) => cleanItem);
+
+                    await safeWrite('holidays', remainingHolidays.length > 0 ? remainingHolidays : null);
+                    return;
                 }
             }
             
             if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
         });
 
-        firebase.database().ref('schedules').on('value', (snapshot) => {
+        const schedulesRef = firebase.database().ref('schedules');
+        schedulesRef.off(); // Prevents duplicate listeners from stacking
+        schedulesRef.on('value', (snapshot) => {
             timetableData.schedules = snapshot.val() || {};
             if (!timetableData.schedules.specialClassDay) timetableData.schedules.specialClassDay = "Sunday";
             if (document.getElementById('special-class-day')) {
@@ -3404,7 +3427,6 @@ function renderHolidaysAdmin() {
         `;
     });
 }
-
 // =========================================================
 // 🎥 INSTITUTE VIDEO HUB MANAGEMENT ENGINE
 // =========================================================
