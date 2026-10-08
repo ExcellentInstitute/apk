@@ -3469,7 +3469,9 @@ function renderVideosAdmin() {
         // 🚨 SMART EXTRACTOR: Forces Google to pay for Thumbnail Bandwidth!
        let videoId = '';
         try {
-            if (v.url.includes('youtu.be/')) {
+            if (v.url.includes('/shorts/')) {
+                videoId = v.url.split('/shorts/')[1].split('?')[0].split('/')[0];
+            } else if (v.url.includes('youtu.be/')) {
                 videoId = v.url.split('youtu.be/')[1].split('?')[0];
             } else if (v.url.includes('v=')) {
                 videoId = v.url.split('v=')[1].split('&')[0];
