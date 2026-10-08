@@ -83,27 +83,23 @@ function syncLocalCache() {
 async function autoCleanupNotices() {
     const now = Date.now();
     const ONE_DAY = 24 * 60 * 60 * 1000; 
-    let modified = false;
     
-    const noticesToDelete = [];
-    appData.notices = appData.notices.filter((notice) => {
+    const expiredNotices = (appData.notices || []).filter((notice) => {
         let noticeTime = 0;
-        if (notice.id && notice.id.startsWith('NOT')) {
+        if (notice && notice.id && notice.id.startsWith('NOT')) {
             noticeTime = parseInt(notice.id.replace('NOT', '')) || 0;
         }
-        
-        if (noticeTime > 0 && (now - noticeTime) > ONE_DAY) {
-            noticesToDelete.push(notice);
-            modified = true;
-            return false; // Delete it
-        }
-        return true; // Keep it
+        return noticeTime > 0 && (now - noticeTime) > ONE_DAY;
     });
 
-    if (modified) {
-        for (let notice of noticesToDelete) {
-            await atomicDeleteById('notices', notice.id, notice._fbKey);
+    if (expiredNotices.length > 0) {
+        if (!confirm(`🧹 ${expiredNotices.length} broadcast notice(s) are older than 24 hours.\n\nDo you want to delete these expired notices from the server?`)) {
+            return;
         }
+        const expiredIds = new Set(expiredNotices.map(n => n.id));
+        appData.notices = appData.notices.filter(n => !expiredIds.has(n.id));
+        // Single clean write instead of multiple loop overwrites (saves bandwidth)
+        await safeWrite('notices', appData.notices.length > 0 ? appData.notices.slice().reverse() : null);
         syncLocalCache();
     }
 }
@@ -349,6 +345,7 @@ async function handleLogin(e) {
             appData.dataRemovalRequests = parseFbList(delReqSnap.val());
             
             await autoCleanupNotices();
+            checkSevenDayAutoAttendanceExport();
 
             syncLocalCache();
 
@@ -1214,6 +1211,7 @@ function renderAssumedList() {
 }
 
 function clearAssumptions() {
+    if (!confirm("Are you sure you want to delete all assumed financial projections?")) return;
     assumptionsData = [];
     renderAssumedList();
     renderAnalytics();
@@ -2106,6 +2104,12 @@ async function executeDelete() {
         
         const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, pass);
         await currentUser.reauthenticateWithCredential(credential);
+
+        const targetLabel = document.getElementById('delete-student-name').innerText || 'this record';
+        if (!confirm(`⚠️ FINAL CONFIRMATION:\n\nPassword verified. Are you sure you want to permanently delete ${targetLabel} from the server?`)) {
+            btnText.innerHTML = 'Confirm Delete';
+            return;
+        }
         
         btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Deleting...';
 
@@ -2976,6 +2980,7 @@ function dropSeat(ev, seatPrefix) {
 }
 
 function removeStudentFromSeat(btn, stId) {
+    if (!confirm("Are you sure you want to remove this student from their assigned seat?")) return;
     const card = btn.closest('[id^="drag-"]');
     if(card) {
         const seat = card.parentElement;
@@ -3260,16 +3265,20 @@ async function loadTimetableData() {
             
             timetableData.holidays = parsedHolidays;
             
-            // 30-Day Auto-Cleanup Logic
+            // 30-Day Holiday Cleanup Logic (With Delete Confirmation)
             const now = Date.now();
             const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
-            
-            timetableData.holidays.forEach(holiday => {
+            const expiredHolidays = timetableData.holidays.filter(holiday => {
                 const holidayDate = new Date(holiday.date).getTime();
-                if (!isNaN(holidayDate) && (now - holidayDate > ONE_MONTH)) {
-                    atomicDeleteById('holidays', holiday.id, holiday._fbKey);
-                }
+                return !isNaN(holidayDate) && (now - holidayDate > ONE_MONTH);
             });
+            if (expiredHolidays.length > 0 && firebase.auth().currentUser) {
+                if (confirm(`🧹 Found ${expiredHolidays.length} holiday record(s) older than 30 days.\n\nDelete them from the server?`)) {
+                    expiredHolidays.forEach(holiday => {
+                        atomicDeleteById('holidays', holiday.id, holiday._fbKey);
+                    });
+                }
+            }
             
             if (typeof renderHolidaysAdmin === 'function') renderHolidaysAdmin();
         });
@@ -3520,63 +3529,137 @@ async function deleteVideo(id) {
 }
 
 // =========================================================
-// 📊 ATTENDANCE EXCEL EXPORT ENGINE (Ultra Lightweight)
+// 📊 7-DAY AUTO ATTENDANCE EXPORTER & GARBAGE CLEANER
+// Strictly exports & cleans ONLY 'attendance_logs' with confirmation
 // =========================================================
-async function exportAttendanceToExcel() {
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function exportAttendanceToExcel(isAutoTrigger = false) {
     const btn = document.getElementById('export-attendance-btn');
-    if(btn) {
+    if (btn) {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Generating...';
         btn.disabled = true;
     }
 
     try {
-        // 🚨 LOW BANDWIDTH: Only downloads the database node the exact second you request it.
+        // 1. Download ONLY attendance_logs when requested
         const snapshot = await firebase.database().ref('attendance_logs').once('value');
         if (!snapshot.exists()) {
-            alert("No attendance records found in the database yet!");
+            if (!isAutoTrigger) {
+                alert("No attendance records found in the database yet!");
+            }
             return;
         }
 
         const data = snapshot.val();
-        // UTF-8 BOM ensures Excel reads student names perfectly
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
-        
-        // Excel Headers
-        csvContent += "Date,Time,Status,Student ID,Student Name,Batch,Distance from Institute (Meters)\r\n";
+        const logsArray = Object.values(data).filter(Boolean).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        if (logsArray.length === 0) return;
 
-        // Parse and Sort Newest First
-        let logsArray = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
+        // 2. Build UTF-8 CSV (100% compatible with Excel)
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+        csvContent += "Date,Time,Status,Student ID,Student Name,Batch,Distance from Institute (Meters)\r\n";
 
         logsArray.forEach(log => {
             const date = log.date || '-';
             const time = log.time || '-';
             const action = log.action || '-';
             const id = log.studentId || '-';
-            // Escaping names to prevent Excel comma-separation bugs
-            const name = `"${(log.studentName || '-').replace(/"/g, '""')}"`; 
+            const name = `"${String(log.studentName || '-').replace(/"/g, '""')}"`; 
             const batch = log.batch || '-';
             const dist = log.distanceMeters || '0';
 
             csvContent += `${date},${time},${action},${id},${name},${batch},${dist}\r\n`;
         });
 
-        // Trigger Instant Browser Download
+        // 3. Trigger Browser Download
+        const todayStr = new Date().toISOString().split('T')[0];
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Excellent_Institute_Attendance_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `Excellent_Institute_Attendance_${todayStr}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
 
+        // 4. Save 7-Day Export Timestamp in localStorage & Firebase settings
+        const nowMs = Date.now();
+        localStorage.setItem('lastAttendanceExportMs', nowMs.toString());
+        if (!appData.settings) appData.settings = {};
+        appData.settings.lastAttendanceExportMs = nowMs;
+        await firebase.database().ref('settings/lastAttendanceExportMs').set(nowMs);
+
+        // 5. Prompt Garbage Cleaner with Mandatory Delete Confirmation
+        setTimeout(async () => {
+            const wantClean = confirm(
+                `✅ Attendance Excel file exported (${logsArray.length} records).\n\n` +
+                `🧹 SERVER GARBAGE CLEANER:\n` +
+                `Do you want to delete these exported attendance logs from the Firebase server now?\n\n` +
+                `(Only 'attendance_logs' will be deleted. All students, fees, and live seating remain untouched.)`
+            );
+            if (wantClean) {
+                await cleanAttendanceGarbageFromServer();
+            }
+        }, 500);
+
     } catch (error) {
         console.error("Export Failed:", error);
-        alert("Failed to generate Excel file.");
+        if (!isAutoTrigger) {
+            alert("Failed to generate Excel file.");
+        }
     } finally {
-        if(btn) {
+        if (btn) {
             btn.innerHTML = '<i class="fa-solid fa-file-excel mr-2"></i> Export to Excel';
             btn.disabled = false;
         }
+    }
+}
+
+async function cleanAttendanceGarbageFromServer() {
+    if (!confirm("⚠️ CONFIRM DELETE:\n\nAre you sure you want to permanently delete all exported records in 'attendance_logs' from the server?")) {
+        return;
+    }
+
+    try {
+        // Strictly deletes ONLY the attendance_logs node
+        await firebase.database().ref('attendance_logs').remove();
+        currentAttendanceData = {};
+
+        const dateInput = document.getElementById('attendance-date-filter');
+        const targetDate = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().split('T')[0];
+        if (typeof renderAttendanceUI === 'function') {
+            renderAttendanceUI(targetDate);
+        }
+
+        alert("🧹 Garbage Cleaner Complete! Attendance logs have been cleared from the server.");
+    } catch (e) {
+        console.error("Attendance Garbage Cleaner Error:", e);
+        alert("Failed to delete attendance logs: " + e.message);
+    }
+}
+
+async function checkSevenDayAutoAttendanceExport() {
+    try {
+        const lastExportMs = parseInt(
+            (appData.settings && appData.settings.lastAttendanceExportMs) ||
+            localStorage.getItem('lastAttendanceExportMs') ||
+            "0"
+        );
+        const nowMs = Date.now();
+
+        if (nowMs - lastExportMs >= SEVEN_DAYS_MS) {
+            // Lightweight 1-record check to see if any attendance logs exist
+            const checkSnap = await firebase.database().ref('attendance_logs').limitToFirst(1).once('value');
+            if (!checkSnap.exists()) {
+                localStorage.setItem('lastAttendanceExportMs', nowMs.toString());
+                return;
+            }
+
+            if (confirm("📅 7-DAY AUTO ATTENDANCE EXPORT:\n\n7 days have passed since your last attendance backup. Click OK to download the Attendance Excel file now.")) {
+                await exportAttendanceToExcel(true);
+            }
+        }
+    } catch (e) {
+        console.warn("Auto attendance export check skipped:", e);
     }
 }
 
