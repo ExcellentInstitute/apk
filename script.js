@@ -119,34 +119,49 @@ const safeWrite = async (path, data) => {
 
 // 🛠️ STRICT FIX: Firebase Transaction Engine
 // Mathematically guarantees pure sequential arrays (0, 1, 2, 54, 55). ZERO scribbled letters.
-// 🛠️ FIX 1: Array-Preserving Push (Keeps 0, 1, 2 format for Mobile App)
+// 🛠️ FIX 1: Ultra-Low Bandwidth Array-Preserving Push (Keeps 0, 1, 2 format for Mobile App)
 const atomicPush = async (path, data) => {
     try {
         const cleanData = JSON.parse(JSON.stringify(data));
-        delete cleanData._fbKey; 
-        
+        delete cleanData._fbKey;
+
+        // 1. Download ONLY the single last item to find the highest array index
+        const lastSnap = await firebase.database().ref(path).limitToLast(1).once('value');
+
+        if (!lastSnap.exists()) {
+            await firebase.database().ref(`${path}/0`).set(cleanData);
+            return "0";
+        }
+
+        let lastKey = null;
+        lastSnap.forEach(child => {
+            lastKey = child.key;
+        });
+
+        const parsedIndex = parseInt(lastKey, 10);
+
+        // 2. If the node is a clean sequential array, write ONLY the single new index
+        if (!isNaN(parsedIndex) && String(parsedIndex) === String(lastKey)) {
+            const nextKey = (parsedIndex + 1).toString();
+            await firebase.database().ref(`${path}/${nextKey}`).set(cleanData);
+            return nextKey;
+        }
+
+        // 3. Safety Fallback: If legacy non-numeric keys exist, self-heal into a clean array
         let newKey = "";
         await firebase.database().ref(path).transaction((currentData) => {
             if (currentData === null) {
                 newKey = "0";
-                return [cleanData]; // Start clean array
+                return [cleanData];
             }
-            
-            let cleanArray = [];
-            if (Array.isArray(currentData)) {
-                // Remove any toxic 'null' gaps before pushing
-                cleanArray = currentData.filter(item => item !== null);
-            } else if (typeof currentData === 'object') {
-                // Fallback if it somehow became an object
-                cleanArray = Object.values(currentData).filter(item => item !== null);
-            }
-            
+            let cleanArray = Array.isArray(currentData)
+                ? currentData.filter(item => item !== null)
+                : Object.values(currentData).filter(item => item !== null);
             newKey = cleanArray.length.toString();
             cleanArray.push(cleanData);
-            return cleanArray; // Clean overwrite
+            return cleanArray;
         });
-        
-        return newKey; 
+        return newKey;
     } catch (err) {
         console.error(`Atomic Push Error on ${path}:`, err);
         alert(`Database Write Blocked (${path}): Verify your internet connection.`);
@@ -3389,9 +3404,6 @@ function renderHolidaysAdmin() {
         `;
     });
 }
-
-// Load data when script runs
-setTimeout(loadTimetableData, 2000);
 
 // =========================================================
 // 🎥 INSTITUTE VIDEO HUB MANAGEMENT ENGINE
