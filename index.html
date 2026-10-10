@@ -1048,32 +1048,79 @@
                                         </div>
                                     </div>
 
-                                    <!-- Update Batch Timing -->
+<!-- Update Batch Timing -->
                                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
                                         <h5 class="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Modify Batch Timings</h5>
+                                        
+                                        <!-- Global Settings -->
+                                        <div class="flex gap-2 mb-3">
+                                            <div class="flex-1">
+                                                <label class="form-label text-xs text-slate-500">Global Special Day</label>
+                                                <select id="special-class-day" class="form-input w-full rounded-lg border border-slate-200 p-2 text-xs font-bold text-amber-600 bg-white cursor-pointer">
+                                                    <option value="Sunday">Sunday</option>
+                                                    <option value="Saturday">Saturday</option>
+                                                </select>
+                                            </div>
+                                            <div class="flex-1">
+                                                <label class="form-label text-xs text-slate-500">Global Off Day</label>
+                                                <select id="weekly-off-day" class="form-input w-full rounded-lg border border-slate-200 p-2 text-xs font-bold text-rose-600 bg-white cursor-pointer">
+                                                    <option value="None">None (Open 7 Days)</option>
+                                                    <option value="Sunday">Sunday</option>
+                                                    <option value="Saturday">Saturday</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <hr class="border-slate-200 mb-3">
+                                        
                                         <div class="space-y-3">
-                                            <div class="flex gap-2">
-                                                <div class="flex-1">
-                                                    <label class="form-label text-xs text-slate-500">Select Batch</label>
-                                                    <select id="schedule-batch-name" class="form-input w-full rounded-lg border border-slate-200 p-2 text-xs font-bold text-indigo-600 bg-white cursor-pointer">
-                                                        <option value="1st">1st Batch</option><option value="2nd">2nd Batch</option>
-                                                        <option value="3rd">3rd Batch</option><option value="4th">4th Batch</option>
-                                                        <option value="5th">5th Batch</option><option value="6th">6th Batch</option>
-                                                        <option value="7th">7th Batch</option><option value="8th">8th Batch</option>
-                                                    </select>
+                                            <div>
+                                                <label class="form-label text-xs text-slate-500">Select Batch to Edit</label>
+                                                <select id="schedule-batch-name" onchange="populateBatchTimings()" class="form-input w-full rounded-lg border border-slate-200 p-2 text-xs font-bold text-indigo-600 bg-white cursor-pointer">
+                                                    <option value="" disabled selected>-- Choose Batch --</option>
+                                                    <option value="1st">1st Batch</option><option value="2nd">2nd Batch</option>
+                                                    <option value="3rd">3rd Batch</option><option value="4th">4th Batch</option>
+                                                    <option value="5th">5th Batch</option><option value="6th">6th Batch</option>
+                                                    <option value="7th">7th Batch</option><option value="8th">8th Batch</option>
+                                                </select>
+                                            </div>
+
+                                            <div id="batch-timing-fields" class="hidden space-y-3">
+                                                <datalist id="time-presets">
+                                                    <option value="08:00 AM - 08:45 AM"></option>
+                                                    <option value="08:45 AM - 09:30 AM"></option>
+                                                    <option value="09:30 AM - 10:15 AM"></option>
+                                                    <option value="10:15 AM - 11:00 AM"></option>
+                                                    <option value="03:00 PM - 03:45 PM"></option>
+                                                    <option value="03:45 PM - 04:30 PM"></option>
+                                                    <option value="04:30 PM - 05:15 PM"></option>
+                                                    <option value="05:15 PM - 06:00 PM"></option>
+                                                </datalist>
+
+                                                <div>
+                                                    <label class="form-label text-xs text-slate-500 flex justify-between">Theory Time <span id="current-theory-badge"></span></label>
+                                                    <div class="flex gap-2">
+                                                        <input type="text" list="time-presets" id="schedule-theory" class="form-input flex-1 rounded-lg border border-slate-200 p-2 text-xs font-bold bg-white" placeholder="Type custom or select...">
+                                                        <button type="button" onclick="deleteSpecificTiming('theory')" class="bg-rose-100 text-rose-600 px-3 rounded-lg hover:bg-rose-200 transition" title="Delete Theory Time"><i class="fa-solid fa-trash"></i></button>
+                                                    </div>
                                                 </div>
-                                                <div class="flex-1">
-                                                    <label class="form-label text-xs text-slate-500">Special Class Day</label>
-                                                    <select id="special-class-day" class="form-input w-full rounded-lg border border-slate-200 p-2 text-xs font-bold text-amber-600 bg-white cursor-pointer">
-                                                        <option value="Sunday">Sunday (Default)</option>
-                                                        <option value="Saturday">Saturday</option>
-                                                    </select>
+                                                <div>
+                                                    <label class="form-label text-xs text-slate-500 flex justify-between">Lab Time <span id="current-lab-badge"></span></label>
+                                                    <div class="flex gap-2">
+                                                        <input type="text" list="time-presets" id="schedule-lab" class="form-input flex-1 rounded-lg border border-slate-200 p-2 text-xs font-bold bg-white" placeholder="Type custom or select...">
+                                                        <button type="button" onclick="deleteSpecificTiming('lab')" class="bg-rose-100 text-rose-600 px-3 rounded-lg hover:bg-rose-200 transition" title="Delete Lab Time"><i class="fa-solid fa-trash"></i></button>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="form-label text-xs text-slate-500 flex justify-between">Special Class Time <span id="current-sun-badge"></span></label>
+                                                    <div class="flex gap-2">
+                                                        <input type="text" list="time-presets" id="schedule-sunday" class="form-input flex-1 rounded-lg border border-slate-200 p-2 text-xs font-bold bg-white" placeholder="Type custom or select...">
+                                                        <button type="button" onclick="deleteSpecificTiming('sun')" class="bg-rose-100 text-rose-600 px-3 rounded-lg hover:bg-rose-200 transition" title="Delete Special Class Time"><i class="fa-solid fa-trash"></i></button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div><label class="form-label text-xs text-slate-500">Theory Time</label><input type="text" id="schedule-theory" class="form-input w-full rounded-lg border border-slate-200 p-2 text-xs font-bold bg-white" placeholder="08:45 AM - 09:30 AM"></div>
-                                            <div><label class="form-label text-xs text-slate-500">Lab Time</label><input type="text" id="schedule-lab" class="form-input w-full rounded-lg border border-slate-200 p-2 text-xs font-bold bg-white" placeholder="08:00 AM - 08:45 AM"></div>
-                                            <div><label class="form-label text-xs text-slate-500">Special Class Time</label><input type="text" id="schedule-sunday" class="form-input w-full rounded-lg border border-slate-200 p-2 text-xs font-bold bg-white" placeholder="04:00 PM - 05:00 PM"></div>
-                                            <button type="button" onclick="updateBatchSchedule(event)" class="w-full py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-lg text-xs transition-colors shadow-sm transform active:scale-95"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Update Schedule</button>
+                                            
+                                            <button type="button" onclick="updateBatchSchedule(event)" class="w-full py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-lg text-xs transition-colors shadow-sm transform active:scale-95 mt-2"><i class="fa-solid fa-floppy-disk mr-1"></i> Save Changes</button>
                                         </div>
                                     </div>
                                 </div>
