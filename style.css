@@ -1,18 +1,12 @@
-/* 🖥️ COMPACT DESKTOP ERP SCALE (Cuts the oversized magnifying-glass look) */
+/* 🖥️ COMPACT DESKTOP ERP SCALE (Cuts the oversized magnifying-glass look safely) */
 html {
-    font-size: 13.5px; /* Scales down every rem element, font, and padding by 15% */
+    font-size: 13px; /* Scales down all fonts, paddings, and margins perfectly */
 }
 
 body { 
     font-family: 'Plus Jakarta Sans', sans-serif; 
     background-color: #f8fafc; 
     overflow: hidden; 
-}
-
-@media screen and (min-width: 1024px) {
-    body {
-        zoom: 0.92; /* Snaps the entire layout into high-density desktop proportions */
-    }
 }
 
 .glass-panel { 
