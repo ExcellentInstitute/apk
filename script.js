@@ -1713,6 +1713,23 @@ function selectStudent(id) {
     document.getElementById('active-student-paidfee').innerText = `₹${metrics.actualPaid}`;
     document.getElementById('active-student-adwallet').innerText = `${metrics.adDiscount.toFixed(0)} Coins`;
 
+    // 🚨 NEW: Zero-Bandwidth Live Attendance Resolver
+    let displayDate = student.lastAttendance || "No Record";
+    
+    // Check if the student punched in TODAY (data is already loaded in memory)
+    const todaysLogs = Object.values(currentAttendanceData).filter(log => log.studentId === student.id);
+    if (todaysLogs.length > 0) {
+        displayDate = todaysLogs[0].date;
+        // Silently update the profile if today's date is newer
+        if (student.lastAttendance !== displayDate) {
+            student.lastAttendance = displayDate;
+            atomicUpdateById('students', student.id, student);
+        }
+    }
+    
+    const lastAttEl = document.getElementById('active-student-last-attendance');
+    if (lastAttEl) lastAttEl.innerText = displayDate;
+
     const badgeEl = document.getElementById('active-student-badge');
     if(badgeEl) {
         if ((student.status || "") === 'Graduated') badgeEl.classList.remove('hidden');
@@ -3771,6 +3788,25 @@ async function exportAttendanceToExcel(isAutoTrigger = false) {
         appData.settings.lastAttendanceExportMs = nowMs;
         await firebase.database().ref('settings/lastAttendanceExportMs').set(nowMs);
 
+        // 🚨 NEW: Backup latest attendance dates to student profiles securely before garbage collection
+        let studentUpdates = {};
+        logsArray.forEach(log => {
+            if (log.studentId && log.date && !studentUpdates[log.studentId]) {
+                studentUpdates[log.studentId] = log.date; // Captures the most recent date because logsArray is sorted newest-first
+            }
+        });
+
+        for (let stId in studentUpdates) {
+            let st = appData.students.find(s => s.id === stId);
+            if (st) {
+                if (!st.lastAttendance || new Date(studentUpdates[stId]) > new Date(st.lastAttendance)) {
+                    st.lastAttendance = studentUpdates[stId];
+                    await atomicUpdateById('students', st.id, st);
+                }
+            }
+        }
+        syncLocalCache();
+
         // 5. Prompt Garbage Cleaner with Mandatory Delete Confirmation
         setTimeout(async () => {
             const wantClean = confirm(
@@ -4488,6 +4524,10 @@ async function adminManualPunch(action) {
 
         // 1. Push attendance log
         await firebase.database().ref('attendance_logs').push().set(logPayload);
+        
+        // 🚨 NEW: Instantly update Last Attendance profile field globally
+        student.lastAttendance = targetDate;
+        await atomicUpdateById('students', student.id, student);
         
         // 2. Handle Live Seating & _active_pcs Unlock/Lock
         if (action === 'ENTRY' && selectedSystem !== 'none' && batch !== 'Unassigned') {
