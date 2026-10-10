@@ -3338,16 +3338,14 @@ async function deleteStudyLog(logId, stId) {
 let timetableData = { holidays: [], schedules: {} };
 let isHolidayCleanupPrompted = false;
 
-// 1. Fetch Current Timetable Data
 async function loadTimetableData() {
     try {
         const holidaysRef = firebase.database().ref('holidays');
-        holidaysRef.off(); // Prevents duplicate listeners from stacking
+        holidaysRef.off();
         holidaysRef.on('value', async (snapshot) => {
             const data = snapshot.val();
             let parsedHolidays = [];
             
-            // 🚨 BULLETPROOF PARSER: Prevents Web App from crashing on legacy string data
             if (data) {
                 let rawList = [];
                 if (Array.isArray(data)) {
@@ -3356,7 +3354,7 @@ async function loadTimetableData() {
                     Object.keys(data).forEach(key => {
                         let item = data[key];
                         if (item && typeof item === 'object') {
-                            if (!item.date) item.date = key; // Recover date from legacy key
+                            if (!item.date) item.date = key;
                             item._fbKey = key;
                             rawList.push(item);
                         } else if (typeof item === 'string') {
@@ -3365,13 +3363,12 @@ async function loadTimetableData() {
                     });
                 }
                 
-                // Sanitize every element to guarantee no missing fields
                 rawList.forEach((item, index) => {
                     if (item && typeof item === 'object') {
                         parsedHolidays.push({
                             id: item.id || ('HOL_LEGACY_' + index),
                             _fbKey: item._fbKey || index.toString(),
-                            date: item.date || '2026-01-01', // Fallback prevents NaN crashes
+                            date: item.date || '2026-01-01',
                             reason: item.reason || 'Institute Holiday',
                             batch: item.batch || 'All'
                         });
@@ -3389,7 +3386,6 @@ async function loadTimetableData() {
             
             timetableData.holidays = parsedHolidays;
             
-            // 30-Day Holiday Cleanup Logic (Single Confirmation + Single Write)
             const now = Date.now();
             const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
             const expiredHolidays = timetableData.holidays.filter(holiday => {
@@ -3414,82 +3410,139 @@ async function loadTimetableData() {
         });
 
         const schedulesRef = firebase.database().ref('schedules');
-        schedulesRef.off(); // Prevents duplicate listeners from stacking
+        schedulesRef.off();
         schedulesRef.on('value', (snapshot) => {
             timetableData.schedules = snapshot.val() || {};
+            
+            // Set defaults if missing
             if (!timetableData.schedules.specialClassDay) timetableData.schedules.specialClassDay = "Sunday";
-            if (document.getElementById('special-class-day')) {
-                document.getElementById('special-class-day').value = timetableData.schedules.specialClassDay;
-            }
+            if (!timetableData.schedules.offDay) timetableData.schedules.offDay = "None";
+            
+            const specialClassEl = document.getElementById('special-class-day');
+            const offDayEl = document.getElementById('weekly-off-day');
+            
+            if (specialClassEl) specialClassEl.value = timetableData.schedules.specialClassDay;
+            if (offDayEl) offDayEl.value = timetableData.schedules.offDay;
+            
+            if (typeof populateBatchTimings === 'function') populateBatchTimings();
         });
     } catch(e) { console.error("Timetable load error:", e); }
 }
 
-// 2. Add New Holiday (Supports Batch-Specific Holidays)
 async function addInstituteHoliday() {
     const dateStr = document.getElementById('holiday-date').value;
     const reason = document.getElementById('holiday-reason').value.trim();
-    
-    // Checks if you added the new dropdown to HTML, otherwise defaults to 'All'
     const batchSelect = document.getElementById('holiday-batch');
     const targetBatch = batchSelect ? batchSelect.value : 'All';
     
     if(!dateStr || !reason) return alert("Please select a date and provide a reason.");
     
-    const newHoliday = {
-        id: 'HOL' + Date.now(),
-        date: dateStr,
-        reason: reason,
-        batch: targetBatch
-    };
-    
-    // 🚨 ENGINEERED FIX: Use Array Push so we can have multiple holidays on the same day!
+    const newHoliday = { id: 'HOL' + Date.now(), date: dateStr, reason: reason, batch: targetBatch };
     await atomicPush('holidays', newHoliday);
     
     alert("Holiday officially declared and synced!");
     document.getElementById('holiday-reason').value = '';
 }
 
-// 3. Remove Holiday
 async function removeInstituteHoliday(id) {
     if(!confirm(`Are you sure you want to permanently delete this holiday?`)) return;
-    
     const holiday = timetableData.holidays.find(h => h.id === id);
-    if(holiday) {
-        await atomicDeleteById('holidays', holiday.id, holiday._fbKey);
-    }
+    if(holiday) await atomicDeleteById('holidays', holiday.id, holiday._fbKey);
 }
 
-// 4. Update Custom Batch Timing
+// Shows current DB values in badges and clears input fields so blank inputs don't accidentally overwrite
+function populateBatchTimings() {
+    const batch = document.getElementById('schedule-batch-name').value;
+    const fields = document.getElementById('batch-timing-fields');
+    if(!batch) {
+        if(fields) fields.classList.add('hidden');
+        return;
+    }
+    if(fields) fields.classList.remove('hidden');
+    
+    const schedule = timetableData.schedules[batch] || {};
+    
+    const setBadge = (id, val) => {
+        const el = document.getElementById(`current-${id}-badge`);
+        if (!el) return;
+        if (val) {
+            el.innerText = `(Current: ${val})`;
+            el.className = 'text-[9px] font-bold text-indigo-500 uppercase';
+        } else {
+            el.innerText = '(Not Set)';
+            el.className = 'text-[9px] font-bold text-slate-400 uppercase';
+        }
+    };
+    
+    setBadge('theory', schedule.theory);
+    setBadge('lab', schedule.lab);
+    setBadge('sun', schedule.sun);
+    
+    document.getElementById('schedule-theory').value = '';
+    document.getElementById('schedule-lab').value = '';
+    document.getElementById('schedule-sunday').value = '';
+}
+
 async function updateBatchSchedule(e) {
     e.preventDefault();
     const batchName = document.getElementById('schedule-batch-name').value;
     const specialDay = document.getElementById('special-class-day').value;
-    const labTime = document.getElementById('schedule-lab').value;
-    const theoryTime = document.getElementById('schedule-theory').value;
-    const sunTime = document.getElementById('schedule-sunday').value;
+    const offDay = document.getElementById('weekly-off-day').value;
     
-    // 🚨 SMART MERGE FIX: Uses update() to perfectly merge without wiping other batches
     const updates = {};
     updates['specialClassDay'] = specialDay;
-    updates[batchName] = { lab: labTime, theory: theoryTime, sun: sunTime };
+    updates['offDay'] = offDay;
+    
+    if (batchName) {
+        const theoryTime = document.getElementById('schedule-theory').value.trim();
+        const labTime = document.getElementById('schedule-lab').value.trim();
+        const sunTime = document.getElementById('schedule-sunday').value.trim();
+        
+        // Only update fields that the user explicitly typed in
+        if (theoryTime !== "") updates[`${batchName}/theory`] = theoryTime;
+        if (labTime !== "") updates[`${batchName}/lab`] = labTime;
+        if (sunTime !== "") updates[`${batchName}/sun`] = sunTime;
+    }
     
     try {
         await firebase.database().ref('schedules').update(updates);
-        alert(`Schedule updated! Special Class is now on ${specialDay}, and ${batchName} times have been saved.`);
+        if (batchName) {
+            document.getElementById('schedule-theory').value = '';
+            document.getElementById('schedule-lab').value = '';
+            document.getElementById('schedule-sunday').value = '';
+        }
+        alert(`✅ Global settings saved.\n${batchName ? `✅ Timings updated for ${batchName} Batch!` : ''}`);
     } catch (error) {
         alert("Failed to update schedule. Check your connection.");
     }
 }
 
-// 5. Render Holidays in UI
+async function deleteSpecificTiming(type) {
+    const batchName = document.getElementById('schedule-batch-name').value;
+    if (!batchName) return alert("Please select a batch from the dropdown first.");
+    
+    const typeLabels = { 'theory': 'Theory', 'lab': 'Lab', 'sun': 'Special Class' };
+    if (!confirm(`Are you sure you want to completely DELETE the ${typeLabels[type]} time for ${batchName} Batch?`)) return;
+    
+    try {
+        await firebase.database().ref(`schedules/${batchName}/${type}`).remove();
+        document.getElementById(`schedule-${type}`).value = '';
+        const badge = document.getElementById(`current-${type}-badge`);
+        if(badge) {
+            badge.innerText = '(Not Set)';
+            badge.className = 'text-[9px] font-bold text-slate-400 uppercase';
+        }
+        alert(`🗑️ ${typeLabels[type]} time deleted successfully from ${batchName}.`);
+    } catch (e) {
+        alert("Failed to delete time. Check connection.");
+    }
+}
+
 function renderHolidaysAdmin() {
     const listEl = document.getElementById('admin-holidays-list');
     if (!listEl) return;
-    
     listEl.innerHTML = '';
     
-    // 🚨 MATHEMATICAL FIX: Safely sort chronologically preventing NaN crashes
     const sortedHolidays = timetableData.holidays.sort((a, b) => {
         const dateA = new Date(a.date).getTime();
         const dateB = new Date(b.date).getTime();
