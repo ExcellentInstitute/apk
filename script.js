@@ -2362,7 +2362,24 @@ function handleStudentFileUpload(event) {
     );
 }
 
-function submitMaterialUpload(e) {
+// 🚨 NEW: UI Toggler for Format Switch
+function toggleMaterialFormat() {
+    const format = document.getElementById('hub-mat-format').value;
+    if (format === 'link') {
+        document.getElementById('mat-file-container').classList.add('hidden');
+        document.getElementById('mat-link-container').classList.remove('hidden');
+        document.getElementById('hub-mat-file').required = false;
+        document.getElementById('hub-mat-url').required = true;
+    } else {
+        document.getElementById('mat-file-container').classList.remove('hidden');
+        document.getElementById('mat-link-container').classList.add('hidden');
+        document.getElementById('hub-mat-file').required = true;
+        document.getElementById('hub-mat-url').required = false;
+    }
+}
+
+// 🚨 ENGINEERED FIX: Dual-Mode Payload Uploader for Materials
+async function submitMaterialUpload(e) {
     e.preventDefault();
     initFileHubUploadDropdown();
 
@@ -2372,86 +2389,105 @@ function submitMaterialUpload(e) {
     const title = document.getElementById('hub-mat-title').value.trim();
     const rawFolder = document.getElementById('hub-mat-folder').value.trim() || 'General';
     const target = document.getElementById('hub-mat-target').value.trim();
-    const fileInput = document.getElementById('hub-mat-file');
-    const fileToUpload = fileInput.files[0];
     
-    if (!fileToUpload) return alert("Please select a file.");
+    // Format check
+    const formatEl = document.getElementById('hub-mat-format');
+    const isLink = formatEl && formatEl.value === 'link';
 
-    // Route strictly based on dropdown selection:
-    // Certificate -> node: 'files', category: 'Certificate', folder: 'Certificates'
-    // Study Material -> node: 'materials', category: 'Material', folder: rawFolder
+    let fileToUpload = null;
+    let webUrl = '';
+
+    if (isLink) {
+        webUrl = document.getElementById('hub-mat-url').value.trim();
+        if (!webUrl) return alert("Please enter a valid Web Portal URL.");
+    } else {
+        fileToUpload = document.getElementById('hub-mat-file').files[0];
+        if (!fileToUpload) return alert("Please select a document file.");
+    }
+
     const targetNode = isCertificate ? 'files' : 'materials';
     const finalCategory = isCertificate ? 'Certificate' : 'Material';
     const finalFolder = isCertificate ? 'Certificates' : rawFolder;
 
     const btn = document.getElementById('btn-mat-upload');
     const originalBtnText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Publishing...';
     btn.disabled = true;
 
-    const storageRef = firebase.storage().ref();
-    const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const filePath = `vault/${Date.now()}_${safeName}`;
-    const fileRef = storageRef.child(filePath);
+    try {
+        let downloadURL = '';
+        let storagePath = '';
+        let sizeMB = '0.00';
 
-    const progressBar = document.getElementById('mat-progress-bar');
-    const progressContainer = document.getElementById('mat-progress-container');
-    progressContainer.classList.remove('hidden');
-    progressBar.style.width = '0%';
+        // ONLY upload to Storage if it's a physical file
+        if (!isLink) {
+            const storageRef = firebase.storage().ref();
+            const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '_');
+            storagePath = `vault/${Date.now()}_${safeName}`;
+            const fileRef = storageRef.child(storagePath);
 
-    const uploadTask = fileRef.put(fileToUpload);
+            const progressBar = document.getElementById('mat-progress-bar');
+            const progressContainer = document.getElementById('mat-progress-container');
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '10%';
 
-    uploadTask.on('state_changed', 
-        (snapshot) => { progressBar.style.width = (snapshot.bytesTransferred / snapshot.totalBytes) * 100 + '%'; }, 
-        (error) => {
-            alert("Upload failed: " + error.message);
+            await fileRef.put(fileToUpload);
+            downloadURL = await fileRef.getDownloadURL();
+            sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
             progressContainer.classList.add('hidden');
-            btn.innerHTML = originalBtnText;
-            btn.disabled = false;
-        }, 
-        () => {
-            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                progressContainer.classList.add('hidden');
-                const sizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
-                
-                const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
-                const newFile = {
-                    id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-                    name: title,
-                    category: finalCategory,
-                    target: finalTarget,
-                    url: downloadURL,
-                    path: filePath,
-                    size: sizeMB,
-                    date: new Date().toISOString().split('T')[0],
-                    folder: finalFolder
-                };
-                
-                if (!appData[targetNode]) appData[targetNode] = [];
-                
-                atomicPush(targetNode, newFile).then(fbKey => {
-                    if (fbKey) newFile._fbKey = fbKey;
-                    appData[targetNode].push(newFile);
-                    syncLocalCache();
-                    e.target.reset();
-                    toggleMaterialUploadType();
-                    btn.innerHTML = originalBtnText;
-                    btn.disabled = false;
-                    renderHubFiles();
-
-                    // Also refresh student profile files list if a student is open
-                    const activeStId = document.getElementById('tuition-student-id') ? document.getElementById('tuition-student-id').value : '';
-                    if (activeStId) renderStudentFiles(activeStId);
-
-                    if (isCertificate) {
-                        alert("🎓 Certificate uploaded to 'files' node (Category: Certificate | Folder: Certificates)!");
-                    } else {
-                        alert("📚 Study Material uploaded to 'materials' node!");
-                    }
-                });
-            });
+        } else {
+            // For Web Links, URL is direct, path is empty, size is 0.00
+            downloadURL = webUrl;
         }
-    );
+
+        const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
+        
+        const newFile = {
+            id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+            name: title,
+            category: finalCategory,
+            target: finalTarget,
+            url: downloadURL,
+            path: storagePath,
+            size: sizeMB,
+            date: new Date().toISOString().split('T')[0],
+            folder: finalFolder,
+            isWebPortal: isLink // Safety flag for Mobile UI
+        };
+        
+        if (!appData[targetNode]) appData[targetNode] = [];
+        
+        const fbKey = await atomicPush(targetNode, newFile);
+        if (fbKey) {
+            newFile._fbKey = fbKey;
+            appData[targetNode].push(newFile);
+            syncLocalCache();
+            e.target.reset();
+            toggleMaterialUploadType();
+            if (isLink) {
+                document.getElementById('hub-mat-format').value = 'file';
+                toggleMaterialFormat(); // Reset UI back to file mode
+            }
+            renderHubFiles();
+
+            const activeStId = document.getElementById('tuition-student-id') ? document.getElementById('tuition-student-id').value : '';
+            if (activeStId) renderStudentFiles(activeStId);
+
+            if (isCertificate) {
+                alert("🎓 Certificate uploaded to 'files' node!");
+            } else {
+                alert(`📚 ${isLink ? 'Web Portal Link' : 'Study Material'} published securely!`);
+            }
+        } else {
+            alert("Database Error: Could not publish material.");
+        }
+    } catch (error) {
+        alert("Upload failed: " + error.message);
+        document.getElementById('mat-progress-container').classList.add('hidden');
+    } finally {
+        btn.innerHTML = originalBtnText;
+        btn.disabled = false;
+    }
 }
 
 // 🚨 NEW: Toggles the UI between File Upload and Pure Text modes
