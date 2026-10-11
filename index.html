@@ -293,9 +293,25 @@
                                     <label class="form-label text-indigo-800 text-xs sm:text-sm">Target Course(s) / Student Phone or ID</label>
                                     <input type="text" id="hub-mat-target" class="form-input bg-white border-indigo-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. ALL, PGDCA, DCA, CCA" required>
                                 </div>
+                                <!-- 🚨 NEW: DUAL-MODE FORMAT SELECTOR -->
                                 <div>
+                                    <label class="form-label text-indigo-800 text-xs sm:text-sm">Upload Format</label>
+                                    <select id="hub-mat-format" onchange="toggleMaterialFormat()" class="form-input bg-white cursor-pointer font-bold text-indigo-700 w-full rounded-xl border border-indigo-200 p-2.5 sm:p-3 text-xs sm:text-sm">
+                                        <option value="file">📎 Document File (PDF/Image)</option>
+                                        <option value="link">🌐 Web Portal Link (Dynamic Chapters)</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- File Container -->
+                                <div id="mat-file-container">
                                     <label class="form-label text-indigo-800 text-xs sm:text-sm">Select Document File</label>
                                     <input type="file" id="hub-mat-file" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-white border border-slate-200 rounded-xl" required>
+                                </div>
+
+                                <!-- Web Link Container -->
+                                <div id="mat-link-container" class="hidden flex-1 flex flex-col">
+                                    <label class="form-label text-indigo-800 text-xs sm:text-sm">Web Portal URL</label>
+                                    <input type="url" id="hub-mat-url" class="form-input bg-white border-indigo-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. https://excellentinstitute.github.io/Photoshop/">
                                 </div>
                                 <div id="mat-progress-container" class="hidden w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-2">
                                     <div id="mat-progress-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
