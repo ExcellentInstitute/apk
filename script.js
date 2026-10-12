@@ -1031,6 +1031,13 @@ function populateSettings() {
 
     const rewardedAdsEl = document.getElementById('set-allow-rewarded-ads');
     if (rewardedAdsEl) rewardedAdsEl.value = appData.settings.enableRewardedAds !== false ? "true" : "false";
+
+    const ccBannerEl = document.getElementById('set-cc-banner');
+    if (ccBannerEl) ccBannerEl.value = appData.settings.ccBannerAds !== false ? "true" : "false";
+
+    const ccInterstitialEl = document.getElementById('set-cc-interstitial');
+    if (ccInterstitialEl) ccInterstitialEl.value = appData.settings.ccInterstitialAds !== false ? "true" : "false";
+
     
     const qrPreview = document.getElementById('set-qr-preview');
     const qrIcon = document.getElementById('set-qr-icon');
@@ -1079,6 +1086,12 @@ function submitSettings(e) {
 
     const rewardedAdsEl = document.getElementById('set-allow-rewarded-ads');
     const allowRewardedAds = rewardedAdsEl ? (rewardedAdsEl.value === 'true') : true;
+
+    const ccBannerEl = document.getElementById('set-cc-banner');
+    const allowCCBannerAds = ccBannerEl ? (ccBannerEl.value === 'true') : true;
+
+    const ccInterstitialEl = document.getElementById('set-cc-interstitial');
+    const allowCCInterstitialAds = ccInterstitialEl ? (ccInterstitialEl.value === 'true') : true;
     // NEW: Extract PDF Unlock Cost
     const pdfCostEl = document.getElementById('set-pdf-unlock-cost');
     const pdfUnlockCost = pdfCostEl ? pdfCostEl.value : 5;
@@ -1093,6 +1106,8 @@ function submitSettings(e) {
     appData.settings.enableBannerAds = allowBannerAds;
     appData.settings.enableInterstitialAds = allowInterstitialAds;
     appData.settings.enableRewardedAds = allowRewardedAds;
+    appData.settings.ccBannerAds = allowCCBannerAds;
+    appData.settings.ccInterstitialAds = allowCCInterstitialAds;
     
     if (pendingQRCodeBase64) {
         appData.settings.qrCodeUrl = pendingQRCodeBase64;
