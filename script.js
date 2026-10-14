@@ -4005,12 +4005,30 @@ function renderStudyTracker() {
         html += `</ul></div>`;
         container.innerHTML += html;
     });
-}// =========================================================
+}
+// =========================================================
 // ⏱️ ATTENDANCE, SEATING & PC LOCK CONTROLLER (Low Bandwidth)
 // =========================================================
 let currentAttendanceData = {};
 let currentSystemFaults = {};
 let currentLiveSeating = {};
+let hasCleanedOldLiveSeating = false;
+
+// 🧹 Silently deletes previous days' temporary live_seating nodes once per session (0-Byte Storage)
+async function cleanupOldLiveSeatingDays(todayStr, targetDate) {
+    if (hasCleanedOldLiveSeating) return;
+    hasCleanedOldLiveSeating = true;
+    try {
+        const baseDate = new Date();
+        for (let i = 1; i <= 7; i++) {
+            const d = new Date(baseDate.getTime() - (i * 24 * 60 * 60 * 1000));
+            const oldDateStr = d.toISOString().split('T')[0];
+            if (oldDateStr !== todayStr && oldDateStr !== targetDate) {
+                firebase.database().ref(`live_seating/${oldDateStr}`).remove().catch(() => {});
+            }
+        }
+    } catch (e) {}
+}
 
 async function loadDailyAttendanceTracker() {
     const dateInput = document.getElementById('attendance-date-filter');
@@ -4022,6 +4040,8 @@ async function loadDailyAttendanceTracker() {
     if (listEl) listEl.innerHTML = '<div class="text-center text-slate-400 mt-10"><i class="fa-solid fa-spinner fa-spin text-4xl mb-4 text-slate-200 block"></i><p class="font-bold text-slate-500">Scanning satellite records...</p></div>';
     
     try {
+        cleanupOldLiveSeatingDays(todayStr, targetDate);
+
         const [attSnap, seatSnap, faultSnap] = await Promise.all([
             firebase.database().ref('attendance_logs').orderByChild('date').equalTo(targetDate).once('value'),
             firebase.database().ref(`live_seating/${targetDate}`).once('value'),
@@ -4086,7 +4106,7 @@ function renderLivePcControlPanel(targetDate) {
     }
 }
 
-// 🔓 REMOTE UNLOCK / LOCK SINGLE PC FROM WEB APP
+// 🔓 REMOTE UNLOCK / LOCK SINGLE PC FROM WEB APP (Synced with Student Mobile Screen & .exe Lock)
 async function toggleAdminPcLock(targetDate, seatKey, targetState, studentId = null, studentName = null, batch = null) {
     const seatLabel = seatKey.replace('practical-seat-', 'E');
     const nowMs = Date.now();
@@ -4106,22 +4126,49 @@ async function toggleAdminPcLock(targetDate, seatKey, targetState, studentId = n
                 batchEndMs: nowMs + (90 * 60 * 1000),
                 updatedAt: firebase.database.ServerValue.TIMESTAMP
             };
+
+            // If unlocking for a specific student, also sync their batch slot so mobile & PC stay in lockstep
+            if (studentId && batch && batch !== 'Unassigned') {
+                await pcRef.child(`slots/${batch}`).set({
+                    studentId: studentId,
+                    studentName: studentName || 'Student',
+                    batch: batch,
+                    seatKey: seatKey,
+                    labStartMs: nowMs,
+                    labEndMs: nowMs + (60 * 60 * 1000),
+                    batchEndMs: nowMs + (90 * 60 * 1000),
+                    forceUnlockNow: true,
+                    status: 'ACTIVE',
+                    updatedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+
             await pcRef.update(payload);
             if (!currentLiveSeating['_active_pcs']) currentLiveSeating['_active_pcs'] = {};
             currentLiveSeating['_active_pcs'][seatKey] = { ...(currentLiveSeating['_active_pcs'][seatKey] || {}), ...payload };
         } else {
-            const payload = {
-                seatKey: seatKey,
-                state: 'LOCKED',
-                activeStudentId: null,
-                activeStudentName: null,
-                activeBatch: null,
-                adminOverride: false,
-                updatedAt: firebase.database.ServerValue.TIMESTAMP
-            };
-            await pcRef.update(payload);
-            if (!currentLiveSeating['_active_pcs']) currentLiveSeating['_active_pcs'] = {};
-            currentLiveSeating['_active_pcs'][seatKey] = { ...(currentLiveSeating['_active_pcs'][seatKey] || {}), ...payload };
+            // Check if any paired-batch student slots exist on this PC
+            const existingPc = (currentLiveSeating['_active_pcs'] && currentLiveSeating['_active_pcs'][seatKey]) || {};
+            const hasSlots = existingPc.slots && Object.keys(existingPc.slots).length > 0;
+
+            if (!hasSlots) {
+                // 0-Byte Storage: Delete node completely if no student slots are attached
+                await pcRef.remove();
+                if (currentLiveSeating['_active_pcs']) delete currentLiveSeating['_active_pcs'][seatKey];
+            } else {
+                const payload = {
+                    seatKey: seatKey,
+                    state: 'LOCKED',
+                    activeStudentId: null,
+                    activeStudentName: null,
+                    activeBatch: null,
+                    adminOverride: false,
+                    updatedAt: firebase.database.ServerValue.TIMESTAMP
+                };
+                await pcRef.update(payload);
+                if (!currentLiveSeating['_active_pcs']) currentLiveSeating['_active_pcs'] = {};
+                currentLiveSeating['_active_pcs'][seatKey] = { ...(currentLiveSeating['_active_pcs'][seatKey] || {}), ...payload };
+            }
         }
 
         renderLivePcControlPanel(targetDate);
@@ -4141,6 +4188,7 @@ async function adminUnlockAllPcs(targetState) {
 
     const nowMs = Date.now();
     const updates = {};
+    const activePcs = (currentLiveSeating && currentLiveSeating['_active_pcs']) ? currentLiveSeating['_active_pcs'] : {};
 
     for (let i = 1; i <= 10; i++) {
         const seatKey = `practical-seat-${i}`;
@@ -4156,13 +4204,19 @@ async function adminUnlockAllPcs(targetState) {
             updates[`${seatKey}/batchEndMs`] = nowMs + (90 * 60 * 1000);
             updates[`${seatKey}/updatedAt`] = firebase.database.ServerValue.TIMESTAMP;
         } else {
-            updates[`${seatKey}/seatKey`] = seatKey;
-            updates[`${seatKey}/state`] = 'LOCKED';
-            updates[`${seatKey}/activeStudentId`] = null;
-            updates[`${seatKey}/activeStudentName`] = null;
-            updates[`${seatKey}/activeBatch`] = null;
-            updates[`${seatKey}/adminOverride`] = false;
-            updates[`${seatKey}/updatedAt`] = firebase.database.ServerValue.TIMESTAMP;
+            const existingPc = activePcs[seatKey] || {};
+            const hasSlots = existingPc.slots && Object.keys(existingPc.slots).length > 0;
+            if (!hasSlots) {
+                updates[seatKey] = null; // Completely deletes idle PC node (0 bytes)
+            } else {
+                updates[`${seatKey}/seatKey`] = seatKey;
+                updates[`${seatKey}/state`] = 'LOCKED';
+                updates[`${seatKey}/activeStudentId`] = null;
+                updates[`${seatKey}/activeStudentName`] = null;
+                updates[`${seatKey}/activeBatch`] = null;
+                updates[`${seatKey}/adminOverride`] = false;
+                updates[`${seatKey}/updatedAt`] = firebase.database.ServerValue.TIMESTAMP;
+            }
         }
     }
 
@@ -4174,7 +4228,7 @@ async function adminUnlockAllPcs(targetState) {
     }
 }
 
-// 🔄 HANDOVER HELPER: Recalculates next active student when someone leaves a PC
+// 🔄 TIME-AWARE HANDOVER HELPER: Filters out expired ghost batches & auto-deletes empty nodes
 async function recalculateActivePcOwnerWeb(targetDate, seatKey) {
     const pcRef = firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}`);
     const snap = await pcRef.once('value');
@@ -4182,14 +4236,37 @@ async function recalculateActivePcOwnerWeb(targetDate, seatKey) {
 
     const data = snap.val() || {};
     const slots = data.slots || {};
-    let nextActiveSlot = null;
+    const nowMs = Date.now();
+
+    let bestLabSlotNow = null;
+    let fallbackValidSlot = null;
 
     for (const [bKey, slotObj] of Object.entries(slots)) {
         if (slotObj && slotObj.status === 'ACTIVE') {
-            nextActiveSlot = slotObj;
-            break;
+            const slotBatchEndMs = parseInt(slotObj.batchEndMs) || 0;
+            const slotLabStartMs = parseInt(slotObj.labStartMs) || 0;
+            const slotLabEndMs = parseInt(slotObj.labEndMs) || 0;
+
+            // Ignore expired ghost slots from earlier batches (beyond 20-min buffer)
+            if (slotBatchEndMs > 0 && nowMs > slotBatchEndMs + (20 * 60 * 1000)) {
+                continue;
+            }
+
+            const inCandidateLabNow = (
+                slotLabStartMs > 0 && slotLabEndMs > 0 &&
+                nowMs >= (slotLabStartMs - (10 * 60 * 1000)) &&
+                nowMs <= (slotLabEndMs + (10 * 60 * 1000))
+            );
+
+            if (inCandidateLabNow && !bestLabSlotNow) {
+                bestLabSlotNow = slotObj;
+            } else if (!fallbackValidSlot) {
+                fallbackValidSlot = slotObj;
+            }
         }
     }
+
+    const nextActiveSlot = bestLabSlotNow || fallbackValidSlot;
 
     if (nextActiveSlot) {
         await pcRef.update({
@@ -4198,20 +4275,14 @@ async function recalculateActivePcOwnerWeb(targetDate, seatKey) {
             activeBatch: nextActiveSlot.batch,
             state: 'UNLOCKED',
             adminOverride: false,
-            labStartMs: nextActiveSlot.labStartMs || Date.now(),
-            labEndMs: nextActiveSlot.labEndMs || (Date.now() + 45 * 60 * 1000),
-            batchEndMs: nextActiveSlot.batchEndMs || (Date.now() + 90 * 60 * 1000),
+            labStartMs: nextActiveSlot.labStartMs || nowMs,
+            labEndMs: nextActiveSlot.labEndMs || (nowMs + 45 * 60 * 1000),
+            batchEndMs: nextActiveSlot.batchEndMs || (nowMs + 90 * 60 * 1000),
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         });
     } else {
-        await pcRef.update({
-            activeStudentId: null,
-            activeStudentName: null,
-            activeBatch: null,
-            state: 'LOCKED',
-            adminOverride: false,
-            updatedAt: firebase.database.ServerValue.TIMESTAMP
-        });
+        // 0-Byte Storage: No active student slots remain, remove the PC node cleanly
+        await pcRef.remove();
     }
 }
 
@@ -4425,12 +4496,32 @@ function renderAttendanceUI(targetDate) {
     });
 }
 
-// 2. Action Handlers (Synced with _active_pcs Lock Engine)
+// 2. Action Handlers (Synced with _active_pcs Lock Engine & Mobile _punch_status)
 async function deleteAttendanceLog(logKey, targetDate) {
     if(!confirm("Are you sure you want to permanently delete this attendance record?")) return;
     try {
+        const deletedLog = currentAttendanceData[logKey];
         await firebase.database().ref(`attendance_logs/${logKey}`).remove();
         delete currentAttendanceData[logKey];
+
+        // Sync student's mobile screen state if today's log was deleted
+        if (deletedLog && deletedLog.studentId) {
+            const stId = deletedLog.studentId;
+            const remainingLogs = Object.values(currentAttendanceData).filter(l => l && l.studentId === stId);
+            const hasEntry = remainingLogs.some(l => l.action === 'ENTRY');
+            const hasExit = remainingLogs.some(l => l.action === 'EXIT');
+
+            const punchStatusRef = firebase.database().ref(`live_seating/${targetDate}/_punch_status/${stId}`);
+            if (!hasEntry && !hasExit) {
+                await punchStatusRef.remove();
+            } else if (hasEntry && !hasExit) {
+                await punchStatusRef.update({
+                    state: 'PUNCHED_IN',
+                    updatedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        }
+
         renderAttendanceUI(targetDate);
     } catch(e) { alert("Failed to delete log."); }
 }
@@ -4485,13 +4576,20 @@ async function forceAdminPunchOut(studentId, studentName, batch, targetDate) {
         };
 
         await firebase.database().ref('attendance_logs').push().set(logPayload);
+
+        // Sync mobile screen status so the student's phone updates to PUNCHED_OUT immediately
+        await firebase.database().ref(`live_seating/${targetDate}/_punch_status/${studentId}`).set({
+            state: 'PUNCHED_OUT',
+            batch: batch,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
         
         if (currentLiveSeating[batch]) {
             for (const [seatKey, sId] of Object.entries(currentLiveSeating[batch])) {
                 if (sId === studentId) {
                     await firebase.database().ref(`live_seating/${targetDate}/${batch}/${seatKey}`).remove();
                     if (seatKey.startsWith('practical-seat-')) {
-                        await firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}/slots/${batch}/status`).set('PUNCHED_OUT');
+                        await firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}/slots/${batch}`).remove();
                         await recalculateActivePcOwnerWeb(targetDate, seatKey);
                     }
                     break;
@@ -4543,6 +4641,7 @@ async function adminManualPunch(action) {
 
     const targetDate = new Date().toISOString().split('T')[0];
     const now = new Date();
+    const nowMs = Date.now();
     let hours = now.getHours();
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12 || 12; 
@@ -4576,16 +4675,23 @@ async function adminManualPunch(action) {
         // 1. Push attendance log
         await firebase.database().ref('attendance_logs').push().set(logPayload);
         
-        // 🚨 NEW: Instantly update Last Attendance profile field globally
+        // 2. Instantly update Last Attendance profile field globally
         student.lastAttendance = targetDate;
         await atomicUpdateById('students', student.id, student);
+
+        // 3. Sync student's mobile screen punch state (_punch_status)
+        await firebase.database().ref(`live_seating/${targetDate}/_punch_status/${student.id}`).set({
+            state: action === 'ENTRY' ? 'PUNCHED_IN' : 'PUNCHED_OUT',
+            batch: batch,
+            punchInTimeMs: nowMs,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
         
-        // 2. Handle Live Seating & _active_pcs Unlock/Lock
+        // 4. Handle Live Seating & _active_pcs Unlock/Lock
         if (action === 'ENTRY' && selectedSystem !== 'none' && batch !== 'Unassigned') {
             await firebase.database().ref(`live_seating/${targetDate}/${batch}/${selectedSystem}`).set(student.id);
 
             if (selectedSystem.startsWith('practical-seat-')) {
-                const nowMs = Date.now();
                 const pcRef = firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${selectedSystem}`);
                 await pcRef.child(`slots/${batch}`).set({
                     studentId: student.id,
@@ -4618,8 +4724,9 @@ async function adminManualPunch(action) {
             const bSeats = bSnap.val() || {};
             for (const [seatKey, sId] of Object.entries(bSeats)) {
                 if (sId === student.id) {
+                    await firebase.database().ref(`live_seating/${targetDate}/${batch}/${seatKey}`).remove();
                     if (seatKey.startsWith('practical-seat-')) {
-                        await firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}/slots/${batch}/status`).set('PUNCHED_OUT');
+                        await firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}/slots/${batch}`).remove();
                         await recalculateActivePcOwnerWeb(targetDate, seatKey);
                     }
                     break;
