@@ -4191,7 +4191,7 @@ async function loadDailyAttendanceTracker() {
     }
 }
 
-// 🖥️ RENDER TOP REMOTE CONTROL PANEL FOR E1 - E10
+// 🖥️ RENDER TOP REMOTE CONTROL PANEL FOR E1 - E10 (WITH REMOTE USB UNLOCKING)
 function renderLivePcControlPanel(targetDate) {
     const gridEl = document.getElementById('live-pc-control-grid');
     if (!gridEl) return;
@@ -4204,6 +4204,7 @@ function renderLivePcControlPanel(targetDate) {
         const seatLabel = `E${i}`;
         const pcInfo = activePcs[seatKey] || {};
         const isUnlocked = pcInfo.state === 'UNLOCKED';
+        const isUsbAllowed = pcInfo.usbAllowed === true;
         const occupantName = pcInfo.activeStudentName ? String(pcInfo.activeStudentName).split(' ')[0] : (isUnlocked ? 'Admin' : 'Locked');
         const occupantBatch = pcInfo.activeBatch ? `${pcInfo.activeBatch}` : '';
 
@@ -4219,6 +4220,11 @@ function renderLivePcControlPanel(targetDate) {
         const btnText = isUnlocked ? 'Lock' : 'Unlock';
         const nextState = isUnlocked ? 'LOCKED' : 'UNLOCKED';
 
+        const usbBtnClass = isUsbAllowed
+            ? 'bg-cyan-500 hover:bg-cyan-600 text-slate-950'
+            : 'bg-slate-700 hover:bg-slate-600 text-slate-300';
+        const usbText = isUsbAllowed ? '🔌 USB: ON' : '🚫 USB: OFF';
+
         gridEl.innerHTML += `
             <div class="p-2 rounded-xl border ${cardBg} flex flex-col justify-between items-center text-center transition-all">
                 <div class="flex items-center justify-between w-full px-1">
@@ -4229,11 +4235,40 @@ function renderLivePcControlPanel(targetDate) {
                     <p class="text-[10px] font-extrabold text-white truncate" title="${pcInfo.activeStudentName || ''}">${occupantName}</p>
                     <p class="text-[8px] font-bold uppercase tracking-wider opacity-75 truncate">${occupantBatch || (isUnlocked ? 'Manual' : 'Idle')}</p>
                 </div>
-                <button type="button" onclick="toggleAdminPcLock('${targetDate}', '${seatKey}', '${nextState}')" class="w-full py-1 px-1.5 rounded-lg text-[10px] font-extrabold ${btnClass} transition-colors shadow-sm flex items-center justify-center gap-1 cursor-pointer">
-                    <i class="fa-solid ${btnIcon}"></i> ${btnText}
-                </button>
+                <div class="w-full space-y-1">
+                    <button type="button" onclick="toggleAdminPcLock('${targetDate}', '${seatKey}', '${nextState}')" class="w-full py-1 px-1.5 rounded-lg text-[10px] font-extrabold ${btnClass} transition-colors shadow-sm flex items-center justify-center gap-1 cursor-pointer">
+                        <i class="fa-solid ${btnIcon}"></i> ${btnText}
+                    </button>
+                    <button type="button" onclick="toggleAdminUsbLock('${targetDate}', '${seatKey}', ${!isUsbAllowed})" class="w-full py-1 px-1 rounded-lg text-[9px] font-extrabold ${usbBtnClass} transition-colors shadow-sm flex items-center justify-center cursor-pointer" title="Remotely Allow or Block USB Pendrives & Mobile Phones on ${seatLabel}">
+                        ${usbText}
+                    </button>
+                </div>
             </div>
         `;
+    }
+}
+
+// 🔌 REMOTE USB PENDRIVE & MOBILE ACCESS TOGGLE (PER PC)
+async function toggleAdminUsbLock(targetDate, seatKey, allowUsb) {
+    const seatLabel = seatKey.replace('practical-seat-', 'E');
+    const pcRef = firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}`);
+    try {
+        const payload = {
+            seatKey: seatKey,
+            usbAllowed: allowUsb,
+            usbUpdatedAt: firebase.database.ServerValue.TIMESTAMP,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        };
+        await pcRef.update(payload);
+        if (!currentLiveSeating['_active_pcs']) currentLiveSeating['_active_pcs'] = {};
+        currentLiveSeating['_active_pcs'][seatKey] = {
+            ...(currentLiveSeating['_active_pcs'][seatKey] || {}),
+            ...payload
+        };
+        renderLivePcControlPanel(targetDate);
+        renderAttendanceUI(targetDate);
+    } catch (e) {
+        alert(`Failed to toggle USB state for ${seatLabel}: ` + e.message);
     }
 }
 
@@ -4258,7 +4293,6 @@ async function toggleAdminPcLock(targetDate, seatKey, targetState, studentId = n
                 updatedAt: firebase.database.ServerValue.TIMESTAMP
             };
 
-            // If unlocking for a specific student, also sync their batch slot so mobile & PC stay in lockstep
             if (studentId && batch && batch !== 'Unassigned') {
                 await pcRef.child(`slots/${batch}`).set({
                     studentId: studentId,
@@ -4278,12 +4312,10 @@ async function toggleAdminPcLock(targetDate, seatKey, targetState, studentId = n
             if (!currentLiveSeating['_active_pcs']) currentLiveSeating['_active_pcs'] = {};
             currentLiveSeating['_active_pcs'][seatKey] = { ...(currentLiveSeating['_active_pcs'][seatKey] || {}), ...payload };
         } else {
-            // Check if any paired-batch student slots exist on this PC
             const existingPc = (currentLiveSeating['_active_pcs'] && currentLiveSeating['_active_pcs'][seatKey]) || {};
             const hasSlots = existingPc.slots && Object.keys(existingPc.slots).length > 0;
 
             if (!hasSlots) {
-                // 0-Byte Storage: Delete node completely if no student slots are attached
                 await pcRef.remove();
                 if (currentLiveSeating['_active_pcs']) delete currentLiveSeating['_active_pcs'][seatKey];
             } else {
@@ -4294,6 +4326,8 @@ async function toggleAdminPcLock(targetDate, seatKey, targetState, studentId = n
                     activeStudentName: null,
                     activeBatch: null,
                     adminOverride: false,
+                    usbAllowed: false,
+                    usbUpdatedAt: firebase.database.ServerValue.TIMESTAMP,
                     updatedAt: firebase.database.ServerValue.TIMESTAMP
                 };
                 await pcRef.update(payload);
@@ -4338,7 +4372,7 @@ async function adminUnlockAllPcs(targetState) {
             const existingPc = activePcs[seatKey] || {};
             const hasSlots = existingPc.slots && Object.keys(existingPc.slots).length > 0;
             if (!hasSlots) {
-                updates[seatKey] = null; // Completely deletes idle PC node (0 bytes)
+                updates[seatKey] = null;
             } else {
                 updates[`${seatKey}/seatKey`] = seatKey;
                 updates[`${seatKey}/state`] = 'LOCKED';
@@ -4346,6 +4380,8 @@ async function adminUnlockAllPcs(targetState) {
                 updates[`${seatKey}/activeStudentName`] = null;
                 updates[`${seatKey}/activeBatch`] = null;
                 updates[`${seatKey}/adminOverride`] = false;
+                updates[`${seatKey}/usbAllowed`] = false;
+                updates[`${seatKey}/usbUpdatedAt`] = firebase.database.ServerValue.TIMESTAMP;
                 updates[`${seatKey}/updatedAt`] = firebase.database.ServerValue.TIMESTAMP;
             }
         }
@@ -4522,6 +4558,11 @@ function renderAttendanceUI(targetDate) {
                 }
             }
 
+            const isUsbAllowedOnSeat = pcStateObj && pcStateObj.usbAllowed === true;
+            const usbBtnHtml = (rawSeatKey && rawSeatKey.startsWith('practical-seat-'))
+                ? `<button onclick="toggleAdminUsbLock('${targetDate}', '${rawSeatKey}', ${!isUsbAllowedOnSeat})" class="px-2 py-0.5 ${isUsbAllowedOnSeat ? 'bg-cyan-500 text-slate-950' : 'bg-slate-200 text-slate-700'} hover:opacity-85 rounded-md text-[10px] font-extrabold transition-colors shadow-sm" title="Toggle USB Pendrive & Mobile Access on ${claimedSeat}">${isUsbAllowedOnSeat ? '🔌 USB ON' : '🚫 USB OFF'}</button>`
+                : '';
+
             const unlockBtnHtml = (rawSeatKey && rawSeatKey.startsWith('practical-seat-'))
                 ? (isCurrentlyUnlockedForStudent
                     ? `<button onclick="toggleAdminPcLock('${targetDate}', '${rawSeatKey}', 'LOCKED')" class="px-2 py-0.5 bg-emerald-500 hover:bg-rose-500 text-white rounded-md text-[10px] font-extrabold transition-colors shadow-sm" title="PC is Unlocked for this student. Click to Lock."><i class="fa-solid fa-lock-open mr-1"></i>Unlocked</button>`
@@ -4529,9 +4570,10 @@ function renderAttendanceUI(targetDate) {
                 : '';
 
             const seatBadge = claimedSeat !== 'None'
-                ? `<div class="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700">
+                ? `<div class="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700 flex-wrap">
                        <i class="fa-solid fa-computer"></i> ${claimedSeat}
                        ${unlockBtnHtml}
+                       ${usbBtnHtml}
                        <button onclick="unassignLiveSeat('${targetDate}', '${r.batch}', '${claimedSeat}')" class="text-slate-400 hover:text-rose-600 ml-1" title="Unassign Seat"><i class="fa-solid fa-circle-xmark"></i></button>
                    </div>`
                 : `<span class="text-slate-400 text-xs italic font-medium">Unassigned</span>`;
