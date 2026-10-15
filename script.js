@@ -4395,6 +4395,31 @@ async function adminUnlockAllPcs(targetState) {
     }
 }
 
+// 🔌 REMOTE ALLOW / BLOCK USB ON ALL 10 PCs AT ONCE
+async function adminUsbAllPcs(allowUsb) {
+    const dateInput = document.getElementById('attendance-date-filter');
+    const targetDate = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().split('T')[0];
+    const actionLabel = allowUsb ? 'ALLOW USB & Mobile Access' : 'BLOCK USB & Mobile Access';
+
+    if (!confirm(`Are you sure you want to remotely ${actionLabel} on all 10 Lab Computers (E1 - E10)?`)) return;
+
+    const updates = {};
+    for (let i = 1; i <= 10; i++) {
+        const seatKey = `practical-seat-${i}`;
+        updates[`${seatKey}/seatKey`] = seatKey;
+        updates[`${seatKey}/usbAllowed`] = allowUsb;
+        updates[`${seatKey}/usbUpdatedAt`] = firebase.database.ServerValue.TIMESTAMP;
+        updates[`${seatKey}/updatedAt`] = firebase.database.ServerValue.TIMESTAMP;
+    }
+
+    try {
+        await firebase.database().ref(`live_seating/${targetDate}/_active_pcs`).update(updates);
+        await loadDailyAttendanceTracker();
+    } catch (e) {
+        alert("Failed to update USB state on all PCs: " + e.message);
+    }
+}
+
 // 🔄 TIME-AWARE HANDOVER HELPER: Filters out expired ghost batches & auto-deletes empty nodes
 async function recalculateActivePcOwnerWeb(targetDate, seatKey) {
     const pcRef = firebase.database().ref(`live_seating/${targetDate}/_active_pcs/${seatKey}`);
