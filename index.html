@@ -618,6 +618,72 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- 📱 NEW: MOBILE APP SIDE DRAWER & QUICK LINKS MANAGER -->
+                            <div class="bg-indigo-50/50 p-4 sm:p-6 rounded-2xl border border-indigo-100 mt-4 space-y-5">
+                                <h4 class="font-bold text-indigo-900 flex items-center text-xs sm:text-sm">
+                                    <i class="fa-solid fa-table-columns mr-2 text-indigo-600"></i> Mobile App Side Drawer (Quick Links & Socials)
+                                </h4>
+
+                                <!-- 1. Add Custom Quick Link -->
+                                <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm space-y-3">
+                                    <p class="text-[11px] font-extrabold text-indigo-700 uppercase tracking-wider">Add Custom Quick Link to Side Drawer</p>
+                                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                                        <div class="sm:col-span-4">
+                                            <label class="form-label text-[11px] text-slate-600">Link Title</label>
+                                            <input type="text" id="set-quicklink-title" class="form-input bg-slate-50 border-slate-200 w-full rounded-xl p-2.5 text-xs font-bold" placeholder="e.g. Odia Typing Test">
+                                        </div>
+                                        <div class="sm:col-span-5">
+                                            <label class="form-label text-[11px] text-slate-600">Target URL</label>
+                                            <input type="url" id="set-quicklink-url" class="form-input bg-slate-50 border-slate-200 w-full rounded-xl p-2.5 text-xs font-semibold" placeholder="https://...">
+                                        </div>
+                                        <div class="sm:col-span-3">
+                                            <label class="form-label text-[11px] text-slate-600">Icon Style</label>
+                                            <select id="set-quicklink-icon" class="form-input bg-slate-50 border-slate-200 w-full rounded-xl p-2.5 text-xs font-bold text-indigo-700 cursor-pointer">
+                                                <option value="link">🔗 Web Link</option>
+                                                <option value="book">📚 Study / Notes</option>
+                                                <option value="exam">📝 Exam / Quiz</option>
+                                                <option value="video">🎬 Video / Class</option>
+                                                <option value="whatsapp">💬 WhatsApp / Chat</option>
+                                                <option value="download">⬇️ Download</option>
+                                                <option value="job">💼 Job / Career</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="addSidebarQuickLink()" class="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all cursor-pointer">
+                                        <i class="fa-solid fa-plus mr-1.5"></i> Add Quick Link
+                                    </button>
+
+                                    <!-- Active Quick Links List -->
+                                    <div class="pt-3 border-t border-slate-100">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Active Drawer Quick Links</p>
+                                        <div id="set-sidebar-links-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1"></div>
+                                    </div>
+                                </div>
+
+                                <!-- 2. Bottom Social & Map App Icons URLs -->
+                                <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
+                                    <p class="text-[11px] font-extrabold text-indigo-700 uppercase tracking-wider mb-3">Side Drawer Footer App Icons (Leave blank for defaults)</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="form-label text-[11px] text-rose-600"><i class="fa-brands fa-youtube mr-1"></i> YouTube Channel URL</label>
+                                            <input type="url" id="set-youtube-url" class="form-input bg-slate-50 border-slate-200 w-full rounded-xl p-2.5 text-xs" placeholder="https://www.youtube.com/@Excellent_Institute">
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-[11px] text-pink-600"><i class="fa-brands fa-instagram mr-1"></i> Instagram Profile URL</label>
+                                            <input type="url" id="set-instagram-url" class="form-input bg-slate-50 border-slate-200 w-full rounded-xl p-2.5 text-xs" placeholder="https://www.instagram.com/excellent._.institute/">
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-[11px] text-blue-600"><i class="fa-brands fa-facebook mr-1"></i> Facebook Page URL</label>
+                                            <input type="url" id="set-facebook-url" class="form-input bg-slate-50 border-slate-200 w-full rounded-xl p-2.5 text-xs" placeholder="https://www.facebook.com/Excellent.Institute01">
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-[11px] text-emerald-600"><i class="fa-solid fa-location-dot mr-1"></i> Google Maps Campus URL</label>
+                                            <input type="url" id="set-maps-url" class="form-input bg-slate-50 border-slate-200 w-full rounded-xl p-2.5 text-xs" placeholder="https://maps.app.goo.gl/EwfJjWYEYPiZeLZk6">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             
                             <button type="submit" id="btn-save-settings" class="w-full py-3.5 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all cursor-pointer text-base sm:text-lg transform hover:-translate-y-0.5 active:translate-y-0">Save Configuration</button>
                         </form>
