@@ -1050,6 +1050,20 @@ function populateSettings() {
         qrPreview.classList.add('hidden');
         qrIcon.classList.remove('hidden');
     }
+    // 📱 Load Welcome Home Side Drawer Social URLs & Quick Links
+    const ytEl = document.getElementById('set-youtube-url');
+    if (ytEl) ytEl.value = appData.settings.youtubeUrl || 'https://www.youtube.com/@Excellent_Institute';
+
+    const igEl = document.getElementById('set-instagram-url');
+    if (igEl) igEl.value = appData.settings.instagramUrl || 'https://www.instagram.com/excellent._.institute/';
+
+    const fbEl = document.getElementById('set-facebook-url');
+    if (fbEl) fbEl.value = appData.settings.facebookUrl || 'https://www.facebook.com/Excellent.Institute01';
+
+    const mapEl = document.getElementById('set-maps-url');
+    if (mapEl) mapEl.value = appData.settings.mapsUrl || 'https://maps.app.goo.gl/EwfJjWYEYPiZeLZk6';
+
+    renderSidebarLinksAdmin();
 }
 
 function previewQRCode(event) {
@@ -1108,6 +1122,17 @@ function submitSettings(e) {
     appData.settings.enableRewardedAds = allowRewardedAds;
     appData.settings.ccBannerAds = allowCCBannerAds;
     appData.settings.ccInterstitialAds = allowCCInterstitialAds;
+
+    // 📱 Save Welcome Home Side Drawer Social URLs
+    const ytEl = document.getElementById('set-youtube-url');
+    const igEl = document.getElementById('set-instagram-url');
+    const fbEl = document.getElementById('set-facebook-url');
+    const mapEl = document.getElementById('set-maps-url');
+
+    appData.settings.youtubeUrl = (ytEl && ytEl.value.trim()) ? ytEl.value.trim() : 'https://www.youtube.com/@Excellent_Institute';
+    appData.settings.instagramUrl = (igEl && igEl.value.trim()) ? igEl.value.trim() : 'https://www.instagram.com/excellent._.institute/';
+    appData.settings.facebookUrl = (fbEl && fbEl.value.trim()) ? fbEl.value.trim() : 'https://www.facebook.com/Excellent.Institute01';
+    appData.settings.mapsUrl = (mapEl && mapEl.value.trim()) ? mapEl.value.trim() : 'https://maps.app.goo.gl/EwfJjWYEYPiZeLZk6';
     
     if (pendingQRCodeBase64) {
         appData.settings.qrCodeUrl = pendingQRCodeBase64;
@@ -1119,6 +1144,112 @@ function submitSettings(e) {
         syncLocalCache();
         alert("Settings Saved Successfully to Cloud!");
     });
+}
+
+// =========================================================
+// 📱 MOBILE APP SIDE DRAWER QUICK LINKS MANAGER
+// Syncs directly with appState.data['settings']['sidebarLinks'] in Flutter
+// =========================================================
+function getNormalizedSidebarLinks() {
+    if (!appData.settings) appData.settings = {};
+    const raw = appData.settings.sidebarLinks;
+    if (!raw) {
+        appData.settings.sidebarLinks = [];
+        return appData.settings.sidebarLinks;
+    }
+    if (Array.isArray(raw)) {
+        appData.settings.sidebarLinks = raw.filter(item => item && item.title && item.url);
+    } else if (typeof raw === 'object') {
+        appData.settings.sidebarLinks = Object.values(raw).filter(item => item && item.title && item.url);
+    } else {
+        appData.settings.sidebarLinks = [];
+    }
+    return appData.settings.sidebarLinks;
+}
+
+function renderSidebarLinksAdmin() {
+    const listEl = document.getElementById('set-sidebar-links-list');
+    if (!listEl) return;
+
+    const links = getNormalizedSidebarLinks();
+    listEl.innerHTML = '';
+
+    if (links.length === 0) {
+        listEl.innerHTML = '<p class="text-xs text-slate-400 italic py-2">No custom quick links added yet.</p>';
+        return;
+    }
+
+    const iconMap = {
+        link: 'fa-link',
+        book: 'fa-book-open',
+        exam: 'fa-pen-to-square',
+        video: 'fa-circle-play',
+        whatsapp: 'fa-comments',
+        download: 'fa-download',
+        job: 'fa-briefcase'
+    };
+
+    links.forEach((item, index) => {
+        const faIcon = iconMap[item.icon] || 'fa-link';
+        listEl.innerHTML += `
+            <div class="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+                <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                    <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs shrink-0">
+                        <i class="fa-solid ${faIcon}"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-extrabold text-slate-800 truncate">${item.title}</p>
+                        <p class="text-[10px] text-slate-400 font-medium truncate">${item.url}</p>
+                    </div>
+                </div>
+                <button type="button" onclick="deleteSidebarQuickLink(${index})" class="text-rose-400 hover:text-rose-600 p-1.5 transition-colors shrink-0" title="Remove Link">
+                    <i class="fa-solid fa-trash text-xs"></i>
+                </button>
+            </div>
+        `;
+    });
+}
+
+async function addSidebarQuickLink() {
+    const titleEl = document.getElementById('set-quicklink-title');
+    const urlEl = document.getElementById('set-quicklink-url');
+    const iconEl = document.getElementById('set-quicklink-icon');
+
+    const title = titleEl ? titleEl.value.trim() : '';
+    let url = urlEl ? urlEl.value.trim() : '';
+    const icon = iconEl ? iconEl.value : 'link';
+
+    if (!title || !url) {
+        return alert("Please enter both a Link Title and a Target URL.");
+    }
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+    }
+
+    const links = getNormalizedSidebarLinks();
+    links.push({ title: title, url: url, icon: icon });
+    appData.settings.sidebarLinks = links;
+
+    await safeWrite('settings', appData.settings);
+    syncLocalCache();
+
+    if (titleEl) titleEl.value = '';
+    if (urlEl) urlEl.value = '';
+    if (iconEl) iconEl.value = 'link';
+
+    renderSidebarLinksAdmin();
+}
+
+async function deleteSidebarQuickLink(index) {
+    if (!confirm("Remove this Quick Link from the Mobile App side drawer?")) return;
+    const links = getNormalizedSidebarLinks();
+    if (index >= 0 && index < links.length) {
+        links.splice(index, 1);
+        appData.settings.sidebarLinks = links;
+        await safeWrite('settings', appData.settings);
+        syncLocalCache();
+        renderSidebarLinksAdmin();
+    }
 }
 
 function compressImage(file, callback) {
