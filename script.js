@@ -1038,6 +1038,18 @@ function populateSettings() {
     const ccInterstitialEl = document.getElementById('set-cc-interstitial');
     if (ccInterstitialEl) ccInterstitialEl.value = appData.settings.ccInterstitialAds !== false ? "true" : "false";
 
+    const ccVaultBannerEl = document.getElementById('set-cc-vault-banner');
+    if (ccVaultBannerEl) ccVaultBannerEl.value = appData.settings.ccVaultBannerAds !== false ? "true" : "false";
+
+    const jcBannerEl = document.getElementById('set-jc-banner');
+    if (jcBannerEl) jcBannerEl.value = appData.settings.jcBannerAds !== false ? "true" : "false";
+
+    const jcInterstitialEl = document.getElementById('set-jc-interstitial');
+    if (jcInterstitialEl) jcInterstitialEl.value = appData.settings.jcInterstitialAds !== false ? "true" : "false";
+
+    const jcVaultBannerEl = document.getElementById('set-jc-vault-banner');
+    if (jcVaultBannerEl) jcVaultBannerEl.value = appData.settings.jcVaultBannerAds !== false ? "true" : "false";
+
     
     const qrPreview = document.getElementById('set-qr-preview');
     const qrIcon = document.getElementById('set-qr-icon');
@@ -1106,6 +1118,19 @@ function submitSettings(e) {
 
     const ccInterstitialEl = document.getElementById('set-cc-interstitial');
     const allowCCInterstitialAds = ccInterstitialEl ? (ccInterstitialEl.value === 'true') : true;
+
+    const ccVaultBannerEl = document.getElementById('set-cc-vault-banner');
+    const allowCCVaultBannerAds = ccVaultBannerEl ? (ccVaultBannerEl.value === 'true') : true;
+
+    const jcBannerEl = document.getElementById('set-jc-banner');
+    const allowJCBannerAds = jcBannerEl ? (jcBannerEl.value === 'true') : true;
+
+    const jcInterstitialEl = document.getElementById('set-jc-interstitial');
+    const allowJCInterstitialAds = jcInterstitialEl ? (jcInterstitialEl.value === 'true') : true;
+
+    const jcVaultBannerEl = document.getElementById('set-jc-vault-banner');
+    const allowJCVaultBannerAds = jcVaultBannerEl ? (jcVaultBannerEl.value === 'true') : true;
+
     // NEW: Extract PDF Unlock Cost
     const pdfCostEl = document.getElementById('set-pdf-unlock-cost');
     const pdfUnlockCost = pdfCostEl ? pdfCostEl.value : 5;
@@ -1122,6 +1147,10 @@ function submitSettings(e) {
     appData.settings.enableRewardedAds = allowRewardedAds;
     appData.settings.ccBannerAds = allowCCBannerAds;
     appData.settings.ccInterstitialAds = allowCCInterstitialAds;
+    appData.settings.ccVaultBannerAds = allowCCVaultBannerAds;
+    appData.settings.jcBannerAds = allowJCBannerAds;
+    appData.settings.jcInterstitialAds = allowJCInterstitialAds;
+    appData.settings.jcVaultBannerAds = allowJCVaultBannerAds;
 
     // 📱 Save Welcome Home Side Drawer Social URLs
     const ytEl = document.getElementById('set-youtube-url');
