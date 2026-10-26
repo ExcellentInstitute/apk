@@ -1050,6 +1050,15 @@ function populateSettings() {
     const jcVaultBannerEl = document.getElementById('set-jc-vault-banner');
     if (jcVaultBannerEl) jcVaultBannerEl.value = appData.settings.jcVaultBannerAds !== false ? "true" : "false";
 
+    const pcBannerEl = document.getElementById('set-pc-banner');
+    if (pcBannerEl) pcBannerEl.value = appData.settings.pcBannerAds !== false ? "true" : "false";
+
+    const pcInterstitialEl = document.getElementById('set-pc-interstitial');
+    if (pcInterstitialEl) pcInterstitialEl.value = appData.settings.pcInterstitialAds !== false ? "true" : "false";
+
+    const pcVaultBannerEl = document.getElementById('set-pc-vault-banner');
+    if (pcVaultBannerEl) pcVaultBannerEl.value = appData.settings.pcVaultBannerAds !== false ? "true" : "false";
+
     
     const qrPreview = document.getElementById('set-qr-preview');
     const qrIcon = document.getElementById('set-qr-icon');
@@ -1131,6 +1140,15 @@ function submitSettings(e) {
     const jcVaultBannerEl = document.getElementById('set-jc-vault-banner');
     const allowJCVaultBannerAds = jcVaultBannerEl ? (jcVaultBannerEl.value === 'true') : true;
 
+    const pcBannerEl = document.getElementById('set-pc-banner');
+    const allowPCBannerAds = pcBannerEl ? (pcBannerEl.value === 'true') : true;
+
+    const pcInterstitialEl = document.getElementById('set-pc-interstitial');
+    const allowPCInterstitialAds = pcInterstitialEl ? (pcInterstitialEl.value === 'true') : true;
+
+    const pcVaultBannerEl = document.getElementById('set-pc-vault-banner');
+    const allowPCVaultBannerAds = pcVaultBannerEl ? (pcVaultBannerEl.value === 'true') : true;
+
     // NEW: Extract PDF Unlock Cost
     const pdfCostEl = document.getElementById('set-pdf-unlock-cost');
     const pdfUnlockCost = pdfCostEl ? pdfCostEl.value : 5;
@@ -1151,6 +1169,9 @@ function submitSettings(e) {
     appData.settings.jcBannerAds = allowJCBannerAds;
     appData.settings.jcInterstitialAds = allowJCInterstitialAds;
     appData.settings.jcVaultBannerAds = allowJCVaultBannerAds;
+    appData.settings.pcBannerAds = allowPCBannerAds;
+    appData.settings.pcInterstitialAds = allowPCInterstitialAds;
+    appData.settings.pcVaultBannerAds = allowPCVaultBannerAds;
 
     // 📱 Save Welcome Home Side Drawer Social URLs
     const ytEl = document.getElementById('set-youtube-url');
