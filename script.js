@@ -2577,6 +2577,35 @@ function handleStudentFileUpload(event) {
     );
 }
 
+// 🎨 FOLDER ICON & CUSTOM LOGO HELPERS
+const BUILTIN_FOLDER_ICONS = [
+    'auto', 'typing', 'excel', 'word', 'ppt', 'code', 'python', 'java', 'c',
+    'web', 'tally', 'design', 'database', 'hardware', 'security', 'ai',
+    'network', 'marketing', 'computer', 'exam', 'book', 'certificate', 'folder'
+];
+
+function toggleCustomFolderIconInput(prefix) {
+    const selectEl = document.getElementById(prefix === 'hub' ? 'hub-mat-icon' : 'edit-file-icon');
+    const containerEl = document.getElementById(prefix === 'hub' ? 'hub-custom-icon-container' : 'edit-custom-icon-container');
+    if (!selectEl || !containerEl) return;
+    if (selectEl.value === 'custom') {
+        containerEl.classList.remove('hidden');
+    } else {
+        containerEl.classList.add('hidden');
+    }
+}
+
+function resolveSelectedFolderIcon(prefix) {
+    const selectEl = document.getElementById(prefix === 'hub' ? 'hub-mat-icon' : 'edit-file-icon');
+    const customEl = document.getElementById(prefix === 'hub' ? 'hub-mat-custom-icon' : 'edit-file-custom-icon');
+    if (!selectEl) return 'auto';
+    if (selectEl.value === 'custom') {
+        const customVal = customEl ? customEl.value.trim() : '';
+        return customVal ? `custom:${customVal}` : 'auto';
+    }
+    return selectEl.value || 'auto';
+}
+
 // 🚨 NEW: UI Toggler for Format Switch
 function toggleMaterialFormat() {
     const format = document.getElementById('hub-mat-format').value;
@@ -2593,7 +2622,7 @@ function toggleMaterialFormat() {
     }
 }
 
-// 🚨 ENGINEERED FIX: Dual-Mode Payload Uploader for Materials
+// 🚨 ENGINEERED FIX: Dual-Mode Payload Uploader for Materials (With Folder Icon Support)
 async function submitMaterialUpload(e) {
     e.preventDefault();
     initFileHubUploadDropdown();
@@ -2604,6 +2633,7 @@ async function submitMaterialUpload(e) {
     const title = document.getElementById('hub-mat-title').value.trim();
     const rawFolder = document.getElementById('hub-mat-folder').value.trim() || 'General';
     const target = document.getElementById('hub-mat-target').value.trim();
+    const chosenFolderIcon = isCertificate ? 'certificate' : resolveSelectedFolderIcon('hub');
     
     // Format check
     const formatEl = document.getElementById('hub-mat-format');
@@ -2656,6 +2686,18 @@ async function submitMaterialUpload(e) {
         }
 
         const finalTarget = target.split(',').map(t => t.trim().toUpperCase()).join(', ');
+
+        // If admin left icon on 'auto', inherit any existing custom icon already set on this folder in the same vault
+        let effectiveFolderIcon = chosenFolderIcon;
+        if (effectiveFolderIcon === 'auto' && Array.isArray(appData[targetNode])) {
+            const existingMatch = appData[targetNode].find(item =>
+                item && String(item.folder || '').trim().toLowerCase() === finalFolder.toLowerCase() &&
+                item.folderIcon && item.folderIcon !== 'auto'
+            );
+            if (existingMatch) {
+                effectiveFolderIcon = existingMatch.folderIcon;
+            }
+        }
         
         const newFile = {
             id: "FL" + Date.now() + "_" + Math.floor(Math.random() * 1000),
@@ -2667,6 +2709,7 @@ async function submitMaterialUpload(e) {
             size: sizeMB,
             date: new Date().toISOString().split('T')[0],
             folder: finalFolder,
+            folderIcon: effectiveFolderIcon,
             isWebPortal: isLink // Safety flag for Mobile UI
         };
         
@@ -2676,9 +2719,24 @@ async function submitMaterialUpload(e) {
         if (fbKey) {
             newFile._fbKey = fbKey;
             appData[targetNode].push(newFile);
+
+            // If an explicit icon was selected, sync it to other files in the same folder within the same node
+            if (chosenFolderIcon !== 'auto') {
+                const sameFolderFiles = appData[targetNode].filter(item =>
+                    item && item.id !== newFile.id &&
+                    String(item.folder || '').trim().toLowerCase() === finalFolder.toLowerCase() &&
+                    item.folderIcon !== chosenFolderIcon
+                );
+                for (let sibling of sameFolderFiles) {
+                    sibling.folderIcon = chosenFolderIcon;
+                    await atomicUpdateById(targetNode, sibling.id, sibling);
+                }
+            }
+
             syncLocalCache();
             e.target.reset();
             toggleMaterialUploadType();
+            toggleCustomFolderIconInput('hub');
             if (isLink) {
                 document.getElementById('hub-mat-format').value = 'file';
                 toggleMaterialFormat(); // Reset UI back to file mode
@@ -3006,6 +3064,24 @@ function openEditFileModal(fileId, sourceNode) {
     document.getElementById('edit-file-folder').value = file.folder || file.course || '';
     document.getElementById('edit-file-target').value = file.target || '';
 
+    const iconSelect = document.getElementById('edit-file-icon');
+    const customIconInput = document.getElementById('edit-file-custom-icon');
+    const savedIcon = (file.folderIcon || 'auto').trim();
+
+    if (iconSelect) {
+        if (savedIcon.startsWith('custom:')) {
+            iconSelect.value = 'custom';
+            if (customIconInput) customIconInput.value = savedIcon.substring(7);
+        } else if (BUILTIN_FOLDER_ICONS.includes(savedIcon)) {
+            iconSelect.value = savedIcon;
+            if (customIconInput) customIconInput.value = '';
+        } else {
+            iconSelect.value = 'auto';
+            if (customIconInput) customIconInput.value = '';
+        }
+        toggleCustomFolderIconInput('edit');
+    }
+
     const modal = document.getElementById('edit-file-modal');
     const content = document.getElementById('edit-file-content');
     modal.classList.remove('hidden');
@@ -3024,11 +3100,12 @@ function closeEditFileModal() {
         setTimeout(() => { 
             modal.classList.add('hidden'); 
             document.getElementById('edit-file-form').reset();
+            toggleCustomFolderIconInput('edit');
         }, 300);
     }
 }
 
-// 🛠️ STRICT FIX: Removed Optimistic UI Update from File Editing
+// 🛠️ STRICT FIX: Updates File & Syncs Folder Icon Across Matching Folder Items in the Same Vault
 async function submitEditFile(e) {
     e.preventDefault();
     const id = document.getElementById('edit-file-id').value;
@@ -3037,6 +3114,7 @@ async function submitEditFile(e) {
     const newName = document.getElementById('edit-file-name').value.trim();
     const newFolder = document.getElementById('edit-file-folder').value.trim();
     const rawTarget = document.getElementById('edit-file-target').value.trim();
+    const newFolderIcon = resolveSelectedFolderIcon('edit');
 
     const finalTarget = rawTarget.split(',').map(t => t.trim().toUpperCase()).join(', ');
 
@@ -3049,6 +3127,7 @@ async function submitEditFile(e) {
         updatedFile.name = newName;
         updatedFile.folder = newFolder;
         updatedFile.target = finalTarget;
+        updatedFile.folderIcon = newFolderIcon;
         
         if(updatedFile.title !== undefined) updatedFile.title = newName;
         if(updatedFile.filename !== undefined) updatedFile.filename = newName;
@@ -3056,12 +3135,22 @@ async function submitEditFile(e) {
 
         // 2. Await database push FIRST
         await atomicUpdateById(categoryNode, id, updatedFile);
-        
-        // 3. Update local memory safely
         Object.assign(file, updatedFile);
+
+        // 3. Keep all other items in this same folder (within the same vault) synced with the chosen folder icon
+        const sameFolderItems = fileList.filter(item =>
+            item && item.id !== id &&
+            String(item.folder || item.course || '').trim().toLowerCase() === newFolder.toLowerCase() &&
+            item.folderIcon !== newFolderIcon
+        );
+        for (let sibling of sameFolderItems) {
+            sibling.folderIcon = newFolderIcon;
+            await atomicUpdateById(categoryNode, sibling.id, sibling);
+        }
+
         syncLocalCache();
 
-        alert("File details updated successfully!");
+        alert("File & Folder Icon updated successfully!");
         closeEditFileModal();
         renderHubFiles();
     }
