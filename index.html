@@ -288,7 +288,45 @@
                                     </select>
                                 </div>
                                 <div><label class="form-label text-indigo-800 text-xs sm:text-sm">Document Title</label><input type="text" id="hub-mat-title" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. Python Chapter 1" required></div>
-                                <div><label class="form-label text-indigo-800 text-xs sm:text-sm">Folder / Section Name</label><input type="text" id="hub-mat-folder" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. BCA Sem 1, Core Java" required></div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="form-label text-indigo-800 text-xs sm:text-sm">Folder / Section Name</label>
+                                        <input type="text" id="hub-mat-folder" class="form-input bg-white w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. BCA Sem 1, Core Java" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label text-indigo-800 text-xs sm:text-sm">Folder Logo / Icon</label>
+                                        <select id="hub-mat-icon" onchange="toggleCustomFolderIconInput('hub')" class="form-input bg-white cursor-pointer font-bold text-indigo-700 w-full rounded-xl border border-indigo-200 p-2.5 sm:p-3 text-xs sm:text-sm">
+                                            <option value="auto">✨ Auto-Detect from Name</option>
+                                            <option value="typing">⌨️ Keyboard (Typing)</option>
+                                            <option value="excel">📊 Grid / Sheet (MS Excel)</option>
+                                            <option value="word">📄 Document (MS Word)</option>
+                                            <option value="ppt">📽️ Slideshow (PowerPoint)</option>
+                                            <option value="code">💻 Terminal (Programming / Code)</option>
+                                            <option value="python">🐍 Python / Scripting</option>
+                                            <option value="java">☕ Java / OOP</option>
+                                            <option value="c">⚙️ C / C++ / Microprocessor</option>
+                                            <option value="web">🌐 Web Design (HTML / CSS / JS)</option>
+                                            <option value="tally">🏛️ Tally ERP & Accounting</option>
+                                            <option value="design">🎨 Graphic Design / Photoshop</option>
+                                            <option value="database">🗄️ Database / SQL / DBMS</option>
+                                            <option value="hardware">🧠 Hardware & Operating System</option>
+                                            <option value="security">🛡️ Cybersecurity & Ethical Hacking</option>
+                                            <option value="ai">🤖 AI & Machine Learning</option>
+                                            <option value="network">🛜 Networking & Cloud</option>
+                                            <option value="marketing">📢 Digital Marketing</option>
+                                            <option value="computer">🖥️ Computer Fundamentals</option>
+                                            <option value="exam">📝 MCQ / Exam Preparation</option>
+                                            <option value="book">📚 General Study Book</option>
+                                            <option value="certificate">🎓 Certificate / Award</option>
+                                            <option value="folder">📁 Standard Special Folder</option>
+                                            <option value="custom">🖼️ Custom Image URL or Emoji...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="hub-custom-icon-container" class="hidden">
+                                    <label class="form-label text-indigo-800 text-xs sm:text-sm">Custom Logo Image URL or Emoji</label>
+                                    <input type="text" id="hub-mat-custom-icon" class="form-input bg-white border-indigo-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="Paste https://... image link OR type an emoji like 🐍">
+                                </div>
                                 <div>
                                     <label class="form-label text-indigo-800 text-xs sm:text-sm">Target Course(s) / Student Phone or ID</label>
                                     <input type="text" id="hub-mat-target" class="form-input bg-white border-indigo-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. ALL, PGDCA, DCA, CCA" required>
@@ -1532,7 +1570,45 @@
                     <input type="hidden" id="edit-file-id">
                     <input type="hidden" id="edit-file-category">
                     <div><label class="form-label text-indigo-800 text-xs sm:text-sm">File Name / Title</label><input type="text" id="edit-file-name" class="form-input bg-white border-slate-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" required></div>
-                    <div><label class="form-label text-indigo-800 text-xs sm:text-sm">Folder / Section</label><input type="text" id="edit-file-folder" class="form-input bg-white border-slate-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" required></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label text-indigo-800 text-xs sm:text-sm">Folder / Section</label>
+                            <input type="text" id="edit-file-folder" class="form-input bg-white border-slate-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" required>
+                        </div>
+                        <div>
+                            <label class="form-label text-indigo-800 text-xs sm:text-sm">Folder Logo / Icon</label>
+                            <select id="edit-file-icon" onchange="toggleCustomFolderIconInput('edit')" class="form-input bg-white cursor-pointer font-bold text-indigo-700 w-full rounded-xl border border-slate-200 p-2.5 sm:p-3 text-xs sm:text-sm">
+                                <option value="auto">✨ Auto-Detect from Name</option>
+                                <option value="typing">⌨️ Keyboard (Typing)</option>
+                                <option value="excel">📊 Grid / Sheet (MS Excel)</option>
+                                <option value="word">📄 Document (MS Word)</option>
+                                <option value="ppt">📽️ Slideshow (PowerPoint)</option>
+                                <option value="code">💻 Terminal (Programming / Code)</option>
+                                <option value="python">🐍 Python / Scripting</option>
+                                <option value="java">☕ Java / OOP</option>
+                                <option value="c">⚙️ C / C++ / Microprocessor</option>
+                                <option value="web">🌐 Web Design (HTML / CSS / JS)</option>
+                                <option value="tally">🏛️ Tally ERP & Accounting</option>
+                                <option value="design">🎨 Graphic Design / Photoshop</option>
+                                <option value="database">🗄️ Database / SQL / DBMS</option>
+                                <option value="hardware">🧠 Hardware & Operating System</option>
+                                <option value="security">🛡️ Cybersecurity & Ethical Hacking</option>
+                                <option value="ai">🤖 AI & Machine Learning</option>
+                                <option value="network">🛜 Networking & Cloud</option>
+                                <option value="marketing">📢 Digital Marketing</option>
+                                <option value="computer">🖥️ Computer Fundamentals</option>
+                                <option value="exam">📝 MCQ / Exam Preparation</option>
+                                <option value="book">📚 General Study Book</option>
+                                <option value="certificate">🎓 Certificate / Award</option>
+                                <option value="folder">📁 Standard Special Folder</option>
+                                <option value="custom">🖼️ Custom Image URL or Emoji...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="edit-custom-icon-container" class="hidden">
+                        <label class="form-label text-indigo-800 text-xs sm:text-sm">Custom Logo Image URL or Emoji</label>
+                        <input type="text" id="edit-file-custom-icon" class="form-input bg-white border-slate-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="Paste https://... image link OR type an emoji like 🐍">
+                    </div>
                     <div>
                         <label class="form-label text-indigo-800 text-xs sm:text-sm">Target Course(s) / Batch</label>
                         <input type="text" id="edit-file-target" class="form-input bg-white border-slate-200 w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm" placeholder="e.g. ALL, PGDCA, DCA" required>
