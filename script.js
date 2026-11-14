@@ -1857,10 +1857,10 @@ async function submitRegistration(e) {
 // =========================================================
 
 // Automatically scales font size down if a word/string is long so it never overflows its box
-function fitTextSize(text, maxNormalLen = 18, normalPx = 10, minPx = 7.5) {
+function fitTextSize(text, maxNormalLen = 18, normalPx = 11.2, minPx = 8.2) {
     const len = String(text || "").trim().length;
     if (len <= maxNormalLen) return `${normalPx}px`;
-    const scaled = Math.max(minPx, normalPx - ((len - maxNormalLen) * 0.18));
+    const scaled = Math.max(minPx, normalPx - ((len - maxNormalLen) * 0.2));
     return `${scaled.toFixed(1)}px`;
 }
 
@@ -1883,7 +1883,7 @@ function buildCharGridHTML(text, boxCount, watermarks = [], isFullWidth = false)
     return html;
 }
 
-// Builds a 2-row full-width 22-column character grid (44 boxes total)
+// Builds a 2-row full-width 22-column character grid (44 boxes total, preserving spaces between words)
 function buildTwoRowCharGridHTML(text, colsPerRow = 22) {
     const cleanStr = String(text || "").toUpperCase();
     const row1 = cleanStr.substring(0, colsPerRow);
@@ -1977,29 +1977,32 @@ function generateAdmissionFormPrint(st = {}) {
 
     const photoHtml = st.image
         ? `<img src="${st.image}" style="width:100%; height:100%; object-fit:cover;">`
-        : `<div style="font-size:8.5px; color:#64748b; text-align:center; padding:4px; font-weight:700; line-height:1.25;">AFFIX RECENT<br>PASSPORT SIZE<br>PHOTOGRAPH<br>(3.5cm × 4.5cm)</div>`;
+        : `<div style="font-size:9px; color:#475569; text-align:center; padding:4px; font-weight:800; line-height:1.3;">AFFIX RECENT<br>PASSPORT SIZE<br>PHOTOGRAPH<br>(3.5cm × 4.5cm)</div>`;
 
-    const courseFontSize = fitTextSize(st.course, 18, 10.5, 7.8);
-    const emailFontSize = fitTextSize(st.email, 22, 9.2, 7.2);
-    const slipNameFontSize = fitTextSize(st.name, 20, 9.5, 7.5);
+    const courseFontSize = fitTextSize(st.course, 16, 11.2, 8.2);
+    const emailFontSize = fitTextSize(st.email, 20, 10.2, 7.8);
+    const slipNameFontSize = fitTextSize(st.name, 18, 10.2, 8.0);
 
     const printContainer = document.getElementById('comprehensive-print-view');
     printContainer.innerHTML = `
         <!-- ==================== PAGE 1: OFFICIAL ADMISSION FORM ==================== -->
         <div class="ei-a4-page">
             <div class="ei-form-outer-frame">
-                <div>
+                <!-- BACKGROUND WATERMARK -->
+                <img src="logo.jpeg" class="ei-page-watermark" onerror="this.style.display='none'">
+
+                <div class="ei-page-content-layer">
                     <!-- HEADER -->
-                    <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #1e293b; padding-bottom:4px; margin-bottom:6px;">
-                        <img src="logo.jpeg" onerror="this.style.display='none'" style="width:46px; height:46px; object-fit:cover; border-radius:50%; border:1.5px solid #1e293b; shrink:0;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:2.2px solid #0f172a; padding-bottom:5px; margin-bottom:6px;">
+                        <img src="logo.jpeg" onerror="this.style.display='none'" style="width:48px; height:48px; object-fit:cover; border-radius:50%; border:1.5px solid #0f172a; shrink:0;">
                         <div style="text-align:center; flex:1; padding:0 6px;">
-                            <h1 style="font-size:17.5px; font-weight:900; color:#7f1d1d; margin:0; letter-spacing:0.03em; line-height:1.15;">EXCELLENT INSTITUTE, SURADA, GANJAM</h1>
-                            <p style="font-size:9px; font-weight:800; color:#0f172a; margin:1.5px 0 0 0;">019, TEACHERS COLONY (NEAR SBI BANK), SURADA, DIST - GANJAM, ODISHA - 761108</p>
-                            <p style="font-size:7.8px; font-weight:700; color:#334155; margin:1px 0 0 0;">MSME Reg. No.: UDYAM-OD-11-0107511 • ISO Certified Computer Education Center</p>
+                            <h1 style="font-size:19px; font-weight:900; color:#7f1d1d; margin:0; letter-spacing:0.03em; line-height:1.15;">EXCELLENT INSTITUTE, SURADA, GANJAM</h1>
+                            <p style="font-size:9.8px; font-weight:800; color:#0f172a; margin:2px 0 0 0;">019, TEACHERS COLONY (NEAR SBI BANK), SURADA, DIST - GANJAM, ODISHA - 761108</p>
+                            <p style="font-size:8.4px; font-weight:700; color:#334155; margin:1px 0 0 0;">MSME Reg. No.: UDYAM-OD-11-0107511 • ISO Certified Computer Education Center</p>
                         </div>
-                        <div style="text-align:right; font-size:8.5px; font-weight:800; color:#1e293b; min-width:85px; shrink:0;">
-                            <div>Reg. No: <span style="color:#dc2626;">${st.id || '_________'}</span></div>
-                            <div style="margin-top:2px;">Centre: <strong>EI-SRD-01</strong></div>
+                        <div style="text-align:right; font-size:9.2px; font-weight:800; color:#0f172a; min-width:90px; shrink:0;">
+                            <div>Reg. No: <span style="color:#dc2626; font-size:10.2px;">${st.id || '_________'}</span></div>
+                            <div style="margin-top:3px;">Centre: <strong>EI-SRD-01</strong></div>
                         </div>
                     </div>
 
@@ -2007,16 +2010,16 @@ function generateAdmissionFormPrint(st = {}) {
                     <div style="display:flex; justify-content:space-between; align-items:stretch; gap:8px; margin-bottom:6px;">
                         <div style="flex:1; display:flex; flex-direction:column; justify-content:space-between; min-width:0;">
                             <div style="text-align:center; margin-bottom:4px;">
-                                <span style="background:#0f172a; color:#ffffff; font-size:10px; font-weight:900; padding:3px 16px; border-radius:16px; letter-spacing:0.08em; text-transform:uppercase; display:inline-block;">Admission Cum Registration Form</span>
+                                <span style="background:#0f172a; color:#ffffff; font-size:10.8px; font-weight:900; padding:3.5px 18px; border-radius:16px; letter-spacing:0.08em; text-transform:uppercase; display:inline-block;">Admission Cum Registration Form</span>
                             </div>
-                            <div style="display:grid; grid-template-columns: 1.15fr 0.85fr; gap:5px 8px; font-size:9px; border:1px solid #94a3b8; background:#f8fafc; padding:5px 7px; border-radius:5px;">
+                            <div style="display:grid; grid-template-columns: 1.15fr 0.85fr; gap:5.5px 8px; font-size:9.8px; border:1.2px solid #475569; background:rgba(248,250,252,0.9); padding:5.5px 8px; border-radius:5px;">
                                 <div style="display:flex; align-items:baseline; min-width:0;">
                                     <span class="ei-field-label" style="margin-right:4px;">7. Course:</span>
-                                    <strong style="font-size:${courseFontSize}; color:#0f172a; border-bottom:1px dotted #334155; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.course || ' '}</strong>
+                                    <strong style="font-size:${courseFontSize}; color:#0f172a; border-bottom:1.2px dotted #0f172a; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.course || ' '}</strong>
                                 </div>
                                 <div style="display:flex; align-items:baseline; min-width:0;">
                                     <span class="ei-field-label" style="margin-right:4px;">8. Batch:</span>
-                                    <strong style="font-size:9.2px; color:#0f172a; border-bottom:1px dotted #334155; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.batch && st.batch !== 'Unassigned' ? st.batch + ' Batch' : ' '}</strong>
+                                    <strong style="font-size:10.2px; color:#0f172a; border-bottom:1.2px dotted #0f172a; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.batch && st.batch !== 'Unassigned' ? st.batch + ' Batch' : ' '}</strong>
                                 </div>
                                 <div style="display:flex; align-items:center;">
                                     <span class="ei-field-label" style="margin-right:4px;">10. Adm. Date:</span>
@@ -2024,33 +2027,33 @@ function generateAdmissionFormPrint(st = {}) {
                                 </div>
                                 <div style="display:flex; align-items:center;">
                                     <span class="ei-field-label" style="margin-right:4px;">Duration:</span>
-                                    <strong style="font-size:9.5px; border-bottom:1px dotted #334155; flex:1;">${st.duration ? st.duration + ' Months' : ' '}</strong>
+                                    <strong style="font-size:10.2px; border-bottom:1.2px dotted #0f172a; flex:1;">${st.duration ? st.duration + ' Months' : ' '}</strong>
                                 </div>
                             </div>
                         </div>
                         <!-- 6. PASSPORT PHOTO BOX -->
-                        <div style="width:28mm; height:34mm; border:1.5px solid #1e293b; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#f8fafc; shrink:0;">
+                        <div style="width:28.5mm; height:34.5mm; border:1.5px solid #0f172a; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:rgba(248,250,252,0.92); shrink:0;">
                             ${photoHtml}
                         </div>
                     </div>
 
                     <!-- BANK CHECKBOOK CHARACTER GRID FIELDS -->
-                    <div style="display:flex; flex-direction:column; gap:4.5px;">
+                    <div style="display:flex; flex-direction:column; gap:4.2px;">
                         <!-- 1. Applicant Name (2 Rows x 22 Boxes) -->
                         <div class="ei-form-row align-top">
-                            <div class="ei-label-col" style="padding-top:2px;">1. Applicant Name:<br><span style="font-size:7px; font-weight:600; color:#64748b;">(IN BLOCK LETTERS)</span></div>
+                            <div class="ei-label-col" style="padding-top:2px;">1. Applicant Name:<br><span style="font-size:7.6px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
                             <div class="ei-content-col">${buildTwoRowCharGridHTML(st.name || '', 22)}</div>
                         </div>
 
                         <!-- 2. Father's Name (2 Rows x 22 Boxes) -->
                         <div class="ei-form-row align-top">
-                            <div class="ei-label-col" style="padding-top:2px;">2. Father's Name:<br><span style="font-size:7px; font-weight:600; color:#64748b;">(IN BLOCK LETTERS)</span></div>
+                            <div class="ei-label-col" style="padding-top:2px;">2. Father's Name:<br><span style="font-size:7.6px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
                             <div class="ei-content-col">${buildTwoRowCharGridHTML(st.fatherName || '', 22)}</div>
                         </div>
 
                         <!-- 3. Mother's Name (2 Rows x 22 Boxes) -->
                         <div class="ei-form-row align-top">
-                            <div class="ei-label-col" style="padding-top:2px;">3. Mother's Name:<br><span style="font-size:7px; font-weight:600; color:#64748b;">(IN BLOCK LETTERS)</span></div>
+                            <div class="ei-label-col" style="padding-top:2px;">3. Mother's Name:<br><span style="font-size:7.6px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
                             <div class="ei-content-col">${buildTwoRowCharGridHTML(st.motherName || '', 22)}</div>
                         </div>
 
@@ -2059,7 +2062,7 @@ function generateAdmissionFormPrint(st = {}) {
                             <div class="ei-label-col">5. Date of Birth:</div>
                             <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between;">
                                 ${buildCharGridHTML(dobDigits, 8, dateWatermarks, false)}
-                                <div style="display:flex; align-items:center; font-size:9px; font-weight:800;">
+                                <div style="display:flex; align-items:center; font-size:10px; font-weight:800;">
                                     <span class="ei-field-label" style="margin-right:5px;">4. Gender:</span>
                                     Male <span class="ei-tick-box">${genMale}</span>
                                     Female <span class="ei-tick-box">${genFemale}</span>
@@ -2071,7 +2074,7 @@ function generateAdmissionFormPrint(st = {}) {
                         <!-- 16. Category -->
                         <div class="ei-form-row">
                             <div class="ei-label-col">16. Category:</div>
-                            <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between; font-size:9px; font-weight:800; border:1px solid #cbd5e1; background:#f8fafc; padding:2px 8px;">
+                            <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between; font-size:10px; font-weight:800; border:1.1px solid #334155; background:rgba(248,250,252,0.88); padding:2px 8px;">
                                 <span>GEN <span class="ei-tick-box">${isGen}</span></span>
                                 <span>OBC <span class="ei-tick-box">${isObc}</span></span>
                                 <span>SCBC <span class="ei-tick-box">${isScbc}</span></span>
@@ -2098,9 +2101,9 @@ function generateAdmissionFormPrint(st = {}) {
                             <div class="ei-label-col">14. Aadhaar No.:</div>
                             <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
                                 ${buildCharGridHTML(st.aadhaar || '', 12, [], false)}
-                                <div style="display:flex; align-items:center; flex:1; min-width:0; border:1px solid #334155; height:5.5mm; padding:0 4px; box-sizing:border-box;">
-                                    <span class="ei-field-label" style="margin-right:3px; font-size:8px;">11. Email:</span>
-                                    <span style="font-size:${emailFontSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">${st.email || ''}</span>
+                                <div style="display:flex; align-items:center; flex:1; min-width:0; border:1.1px solid #1e293b; background:rgba(255,255,255,0.88); height:5.7mm; padding:0 5px; box-sizing:border-box;">
+                                    <span class="ei-field-label" style="margin-right:4px; font-size:8.8px;">11. Email:</span>
+                                    <span style="font-size:${emailFontSize}; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">${st.email || ''}</span>
                                 </div>
                             </div>
                         </div>
@@ -2110,19 +2113,19 @@ function generateAdmissionFormPrint(st = {}) {
                             <div class="ei-label-col" style="padding-top:2px;">17. Full Address:</div>
                             <div class="ei-content-col">
                                 ${buildTwoRowCharGridHTML(st.address || '', 22)}
-                                <div style="display:flex; align-items:stretch; width:100%; border-left:1px solid #334155; border-right:1px solid #334155; border-bottom:1px solid #334155; box-sizing:border-box;">
-                                    <div style="flex:1; display:flex; align-items:center; padding:0 5px; border-right:1px solid #334155; height:5.6mm; min-width:0;">
-                                        <span class="ei-field-label" style="font-size:8px; margin-right:4px;">19. Dist:</span>
-                                        <strong style="font-size:${fitTextSize(st.district, 12, 9.2, 7.5)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.district || ''}</strong>
+                                <div style="display:flex; align-items:stretch; width:100%; border-left:1.1px solid #1e293b; border-right:1.1px solid #1e293b; border-bottom:1.1px solid #1e293b; background:rgba(255,255,255,0.88); box-sizing:border-box;">
+                                    <div style="flex:1; display:flex; align-items:center; padding:0 5px; border-right:1.1px solid #1e293b; height:5.7mm; min-width:0;">
+                                        <span class="ei-field-label" style="font-size:8.8px; margin-right:4px;">19. Dist:</span>
+                                        <strong style="font-size:${fitTextSize(st.district, 12, 10.2, 8.0)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.district || ''}</strong>
                                     </div>
-                                    <div style="flex:1; display:flex; align-items:center; padding:0 5px; border-right:1px solid #334155; height:5.6mm; min-width:0;">
-                                        <span class="ei-field-label" style="font-size:8px; margin-right:4px;">18. State:</span>
-                                        <strong style="font-size:${fitTextSize(st.state, 12, 9.2, 7.5)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.state || ''}</strong>
+                                    <div style="flex:1; display:flex; align-items:center; padding:0 5px; border-right:1.1px solid #1e293b; height:5.7mm; min-width:0;">
+                                        <span class="ei-field-label" style="font-size:8.8px; margin-right:4px;">18. State:</span>
+                                        <strong style="font-size:${fitTextSize(st.state, 12, 10.2, 8.0)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.state || ''}</strong>
                                     </div>
-                                    <div style="display:flex; align-items:center; padding-left:4px;">
-                                        <span class="ei-field-label" style="font-size:8px; margin-right:4px;">20. PIN:</span>
+                                    <div style="display:flex; align-items:center; padding-left:5px;">
+                                        <span class="ei-field-label" style="font-size:8.8px; margin-right:4px;">20. PIN:</span>
                                         <div style="display:inline-flex;">
-                                            ${String(st.pincode || '').padEnd(6, ' ').substring(0, 6).split('').map(c => `<span class="ei-char-box" style="width:5.2mm; height:5.6mm; border-left:1px solid #334155; border-top:none; border-bottom:none; border-right:none;">${c === ' ' ? ' ' : c}</span>`).join('')}
+                                            ${String(st.pincode || '').padEnd(6, ' ').substring(0, 6).split('').map(c => `<span class="ei-char-box" style="width:5.2mm; height:5.7mm; border-left:1.1px solid #1e293b; border-top:none; border-bottom:none; border-right:none;">${c === ' ' ? ' ' : c}</span>`).join('')}
                                         </div>
                                     </div>
                                 </div>
@@ -2133,21 +2136,21 @@ function generateAdmissionFormPrint(st = {}) {
                         <div class="ei-form-row align-top" style="margin-top:1px;">
                             <div class="ei-label-col" style="padding-top:2px;">15. Qualification:</div>
                             <div class="ei-content-col">
-                                <table style="width:100%; border-collapse:collapse; font-size:8.8px; text-align:center; table-layout:fixed;">
+                                <table style="width:100%; border-collapse:collapse; font-size:9.5px; text-align:center; table-layout:fixed; background:rgba(255,255,255,0.88);">
                                     <thead>
-                                        <tr style="background:#f1f5f9; font-weight:800;">
-                                            <th style="border:1px solid #334155; padding:2px; width:28%;">Exam Passed / Stream</th>
-                                            <th style="border:1px solid #334155; padding:2px; width:34%;">Board / University</th>
-                                            <th style="border:1px solid #334155; padding:2px; width:16%;">Passing Year</th>
-                                            <th style="border:1px solid #334155; padding:2px; width:22%;">% Marks / Division</th>
+                                        <tr style="background:#e2e8f0; font-weight:800;">
+                                            <th style="border:1.1px solid #1e293b; padding:2.5px; width:28%;">Exam Passed / Stream</th>
+                                            <th style="border:1.1px solid #1e293b; padding:2.5px; width:34%;">Board / University</th>
+                                            <th style="border:1.1px solid #1e293b; padding:2.5px; width:16%;">Passing Year</th>
+                                            <th style="border:1.1px solid #1e293b; padding:2.5px; width:22%;">% Marks / Division</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td style="border:1px solid #334155; padding:2.5px 4px; font-weight:800; height:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:${fitTextSize(st.education, 16, 9, 7.2)};">${st.education || ' '}</td>
-                                            <td style="border:1px solid #334155; padding:2.5px 4px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:${fitTextSize(st.eduBoard, 20, 9, 7.2)};">${st.eduBoard || ' '}</td>
-                                            <td style="border:1px solid #334155; padding:2.5px 4px; font-weight:700;">${st.eduYear || ' '}</td>
-                                            <td style="border:1px solid #334155; padding:2.5px 4px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.eduPercent || ' '}</td>
+                                            <td style="border:1.1px solid #1e293b; padding:3px 4px; font-weight:900; height:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:${fitTextSize(st.education, 15, 10.2, 8)};">${st.education || ' '}</td>
+                                            <td style="border:1.1px solid #1e293b; padding:3px 4px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:${fitTextSize(st.eduBoard, 18, 10.2, 8)};">${st.eduBoard || ' '}</td>
+                                            <td style="border:1.1px solid #1e293b; padding:3px 4px; font-weight:800; font-size:10.2px;">${st.eduYear || ' '}</td>
+                                            <td style="border:1.1px solid #1e293b; padding:3px 4px; font-weight:800; font-size:10.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.eduPercent || ' '}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -2156,108 +2159,113 @@ function generateAdmissionFormPrint(st = {}) {
                     </div>
 
                     <!-- DECLARATION & SIGNATURE ROW -->
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:6px;">
-                        <div style="font-size:8.3px; font-weight:700; color:#1e293b; max-width:52%; line-height:1.25;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:5px;">
+                        <div style="font-size:8.8px; font-weight:700; color:#0f172a; max-width:52%; line-height:1.25;">
                             <span class="ei-tick-box" style="margin-left:0;">✓</span> I hereby affirm that the particulars given above are true and I agree to abide by the Terms & Conditions of Excellent Institute (Pages 2 & 3).
                         </div>
-                        <div style="text-align:center; width:120px;">
-                            <div style="border-bottom:1px solid #0f172a; height:17px;"></div>
-                            <div style="font-size:8px; font-weight:800; margin-top:2px;">Guardian Signature (If Minor)</div>
+                        <div style="text-align:center; width:125px;">
+                            <div style="border-bottom:1.2px solid #0f172a; height:15px;"></div>
+                            <div style="font-size:8.5px; font-weight:800; margin-top:2px;">Guardian Signature (If Minor)</div>
                         </div>
-                        <div style="text-align:center; width:120px;">
-                            <div style="border-bottom:1px solid #0f172a; height:17px;"></div>
-                            <div style="font-size:8px; font-weight:800; margin-top:2px;">Applicant's Signature</div>
+                        <div style="text-align:center; width:125px;">
+                            <div style="border-bottom:1.2px solid #0f172a; height:15px;"></div>
+                            <div style="font-size:8.5px; font-weight:800; margin-top:2px;">Applicant's Signature</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- OFFICE USE ONLY / STUDENT ACKNOWLEDGEMENT SLIP -->
-                <div style="border-top:1.5px dashed #334155; padding-top:4px; margin-top:4px;">
+                <div class="ei-page-content-layer" style="border-top:1.5px dashed #0f172a; padding-top:4px; margin-top:4px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-                        <span style="font-size:8.2px; font-weight:800; text-transform:uppercase;">For Office Use Only</span>
-                        <span style="font-size:9.5px; font-weight:900; text-decoration:underline; text-transform:uppercase;">Student's Fee & Admission Acknowledgement Slip</span>
-                        <span style="font-size:8.2px; font-weight:800;">Date: ${st.date || '____/____/202__'}</span>
+                        <span style="font-size:8.8px; font-weight:800; text-transform:uppercase;">For Office Use Only</span>
+                        <span style="font-size:10.2px; font-weight:900; text-decoration:underline; text-transform:uppercase;">Student's Fee & Admission Acknowledgement Slip</span>
+                        <span style="font-size:8.8px; font-weight:800;">Date: ${st.date || '____/____/202__'}</span>
                     </div>
-                    <table style="width:100%; border-collapse:collapse; font-size:8.8px; background:#f8fafc; table-layout:fixed;">
+                    <table style="width:100%; border-collapse:collapse; font-size:9.5px; background:rgba(248,250,252,0.92); table-layout:fixed;">
                         <tbody>
                             <tr>
-                                <td style="border:1px solid #cbd5e1; padding:3px 6px; width:42%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Applicant Name: <strong style="font-size:${slipNameFontSize};">${st.name || '____________________'}</strong></td>
-                                <td style="border:1px solid #cbd5e1; padding:3px 6px; width:26%;">Reg. No: <strong>${st.id || '____________'}</strong></td>
-                                <td style="border:1px solid #cbd5e1; padding:3px 6px; width:32%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Course: <strong style="font-size:${fitTextSize(st.course, 14, 8.8, 7.2)};">${st.course || '________'} (${st.batch && st.batch !== 'Unassigned' ? st.batch : '___'})</strong></td>
+                                <td style="border:1px solid #64748b; padding:3px 6px; width:42%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Applicant Name: <strong style="font-size:${slipNameFontSize};">${st.name || '____________________'}</strong></td>
+                                <td style="border:1px solid #64748b; padding:3px 6px; width:26%;">Reg. No: <strong>${st.id || '____________'}</strong></td>
+                                <td style="border:1px solid #64748b; padding:3px 6px; width:32%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Course: <strong style="font-size:${fitTextSize(st.course, 14, 9.8, 7.8)};">${st.course || '________'} (${st.batch && st.batch !== 'Unassigned' ? st.batch : '___'})</strong></td>
                             </tr>
                             <tr>
-                                <td style="border:1px solid #cbd5e1; padding:3px 6px;">9. Total Course Fee: <strong>₹${totalFeeNum ? totalFeeNum.toLocaleString('en-IN') : '_________'}</strong></td>
-                                <td style="border:1px solid #cbd5e1; padding:3px 6px;">Advance Paid: <strong>₹${paidFeeNum ? paidFeeNum.toLocaleString('en-IN') : '_________'}</strong></td>
-                                <td style="border:1px solid #cbd5e1; padding:3px 6px;">Balance Due: <strong>₹${totalFeeNum ? balanceDueNum.toLocaleString('en-IN') : '_______'} (${st.feeType || 'Monthly'})</strong></td>
+                                <td style="border:1px solid #64748b; padding:3px 6px;">9. Total Course Fee: <strong>₹${totalFeeNum ? totalFeeNum.toLocaleString('en-IN') : '_________'}</strong></td>
+                                <td style="border:1px solid #64748b; padding:3px 6px;">Advance Paid: <strong>₹${paidFeeNum ? paidFeeNum.toLocaleString('en-IN') : '_________'}</strong></td>
+                                <td style="border:1px solid #64748b; padding:3px 6px;">Balance Due: <strong>₹${totalFeeNum ? balanceDueNum.toLocaleString('en-IN') : '_______'} (${st.feeType || 'Monthly'})</strong></td>
                             </tr>
                         </tbody>
                     </table>
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:6px; font-size:8px; font-weight:700;">
-                        <div style="line-height:1.25;">Centre Address: <strong>019, Teachers Colony, Near SBI Bank, Surada, Ganjam, Odisha - 761108</strong><br><span style="color:#dc2626;">* Note: Fees once paid are strictly non-refundable and non-transferable under any circumstances.</span></div>
-                        <div style="text-align:center; width:155px; shrink:0;">
-                            <div style="border-bottom:1px solid #0f172a; height:14px;"></div>
-                            <div style="font-weight:900; margin-top:1.5px;">Centre Director Signature & Stamp</div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:3px; font-size:8.5px; font-weight:700;">
+                        <div style="line-height:1.3;">Centre Address: <strong>019, Teachers Colony, Near SBI Bank, Surada, Ganjam, Odisha - 761108</strong><br><span style="color:#dc2626; font-weight:800;">* Note: Advance & Course Fees once paid are strictly non-refundable and non-transferable.</span></div>
+                        <div style="text-align:center; width:165px; shrink:0;">
+                            <img src="stamp.png" class="ei-digital-stamp" onerror="this.style.display='none'" alt="Institute Stamp">
+                            <div style="border-top:1.2px solid #0f172a; font-weight:900; padding-top:2px; margin-top:2px;">Centre Director Signature & Stamp</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ==================== PAGE 2: TERMS & CONDITIONS (PART I) ==================== -->
+        <!-- ==================== PAGE 2: TERMS & CONDITIONS (CLAUSES 1 TO 6) ==================== -->
         <div class="ei-a4-page">
             <div class="ei-form-outer-frame">
-                <div>
-                    <div style="text-align:center; border-bottom:2px solid #1e293b; padding-bottom:5px; margin-bottom:8px;">
-                        <h2 style="font-size:15px; font-weight:900; color:#0f172a; margin:0;">EXCELLENT INSTITUTE — TERMS, CONDITIONS & CODE OF CONDUCT</h2>
-                        <p style="font-size:8.5px; font-weight:700; color:#475569; margin:2px 0 0 0;">019, Teachers Colony, Near SBI Bank, Surada, Ganjam, Odisha - 761108 • Page 2 of 3</p>
+                <!-- BACKGROUND WATERMARK -->
+                <img src="logo.jpeg" class="ei-page-watermark" onerror="this.style.display='none'">
+
+                <div class="ei-page-content-layer">
+                    <div style="text-align:center; border-bottom:2.2px solid #0f172a; padding-bottom:6px; margin-bottom:10px;">
+                        <h2 style="font-size:16.5px; font-weight:900; color:#7f1d1d; margin:0; letter-spacing:0.02em;">EXCELLENT INSTITUTE — TERMS, CONDITIONS & CODE OF CONDUCT</h2>
+                        <p style="font-size:9.5px; font-weight:800; color:#334155; margin:2px 0 0 0;">019, Teachers Colony, Near SBI Bank, Surada, Ganjam, Odisha - 761108 • Page 2 of 3</p>
                     </div>
 
-                    <p style="font-size:9.3px; font-weight:700; color:#334155; margin-bottom:7px;">
-                        Please read the following institutional rules, financial policies, and laboratory regulations carefully before signing. These terms constitute a legally binding agreement under the <strong>Indian Contract Act, 1872</strong>:
+                    <p style="font-size:10.4px; font-weight:700; color:#0f172a; margin-bottom:9px; text-align:justify;">
+                        Please read the following institutional rules, fee policies, and computer laboratory regulations carefully before signing. Upon admission, these terms constitute a legally binding contract between the Applicant (and Guardian, if minor) and <strong>Excellent Institute</strong> under the <strong>Indian Contract Act, 1872</strong>:
                     </p>
 
                     <div class="ei-terms-clause">
-                        <strong>1. Provisional Admission & Verification:</strong> Enrollment at Excellent Institute is granted on the basis of the information and documents furnished in the Admission Form. Providing false, forged, or misleading information shall result in immediate cancellation of admission without any refund.
+                        <strong>1. Provisional Admission & Authenticity of Documents:</strong> Admission to any course at Excellent Institute is granted strictly on the basis of the information, identity proofs, and academic details furnished by the Applicant in the Admission Form. If any declaration or document is found to be false, forged, or misleading at any stage, the Institute reserves the right to cancel the admission immediately without any fee refund.
                     </div>
 
                     <div class="ei-terms-clause">
-                        <strong>2. Strict Non-Refundable & Non-Transferable Fee Policy:</strong> All fees paid to the Institute—including Registration Fee, Admission Advance, Monthly Tuition Installments, Exam Fee, and Material Charges—are <strong>strictly non-refundable, non-adjustable, and non-transferable by any means or under any circumstances</strong>. Once admitted, if an applicant discontinues the course, relocates, changes their mind, or is terminated on disciplinary grounds, no claim for a refund of advance or paid fees shall be entertained.
+                        <strong>2. Strict Non-Refundable & Non-Transferable Fee Policy:</strong> All fees paid to the Institute—including Registration Fee, Admission Advance, Monthly Tuition Installments, Examination Fee, and Study Material Charges—are <strong>100% non-refundable, non-adjustable, and non-transferable by any means or under any circumstances</strong>. Once admitted, if a student voluntarily discontinues the course, relocates, changes their mind, fails to attend classes, or is rusticated on disciplinary grounds, neither the student nor their parents/relatives can claim any refund of the advance or paid fees.
                     </div>
 
                     <div class="ei-terms-clause">
-                        <strong>3. Timely Fee Payment, Prior Intimation & Legal Recovery Action:</strong> Students enrolled under the Monthly Installment plan must clear their monthly dues on or before the scheduled due date each month. If an applicant is unable to make a payment on time due to a genuine emergency, <strong>they or their guardian must inform the Office Desk in writing prior to the due date</strong> to request a formal extension. Failure to pay dues on time without prior intimation will result in automatic suspension of Computer Lab access, portal lock, late payment surcharges, withholding of certificates, and—in cases of persistent default—formal legal recovery proceedings before the competent civil/judicial authorities.
+                        <strong>3. Monthly Fee Punctuality, Mandatory Prior Intimation & Legal Recovery Action:</strong>
+                        <br>• Students opting for the Monthly Installment plan must clear their monthly installment on or before the scheduled due date of every month.
+                        <br>• <strong>Mandatory Prior Intimation:</strong> If an Applicant faces a genuine financial or medical emergency and is unable to pay an installment on time, <strong>the Applicant or their Guardian must report to the Office Desk in writing prior to the due date</strong> to request an official date extension.
+                        <br>• <strong>Consequences of Default:</strong> Failure to clear dues without prior office intimation will result in automatic locking of the Student Mobile App & Lab Workstation, late payment surcharges, withholding of examination/certificates, and—in cases of persistent willful default—formal legal recovery proceedings and civil action under Indian law.
                     </div>
 
                     <div class="ei-terms-clause">
-                        <strong>4. Computer Laboratory Discipline & Strict Prohibition of Food/Drinks:</strong>
-                        <br>• <strong>Zero Food & Beverage Policy:</strong> Eatables, snacks, water bottles, tea/coffee, soft drinks, chewing gum, or gutkha/tobacco are <strong>strictly prohibited</strong> inside the Theory Classroom and Computer Laboratory to prevent electrical hazards and equipment damage.
-                        <br>• <strong>Hardware & Asset Liability:</strong> Students are allotted specific workstation seats (T-1 to T-10 / L-1 to L-10) and must handle monitors, CPUs, thin clients, keyboards, mice, projectors, and furniture with utmost care. Any physical breakage, tampering with network cables, or hardware damage caused intentionally or through negligence shall be recovered in full from the student/guardian.
-                        <br>• <strong>USB & Cyber Security Policy:</strong> Plugging in unauthorized personal USB pendrives, memory cards, or mobile data cables into laboratory computers is strictly barred unless remotely unlocked and authorized by the Lab Administrator.
+                        <strong>4. Computer Laboratory Discipline, Zero Food/Drink Policy & Hardware Liability:</strong>
+                        <br>• <strong>Strict Ban on Food & Beverages:</strong> Bringing eatables, snacks, water bottles, tea, coffee, soft drinks, chewing gum, or tobacco/gutkha inside the Theory Room or Computer Laboratory is <strong>strictly prohibited</strong> to prevent electrical hazards and damage to sensitive systems.
+                        <br>• <strong>Workstation Care & Damage Recovery:</strong> Students must sit only on their allotted seat number (T-1 to T-10 / L-1 to L-10). Any physical breakage, tampering with system cables/OS settings, or damage to monitors, CPUs, keyboards, mice, projectors, or furniture caused intentionally or by negligence will be recovered in full from the student/guardian.
+                        <br>• <strong>USB & Cyber Security Lock:</strong> Inserting personal USB pendrives, memory cards, or mobile data cables into lab PCs is strictly prohibited unless remotely unlocked and authorized by the Lab Administrator.
                     </div>
 
                     <div class="ei-terms-clause">
-                        <strong>5. Mandatory Mobile Applications & Digital Learning Ecosystem:</strong> During the course, applicants are required to install and use official educational mobile applications developed or prescribed by Excellent Institute (including <em>Computer Learning Hub</em>, offline programming compilers/IDEs, and digital assessment tools) on their smartphones or devices for GPS/QR attendance punch-in/out, accessing study notes, submitting assignments, and tracking fee ledgers. Students are responsible for maintaining their own device security and internet/data connectivity.
+                        <strong>5. Mandatory Mobile Applications & Digital Learning Ecosystem:</strong> During the training program, students are required to install and actively use official mobile applications prescribed or developed by Excellent Institute (including <em>Computer Learning Hub</em>, offline C/Java/Python/DBMS compilers, and digital exam portals) for GPS/QR attendance punch-in/out, reading e-notes, and tracking fee ledgers. Students are responsible for their own smartphone compatibility and mobile data connectivity.
                     </div>
 
                     <div class="ei-terms-clause">
-                        <strong>6. Attendance, Batch Timings & Punctuality:</strong> Students must attend classes strictly in their allotted batch timing. A minimum of <strong>75% attendance</strong> in both Theory and Practical Lab sessions is mandatory to qualify for final examinations and certification. Leaving the classroom without performing the mandatory Exit Punch or without faculty permission is a violation of safety norms.
-                    </div>
-
-                    <div class="ei-terms-clause">
-                        <strong>7. Institute's Absolute Right of Termination for Policy Violation or Misbehavior:</strong> Every student must maintain high standards of discipline, decency, and respect toward faculty members, administrative staff, and fellow students (especially female students). Ragging, abusive language, quarrelsome behavior, examination cheating, software piracy, or any violation of institute rules will result in <strong>immediate rustication and termination of admission</strong> at the sole discretion of the Management, without any notice or fee refund.
+                        <strong>6. Minimum 75% Attendance, Batch Timings & 15-Day Absence Rule:</strong> Students must attend classes strictly in their assigned batch slot and perform both <strong>IN Punch</strong> and <strong>OUT Punch</strong> daily. A minimum of <strong>75% attendance</strong> is compulsory to appear in the final examination. Continuous uninformed absence for more than <strong>15 consecutive days</strong> without a written leave application approved by the Centre Director will result in automatic seat forfeiture. Re-admission, if permitted, will require payment of the prescribed re-registration fee.
                     </div>
                 </div>
 
-                <!-- PAGE 2 FOOTER SIGNATURES -->
-                <div style="border-top:1.5px solid #1e293b; padding-top:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:flex-end; font-size:8.5px; font-weight:800;">
-                    <div>Page 2 of 3 — Initials / Acknowledgment of Rules (Clauses 1 to 7)</div>
-                    <div style="display:flex; gap:20px;">
-                        <div style="text-align:center; width:130px;">
-                            <div style="border-bottom:1px solid #0f172a; height:16px;"></div>
+                <!-- PAGE 2 FOOTER SIGNATURES & STAMP -->
+                <div class="ei-page-content-layer" style="border-top:1.8px solid #0f172a; padding-top:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:flex-end; font-size:9.2px; font-weight:800;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="stamp.png" class="ei-digital-stamp" style="width:28mm; height:14mm; margin:0;" onerror="this.style.display='none'" alt="Stamp">
+                        <div>Page 2 of 3 — Acknowledged & Agreed (Clauses 1 to 6)</div>
+                    </div>
+                    <div style="display:flex; gap:24px;">
+                        <div style="text-align:center; width:135px;">
+                            <div style="border-bottom:1.2px solid #0f172a; height:18px;"></div>
                             <div style="margin-top:2px;">Guardian's Signature</div>
                         </div>
-                        <div style="text-align:center; width:130px;">
-                            <div style="border-bottom:1px solid #0f172a; height:16px;"></div>
+                        <div style="text-align:center; width:135px;">
+                            <div style="border-bottom:1.2px solid #0f172a; height:18px;"></div>
                             <div style="margin-top:2px;">Applicant's Signature</div>
                         </div>
                     </div>
@@ -2265,103 +2273,111 @@ function generateAdmissionFormPrint(st = {}) {
             </div>
         </div>
 
-        <!-- ==================== PAGE 3: RISK WAIVER, MINOR CONSENT & FINAL SIGNATURES ==================== -->
+        <!-- ==================== PAGE 3: CLAUSES 7-10, MINOR CONSENT & FINAL SIGNATURES ==================== -->
         <div class="ei-a4-page">
             <div class="ei-form-outer-frame">
-                <div>
-                    <div style="text-align:center; border-bottom:2px solid #1e293b; padding-bottom:5px; margin-bottom:8px;">
-                        <h2 style="font-size:15px; font-weight:900; color:#0f172a; margin:0;">LEGAL INDEMNITY, RISK WAIVER & GUARDIAN UNDERTAKING</h2>
-                        <p style="font-size:8.5px; font-weight:700; color:#475569; margin:2px 0 0 0;">Excellent Institute, Surada, Ganjam, Odisha • Page 3 of 3</p>
+                <!-- BACKGROUND WATERMARK -->
+                <img src="logo.jpeg" class="ei-page-watermark" onerror="this.style.display='none'">
+
+                <div class="ei-page-content-layer">
+                    <div style="text-align:center; border-bottom:2.2px solid #0f172a; padding-bottom:6px; margin-bottom:8px;">
+                        <h2 style="font-size:16.5px; font-weight:900; color:#7f1d1d; margin:0; letter-spacing:0.02em;">DISCIPLINARY RIGHTS, RISK WAIVER & GUARDIAN UNDERTAKING</h2>
+                        <p style="font-size:9.5px; font-weight:800; color:#334155; margin:2px 0 0 0;">Excellent Institute, Surada, Ganjam, Odisha • Page 3 of 3</p>
                     </div>
 
                     <div class="ei-terms-clause">
-                        <strong>8. Disclosure of Risks, Limitation of Liability & Indemnity Clause:</strong>
-                        <br>• While Excellent Institute takes every reasonable precaution regarding classroom safety and electrical standards, the Applicant and their parents/relatives/guardians expressly agree that <strong>neither the Institute nor its founders, partners, or faculty can be held liable</strong> for any unforeseen personal injury, medical emergency, electrical/network outage, loss of digital data, or loss/theft of personal belongings (such as mobile phones, two-wheelers, bicycles, helmets, bags, or cash) inside or outside the institute premises.
-                        <br>• The Institute is a private skill-development and computer training center and makes no guarantee of government or private employment upon course completion.
-                        <br>• The Applicant and their family members/relatives waive any right to initiate defamatory, frivolous, or unlawful claims against the Institute and agree to indemnify the Institute against any third-party damages caused by the student's actions.
+                        <strong>7. CCTV Surveillance, Intellectual Property & Anti-Piracy Policy:</strong> For the security of students and equipment, the institute premises are under 24×7 CCTV surveillance. All digital study materials, PDFs, software tools, and video lectures provided in the app are the exclusive intellectual property of Excellent Institute. Unauthorized screen-recording, redistribution, or commercial sharing is punishable under the <strong>Information Technology Act, 2000</strong> and Indian Copyright Laws.
                     </div>
 
                     <div class="ei-terms-clause">
-                        <strong>9. Examinations, Assessment & Issuance of Certificates:</strong> Final certificates and marksheets are issued only after the student: (a) completes the prescribed course duration, (b) clears 100% of all pending course and examination fees, and (c) passes the proctored online/practical examination without any cheating flag.
+                        <strong>8. Institute's Absolute Right of Termination for Misconduct:</strong> Every student must maintain strict discipline, decorum, and respectful behavior toward faculty, staff, and fellow students (especially female students). Any act of ragging, harassment, abusive language, violence, examination malpractice/cheating, or violation of institute policies will result in <strong>immediate expulsion and termination of admission</strong> by the Management, without prior notice or any fee refund.
                     </div>
 
                     <div class="ei-terms-clause">
-                        <strong>10. Constitutional Compliance, IT Act & Legal Jurisdiction:</strong> All policies of Excellent Institute operate in strict compliance with the Constitution of India, the Indian Contract Act, 1872, and the Information Technology Act, 2000. Admissions and rules are applied uniformly without discrimination. Any dispute or legal proceeding arising out of this admission contract shall fall strictly under the exclusive jurisdiction of the courts/authorities in <strong>Surada / Bhanjanagar / Berhampur, District Ganjam, Odisha</strong>.
+                        <strong>9. Disclosure of Risks, Limitation of Liability & Indemnity Clause:</strong>
+                        <br>• The Applicant and their parents/relatives/guardians expressly agree that <strong>neither Excellent Institute nor its founders, directors, partners, or faculty can be held liable</strong> for any unforeseen personal injury, medical issue, power/internet outage, data loss, or loss/theft of personal belongings (mobile phones, bicycles, two-wheelers, helmets, bags, or cash) inside or outside the institute premises.
+                        <br>• Excellent Institute is a skill-development and computer training center and makes no guarantee of government or private employment upon course completion.
+                    </div>
+
+                    <div class="ei-terms-clause">
+                        <strong>10. Examination Eligibility, Certification & Legal Jurisdiction:</strong> Final certificates and marksheets are issued only after the student completes the course duration, clears 100% of all pending fees, and passes the proctored final examination. All policies operate in full compliance with the Constitution of India. Any dispute arising out of this admission agreement shall be subject to the exclusive jurisdiction of the courts/authorities in <strong>Surada / Bhanjanagar / Berhampur, District Ganjam, Odisha</strong>.
                     </div>
 
                     <!-- STUDENT DECLARATION BOX -->
-                    <div style="border:1.5px solid #1e293b; background:#f8fafc; padding:7px 9px; border-radius:5px; margin-top:7px;">
-                        <div style="font-size:9.5px; font-weight:900; text-transform:uppercase; color:#0f172a; margin-bottom:3px; text-decoration:underline;">
-                            Part A: Declaration by the Applicant
+                    <div style="border:1.5px solid #0f172a; background:rgba(248,250,252,0.92); padding:7px 10px; border-radius:5px; margin-top:7px;">
+                        <div style="font-size:10.2px; font-weight:900; text-transform:uppercase; color:#0f172a; margin-bottom:3px; text-decoration:underline;">
+                            Part A: Binding Declaration by the Applicant
                         </div>
-                        <p style="font-size:9.1px; line-height:1.4; margin:0; text-align:justify; color:#1e293b;">
-                            I, <strong>${st.name || '__________________________________________'}</strong>, son/daughter of <strong>${st.fatherName || '____________________________________'}</strong>, hereby declare that I have read, understood, and voluntarily accepted all the Terms, Conditions, Lab Rules, Non-Refundable Fee Policies, and Disciplinary Clauses stated across Pages 1, 2, and 3 of this document. I promise to maintain strict discipline, pay my course fees on time (or inform the office desk in advance if delayed), and abide by all instructions of the Institute Management.
+                        <p style="font-size:9.8px; line-height:1.4; margin:0; text-align:justify; color:#0f172a;">
+                            I, <strong>${st.name || '__________________________________________'}</strong>, son/daughter of <strong>${st.fatherName || '____________________________________'}</strong>, hereby declare that I have read, understood, and voluntarily accepted all the Terms, Conditions, Lab Rules, Non-Refundable Fee Policies, and Disciplinary Clauses stated across Pages 1, 2, and 3 of this document. I promise to maintain strict discipline, pay my course installments on time (or inform the office desk in advance if delayed), and abide by all instructions of the Institute Management.
                         </p>
                     </div>
 
                     <!-- MANDATORY MINOR / GUARDIAN UNDERTAKING BOX -->
-                    <div style="border:1.5px solid #7f1d1d; background:#fff1f2; padding:7px 9px; border-radius:5px; margin-top:7px;">
-                        <div style="font-size:9.5px; font-weight:900; text-transform:uppercase; color:#7f1d1d; margin-bottom:3px; text-decoration:underline;">
-                            Part B: Mandatory Consent & Financial Guarantee by Parent / Legal Guardian (Compulsory for Minors Below 18 Years)
+                    <div style="border:1.5px solid #7f1d1d; background:rgba(255,241,242,0.92); padding:7px 10px; border-radius:5px; margin-top:7px;">
+                        <div style="font-size:10.2px; font-weight:900; text-transform:uppercase; color:#7f1d1d; margin-bottom:3px; text-decoration:underline;">
+                            Part B: Mandatory Consent & Financial Guarantee by Parent / Legal Guardian (Compulsory if Applicant is Below 18 Years)
                         </div>
-                        <p style="font-size:9.1px; line-height:1.4; margin:0; text-align:justify; color:#1e293b;">
+                        <p style="font-size:9.8px; line-height:1.4; margin:0; text-align:justify; color:#0f172a;">
                             I, <strong>${st.fatherName || '__________________________________________'}</strong> (Parent / Legal Guardian of the above-named Applicant), hereby confirm that if my ward is a Minor (under 18 years of age under the Indian Majority Act, 1875), I am executing this contract on their behalf as their natural/legal guardian. I grant my full consent for my ward to enroll at <strong>Excellent Institute</strong>, install the required educational mobile applications, and attend classes. I personally guarantee the timely payment of all course fees, accept that advance/paid fees are strictly non-refundable, and assume complete legal and financial responsibility for my ward's conduct, safety, and any damages caused to institute property.
                         </p>
                     </div>
 
                     <!-- WITNESS / CHECKLIST SUMMARY TABLE -->
                     <div style="margin-top:7px;">
-                        <table style="width:100%; border-collapse:collapse; font-size:8.5px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:9.2px; background:rgba(255,255,255,0.9);">
                             <thead>
-                                <tr style="background:#e2e8f0; font-weight:800; text-align:left;">
-                                    <th style="border:1px solid #334155; padding:3px 6px;">Key Policy Checkpoint</th>
-                                    <th style="border:1px solid #334155; padding:3px 6px; text-align:center; width:80px;">Acknowledged</th>
+                                <tr style="background:#e2e8f0; font-weight:900; text-align:left;">
+                                    <th style="border:1.1px solid #1e293b; padding:3px 6px;">Mandatory Policy Checkpoint Summary</th>
+                                    <th style="border:1.1px solid #1e293b; padding:3px 6px; text-align:center; width:85px;">Accepted</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td style="border:1px solid #334155; padding:2.5px 6px;">Advance & Course Fees are 100% Non-Refundable & Non-Transferable</td>
-                                    <td style="border:1px solid #334155; padding:2.5px 6px; text-align:center; font-weight:900;">[ YES ]</td>
+                                    <td style="border:1.1px solid #1e293b; padding:3px 6px; font-weight:700;">Advance & Course Fees are 100% Non-Refundable & Non-Transferable by any means</td>
+                                    <td style="border:1.1px solid #1e293b; padding:3px 6px; text-align:center; font-weight:900;">[ YES ]</td>
                                 </tr>
                                 <tr>
-                                    <td style="border:1px solid #334155; padding:2.5px 6px;">Prior Office Intimation Mandatory Before Missing/Delaying Any Fee Installment</td>
-                                    <td style="border:1px solid #334155; padding:2.5px 6px; text-align:center; font-weight:900;">[ YES ]</td>
+                                    <td style="border:1.1px solid #1e293b; padding:3px 6px; font-weight:700;">Prior Office Intimation Mandatory Before Missing/Delaying Any Fee Installment</td>
+                                    <td style="border:1.1px solid #1e293b; padding:3px 6px; text-align:center; font-weight:900;">[ YES ]</td>
                                 </tr>
                                 <tr>
-                                    <td style="border:1px solid #334155; padding:2.5px 6px;">No Food, Water, or Drinks Allowed Inside Computer Lab; Full Liability for Hardware Damage</td>
-                                    <td style="border:1px solid #334155; padding:2.5px 6px; text-align:center; font-weight:900;">[ YES ]</td>
+                                    <td style="border:1px solid #1e293b; padding:3px 6px; font-weight:700;">No Food, Water, or Drinks Allowed Inside Computer Lab; Full Liability for Hardware Damage</td>
+                                    <td style="border:1.1px solid #1e293b; padding:3px 6px; text-align:center; font-weight:900;">[ YES ]</td>
                                 </tr>
                                 <tr>
-                                    <td style="border:1px solid #334155; padding:2.5px 6px;">Institute Holds Full Right to Terminate Admission for Indiscipline or Policy Violation</td>
-                                    <td style="border:1px solid #334155; padding:2.5px 6px; text-align:center; font-weight:900;">[ YES ]</td>
+                                    <td style="border:1.1px solid #1e293b; padding:3px 6px; font-weight:700;">Institute Holds Full Right to Terminate Admission for Indiscipline or Policy Violation</td>
+                                    <td style="border:1.1px solid #1e293b; padding:3px 6px; text-align:center; font-weight:900;">[ YES ]</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- FINAL EXECUTION & SIGNATURE BLOCKS -->
-                <div style="border-top:2px solid #1e293b; padding-top:7px; margin-top:7px;">
+                <!-- FINAL EXECUTION & SIGNATURE BLOCKS WITH DIGITAL STAMP -->
+                <div class="ei-page-content-layer" style="border-top:2px solid #0f172a; padding-top:7px; margin-top:7px;">
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; text-align:center;">
-                        <div style="border:1px solid #94a3b8; border-radius:5px; padding:6px; background:#fff;">
-                            <div style="height:28px; border-bottom:1px dashed #334155; margin-bottom:3px;"></div>
-                            <div style="font-size:8.8px; font-weight:900; color:#0f172a;">Signature of Applicant</div>
-                            <div style="font-size:7.5px; color:#475569; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Name: ${st.name || '____________________'}</div>
-                            <div style="font-size:7.5px; color:#475569;">Date: ____ / ____ / 202__</div>
+                        <div style="border:1.2px solid #475569; border-radius:5px; padding:6px; background:rgba(255,255,255,0.92); display:flex; flex-direction:column; justify-content:flex-end;">
+                            <div style="height:18mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px;"></div>
+                            <div style="font-size:9.5px; font-weight:900; color:#0f172a;">Signature of Applicant</div>
+                            <div style="font-size:8px; font-weight:700; color:#334155; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Name: ${st.name || '____________________'}</div>
+                            <div style="font-size:8px; font-weight:700; color:#334155;">Date: ____ / ____ / 202__</div>
                         </div>
 
-                        <div style="border:1px solid #94a3b8; border-radius:5px; padding:6px; background:#fff;">
-                            <div style="height:28px; border-bottom:1px dashed #334155; margin-bottom:3px;"></div>
-                            <div style="font-size:8.8px; font-weight:900; color:#7f1d1d;">Signature of Parent / Guardian</div>
-                            <div style="font-size:7.5px; color:#475569; margin-top:2px;">(Mandatory if Applicant is Minor < 18 Yrs)</div>
-                            <div style="font-size:7.5px; color:#475569;">Relation & Mob: ${st.parentPhone || '______________'}</div>
+                        <div style="border:1.2px solid #475569; border-radius:5px; padding:6px; background:rgba(255,255,255,0.92); display:flex; flex-direction:column; justify-content:flex-end;">
+                            <div style="height:18mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px;"></div>
+                            <div style="font-size:9.5px; font-weight:900; color:#7f1d1d;">Signature of Parent / Guardian</div>
+                            <div style="font-size:8px; font-weight:700; color:#334155; margin-top:2px;">(Mandatory if Applicant is Minor < 18 Yrs)</div>
+                            <div style="font-size:8px; font-weight:700; color:#334155;">Guardian Mob: ${st.parentPhone || '______________'}</div>
                         </div>
 
-                        <div style="border:1px solid #94a3b8; border-radius:5px; padding:6px; background:#fff;">
-                            <div style="height:28px; border-bottom:1px dashed #334155; margin-bottom:3px;"></div>
-                            <div style="font-size:8.8px; font-weight:900; color:#0f172a;">Authorised Signatory & Seal</div>
-                            <div style="font-size:7.5px; color:#475569; margin-top:2px;">For Excellent Institute, Surada</div>
-                            <div style="font-size:7.5px; color:#475569;">Verified By: _________________</div>
+                        <div style="border:1.2px solid #475569; border-radius:5px; padding:6px; background:rgba(255,255,255,0.92); display:flex; flex-direction:column; justify-content:flex-end;">
+                            <div style="height:18mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px; display:flex; align-items:center; justify-content:center;">
+                                <img src="stamp.png" class="ei-digital-stamp" onerror="this.style.display='none'" alt="Institute Stamp">
+                            </div>
+                            <div style="font-size:9.5px; font-weight:900; color:#0f172a;">Authorised Signatory & Seal</div>
+                            <div style="font-size:8px; font-weight:700; color:#334155; margin-top:2px;">For Excellent Institute, Surada</div>
+                            <div style="font-size:8px; font-weight:700; color:#334155;">Centre Director</div>
                         </div>
                     </div>
                 </div>
