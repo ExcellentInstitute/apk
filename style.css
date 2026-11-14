@@ -166,24 +166,131 @@ body {
     display: none; 
 }
 
+/* =========================================================
+   🖨️ 3-PAGE A4 ADMISSION FORM & BANK-CHECKBOOK GRID ENGINE
+   ========================================================= */
+.ei-a4-page {
+    width: 196mm;
+    height: 282mm;
+    margin: 0 auto;
+    padding: 2mm;
+    background: #ffffff;
+    color: #0f172a;
+    box-sizing: border-box;
+    position: relative;
+    font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+    page-break-after: always;
+    break-after: page;
+    overflow: hidden;
+}
+
+.ei-a4-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+}
+
+.ei-form-outer-frame {
+    border: 2.5px solid #1e293b;
+    outline: 1px solid #475569;
+    outline-offset: -4px;
+    padding: 4.5mm 5.5mm;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.ei-char-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0;
+}
+
+.ei-char-box {
+    width: 6.5mm;
+    height: 6.5mm;
+    border: 1px solid #334155;
+    border-right: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: #0f172a;
+    text-transform: uppercase;
+    background: #ffffff;
+    box-sizing: border-box;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.ei-char-box:last-child {
+    border-right: 1px solid #334155;
+}
+
+.ei-char-box.watermark {
+    color: #cbd5e1;
+    font-weight: 600;
+    font-size: 9px;
+}
+
+.ei-tick-box {
+    width: 4.8mm;
+    height: 4.8mm;
+    border: 1.2px solid #1e293b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+    background: #fff;
+    margin-left: 3px;
+    margin-right: 7px;
+}
+
+.ei-field-label {
+    font-size: 9.8px;
+    font-weight: 800;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.ei-terms-clause {
+    font-size: 10.1px;
+    line-height: 1.46;
+    color: #1e293b;
+    text-align: justify;
+    margin-bottom: 6.5px;
+}
+
+.ei-terms-clause strong {
+    color: #0f172a;
+    font-weight: 800;
+}
+
 @media print {
     body { 
         background: white !important; 
         overflow: visible !important; 
         height: auto !important; 
     }
-    #login-screen, #app-screen, #edit-student-modal, #delete-student-modal, #edit-transaction-modal, #crop-modal { 
+    #login-screen, #app-screen, #edit-student-modal, #delete-student-modal, #edit-transaction-modal, #crop-modal, #edit-file-modal { 
         display: none !important; 
     }
     #comprehensive-print-view { 
         display: block !important; 
         width: 100%; 
         color: black !important; 
-        padding: 10px; 
+        padding: 0; 
     }
     * { 
         -webkit-print-color-adjust: exact !important; 
         print-color-adjust: exact !important; 
     }
-    @page { margin: 1.5cm; }
+    @page { 
+        size: A4 portrait;
+        margin: 6mm; 
+    }
 }
