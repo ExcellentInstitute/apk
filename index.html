@@ -1781,7 +1781,7 @@
 
     <!-- MODAL: EDIT STUDENT -->
     <div id="edit-student-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 p-3 sm:p-4">
-        <div class="premium-card w-full max-w-3xl max-h-[90dvh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl overflow-hidden" id="edit-modal-content">
+        <div class="premium-card w-full max-w-4xl max-h-[90dvh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl overflow-hidden" id="edit-modal-content">
             <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-[1.5rem] shrink-0">
                 <h3 class="text-base sm:text-xl font-black text-slate-800 flex items-center"><i class="fa-solid fa-user-pen mr-2.5 sm:mr-3 text-indigo-600"></i> Edit Profile Details</h3>
                 <button type="button" onclick="closeEditModal()" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-xs sm:text-sm"></i></button>
@@ -1805,17 +1805,55 @@
                         <p class="text-[10px] text-slate-500 mt-2.5"><i class="fa-solid fa-circle-info"></i> Safely corrects original transactions without duplicate entries.</p>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
-                        <div><label class="form-label text-xs sm:text-sm">Full Name</label><input type="text" id="edit-name" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm" required></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-6">
+                        <div class="md:col-span-2"><label class="form-label text-xs sm:text-sm">Full Name</label><input type="text" id="edit-name" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase" required></div>
                         <div><label class="form-label text-xs sm:text-sm">Admission Date</label><input type="date" id="edit-date" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold" required></div>
-                        <div><label class="form-label text-xs sm:text-sm">Mobile Number</label><input type="tel" id="edit-phone" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold"></div>
-                        <div><label class="form-label text-xs sm:text-sm">Gender</label><select id="edit-gender" class="form-input font-medium w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm"><option value="Male">Male</option><option value="Female">Female</option></select></div>
-                        <div><label class="form-label text-xs sm:text-sm">Course</label><input type="text" id="edit-course" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm" required></div>
+                        <div><label class="form-label text-xs sm:text-sm">Gender</label><select id="edit-gender" class="form-input font-medium w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+
+                        <div class="md:col-span-2"><label class="form-label text-xs sm:text-sm">Father's Name</label><input type="text" id="edit-father-name" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase"></div>
+                        <div class="md:col-span-2"><label class="form-label text-xs sm:text-sm">Mother's Name</label><input type="text" id="edit-mother-name" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase"></div>
+
+                        <div><label class="form-label text-xs sm:text-sm">Date of Birth</label><input type="date" id="edit-dob" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold"></div>
+                        <div>
+                            <label class="form-label text-xs sm:text-sm">Category</label>
+                            <select id="edit-category" class="form-input font-medium w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm">
+                                <option value="General">General (GEN)</option>
+                                <option value="OBC">OBC</option>
+                                <option value="SCBC">SEBC / SCBC</option>
+                                <option value="SC">SC</option>
+                                <option value="ST">ST</option>
+                                <option value="Others">Others</option>
+                            </select>
+                        </div>
+                        <div><label class="form-label text-xs sm:text-sm">Mobile Number</label><input type="tel" id="edit-phone" maxlength="10" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold"></div>
+                        <div><label class="form-label text-indigo-600 text-xs sm:text-sm">Parent's Number</label><input type="tel" id="edit-parent-phone" maxlength="10" class="form-input border-indigo-100 bg-indigo-50/30 w-full rounded-xl p-2.5 text-xs sm:text-sm font-semibold" placeholder="+91"></div>
+
+                        <div class="md:col-span-2"><label class="form-label text-xs sm:text-sm">Email ID</label><input type="email" id="edit-email" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm"></div>
+                        <div class="md:col-span-2"><label class="form-label text-xs sm:text-sm">Aadhaar Number</label><input type="text" id="edit-aadhaar" maxlength="14" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-mono tracking-widest"></div>
+
+                        <div><label class="form-label text-xs sm:text-sm">Last Qualification</label><input type="text" id="edit-education" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase"></div>
+                        <div><label class="form-label text-xs sm:text-sm">Board / University</label><input type="text" id="edit-edu-board" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase"></div>
+                        <div><label class="form-label text-xs sm:text-sm">Passing Year</label><input type="text" id="edit-edu-year" maxlength="4" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold"></div>
+                        <div><label class="form-label text-xs sm:text-sm">% Marks / Division</label><input type="text" id="edit-edu-percent" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-semibold"></div>
+
+                        <div class="md:col-span-4 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                            <div><label class="form-label text-xs sm:text-sm">Full Street / Village Address</label><input type="text" id="edit-address" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase"></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div><label class="form-label text-xs sm:text-sm">District</label><input type="text" id="edit-district" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase font-semibold"></div>
+                                <div><label class="form-label text-xs sm:text-sm">State</label><input type="text" id="edit-state" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase font-semibold"></div>
+                                <div><label class="form-label text-xs sm:text-sm">PIN Code</label><input type="text" id="edit-pincode" maxlength="6" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm font-mono font-bold"></div>
+                            </div>
+                        </div>
+
+                        <div><label class="form-label text-xs sm:text-sm">Course Enrolled</label><input type="text" id="edit-course" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm uppercase" required></div>
                         <div><label class="form-label text-xs sm:text-sm">Course Duration (Months)</label><input type="number" id="edit-duration" class="form-input w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm" required></div>
+                        <div>
+                            <label class="form-label text-xs sm:text-sm">Fee Structure</label>
+                            <select id="edit-feetype" class="form-input font-medium w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select>
+                        </div>
                         
                         <div><label class="form-label text-indigo-600 text-xs sm:text-sm">Student Status</label><select id="edit-status" class="form-input font-bold text-indigo-700 bg-indigo-50 border-indigo-200 w-full rounded-xl p-2.5 text-xs sm:text-sm"><option value="Active">Active Student</option><option value="Graduated">Graduated / Alumni</option></select></div>
-                        <div><label class="form-label text-indigo-600 text-xs sm:text-sm">Parent's Number</label><input type="tel" id="edit-parent-phone" class="form-input border-indigo-100 bg-indigo-50/30 w-full rounded-xl p-2.5 text-xs sm:text-sm font-semibold" placeholder="+91"></div>
-                        <div>
+                        <div class="md:col-span-2">
                             <label class="form-label text-indigo-600 text-xs sm:text-sm">Assigned Batch</label>
                             <select id="edit-batch" class="form-input cursor-pointer border-indigo-100 bg-indigo-50/30 font-bold text-slate-700 w-full rounded-xl p-2.5 text-xs sm:text-sm">
                                 <option value="Unassigned">Unassigned</option>
@@ -1830,18 +1868,13 @@
                             </select>
                         </div>
 
-                        <div class="sm:col-span-2 md:col-span-3">
+                        <div class="md:col-span-2">
                             <label class="form-label text-xs sm:text-sm">Update Photo (Leave blank to keep current)</label>
                             <input type="file" id="edit-image" accept="image/*" class="w-full text-xs sm:text-sm text-slate-500 file:mr-3 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl" onchange="openCropModal(event, 'edit')">
                         </div>
-                        
-                        <div class="sm:col-span-2 md:col-span-3">
-                            <label class="form-label text-xs sm:text-sm">Fee Structure</label>
-                            <select id="edit-feetype" class="form-input font-medium w-full rounded-xl border border-slate-200 p-2.5 text-xs sm:text-sm"><option value="Monthly">Monthly</option><option value="One-Time">One-Time</option></select>
-                        </div>
 
                         <!-- DUE OVERRIDES SECTION -->
-                        <div class="sm:col-span-2 md:col-span-3 bg-rose-50/50 p-4 sm:p-5 rounded-xl border border-rose-100 mt-2">
+                        <div class="md:col-span-4 bg-rose-50/50 p-4 sm:p-5 rounded-xl border border-rose-100 mt-2">
                             <h4 class="text-xs font-bold text-rose-600 mb-3 uppercase tracking-wider"><i class="fa-solid fa-lock mr-2"></i> Current Due Overrides (Optional)</h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div><label class="form-label text-rose-800 text-xs sm:text-sm">Custom Due Amount (₹)</label><input type="number" id="edit-custom-due" class="form-input bg-white border-rose-200 w-full rounded-xl p-2.5 text-xs sm:text-sm" placeholder="e.g. 1000"></div>
