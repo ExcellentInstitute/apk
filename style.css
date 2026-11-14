@@ -167,18 +167,19 @@ body {
 }
 
 /* =========================================================
-   🖨️ 3-PAGE A4 ADMISSION FORM & BANK-CHECKBOOK GRID ENGINE
+   🖨️ PRECISION A4 3-PAGE ADMISSION FORM & CHECKBOOK GRID
    ========================================================= */
 .ei-a4-page {
-    width: 196mm;
-    height: 282mm;
+    width: 210mm;
+    height: 296mm;
     margin: 0 auto;
-    padding: 2mm;
+    padding: 6.5mm 8mm;
     background: #ffffff;
     color: #0f172a;
     box-sizing: border-box;
     position: relative;
     font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+    line-height: 1.25;
     page-break-after: always;
     break-after: page;
     overflow: hidden;
@@ -190,10 +191,11 @@ body {
 }
 
 .ei-form-outer-frame {
-    border: 2.5px solid #1e293b;
+    border: 2px solid #1e293b;
     outline: 1px solid #475569;
-    outline-offset: -4px;
-    padding: 4.5mm 5.5mm;
+    outline-offset: -3.5px;
+    padding: 4mm 5mm;
+    width: 100%;
     height: 100%;
     box-sizing: border-box;
     display: flex;
@@ -201,68 +203,122 @@ body {
     justify-content: space-between;
 }
 
-.ei-char-grid {
+/* Row Layout: Fixed Left Label + Fluid Right Content */
+.ei-form-row {
     display: flex;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ei-form-row.align-top {
+    align-items: flex-start;
+}
+
+.ei-label-col {
+    flex: 0 0 32mm;
+    width: 32mm;
+    font-size: 9.2px;
+    font-weight: 800;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+    padding-right: 2mm;
+    box-sizing: border-box;
+}
+
+.ei-content-col {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Full-Width 22-Column Checkbook Grid (Auto-fits 100% width) */
+.ei-char-grid-full {
+    display: grid;
+    grid-template-columns: repeat(22, minmax(0, 1fr));
+    width: 100%;
+    border-top: 1px solid #334155;
+    border-left: 1px solid #334155;
+    box-sizing: border-box;
+}
+
+.ei-char-grid-full .ei-char-box {
+    width: 100%;
+    height: 5.3mm;
+    border-top: none;
+    border-left: none;
+    border-right: 1px solid #334155;
+    border-bottom: 1px solid #334155;
+}
+
+/* Inline Fixed-Count Checkbook Grid (For DOB, Mobile, PIN, Aadhaar) */
+.ei-char-grid-inline {
+    display: inline-flex;
     flex-wrap: nowrap;
-    gap: 0;
+    border-top: 1px solid #334155;
+    border-left: 1px solid #334155;
+    vertical-align: middle;
+}
+
+.ei-char-grid-inline .ei-char-box {
+    width: 5.2mm;
+    height: 5.3mm;
+    border-top: none;
+    border-left: none;
+    border-right: 1px solid #334155;
+    border-bottom: 1px solid #334155;
 }
 
 .ei-char-box {
-    width: 6.5mm;
-    height: 6.5mm;
-    border: 1px solid #334155;
-    border-right: none;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     color: #0f172a;
     text-transform: uppercase;
     background: #ffffff;
     box-sizing: border-box;
     font-family: 'Courier New', Courier, monospace;
-}
-
-.ei-char-box:last-child {
-    border-right: 1px solid #334155;
+    line-height: 1;
 }
 
 .ei-char-box.watermark {
     color: #cbd5e1;
-    font-weight: 600;
-    font-size: 9px;
+    font-weight: 700;
+    font-size: 8.5px;
 }
 
 .ei-tick-box {
-    width: 4.8mm;
-    height: 4.8mm;
+    width: 4.4mm;
+    height: 4.4mm;
     border: 1.2px solid #1e293b;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 900;
     background: #fff;
-    margin-left: 3px;
-    margin-right: 7px;
+    margin-left: 2.5px;
+    margin-right: 6px;
+    vertical-align: middle;
 }
 
 .ei-field-label {
-    font-size: 9.8px;
+    font-size: 9px;
     font-weight: 800;
     color: #1e293b;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
     white-space: nowrap;
 }
 
 .ei-terms-clause {
-    font-size: 10.1px;
-    line-height: 1.46;
+    font-size: 9.6px;
+    line-height: 1.4;
     color: #1e293b;
     text-align: justify;
-    margin-bottom: 6.5px;
+    margin-bottom: 5.5px;
 }
 
 .ei-terms-clause strong {
@@ -271,26 +327,37 @@ body {
 }
 
 @media print {
-    body { 
-        background: white !important; 
+    html, body { 
+        width: 210mm !important;
+        background: #ffffff !important; 
         overflow: visible !important; 
         height: auto !important; 
+        margin: 0 !important;
+        padding: 0 !important;
     }
     #login-screen, #app-screen, #edit-student-modal, #delete-student-modal, #edit-transaction-modal, #crop-modal, #edit-file-modal { 
         display: none !important; 
     }
     #comprehensive-print-view { 
         display: block !important; 
-        width: 100%; 
+        width: 210mm !important; 
         color: black !important; 
-        padding: 0; 
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .ei-a4-page {
+        width: 210mm !important;
+        height: 296mm !important;
+        margin: 0 !important;
+        padding: 6.5mm 8mm !important;
+        box-shadow: none !important;
     }
     * { 
         -webkit-print-color-adjust: exact !important; 
         print-color-adjust: exact !important; 
     }
     @page { 
-        size: A4 portrait;
-        margin: 6mm; 
+        size: A4 portrait; 
+        margin: 0mm; 
     }
 }
