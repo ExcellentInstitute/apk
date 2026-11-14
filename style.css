@@ -173,7 +173,7 @@ body {
     width: 210mm;
     height: 296mm;
     margin: 0 auto;
-    padding: 5.5mm 7mm;
+    padding: 4.5mm 6mm;
     background: #ffffff;
     color: #0f172a;
     box-sizing: border-box;
@@ -194,7 +194,7 @@ body {
     border: 2.2px solid #1e293b;
     outline: 1px solid #475569;
     outline-offset: -3.5px;
-    padding: 4mm 5mm;
+    padding: 3.5mm 4.5mm;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
@@ -211,8 +211,8 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 115mm;
-    height: 115mm;
+    width: 120mm;
+    height: 120mm;
     object-fit: contain;
     opacity: 0.065;
     pointer-events: none;
@@ -225,13 +225,13 @@ body {
     width: 100%;
 }
 
-/* Digital Stamp (stamp.png) Styling */
+/* Enlarged Official Digital Stamp (stamp.png) */
 .ei-digital-stamp {
-    width: 34mm;
-    height: 17.5mm;
+    width: 48mm;
+    height: 24mm;
     object-fit: contain;
     display: block;
-    margin: 0 auto -2px auto;
+    margin: 0 auto -3px auto;
     pointer-events: none;
     mix-blend-mode: multiply;
 }
@@ -249,9 +249,9 @@ body {
 }
 
 .ei-label-col {
-    flex: 0 0 33.5mm;
-    width: 33.5mm;
-    font-size: 10.2px;
+    flex: 0 0 36mm;
+    width: 36mm;
+    font-size: 12px;
     font-weight: 800;
     color: #0f172a;
     text-transform: uppercase;
@@ -278,7 +278,7 @@ body {
 
 .ei-char-grid-full .ei-char-box {
     width: 100%;
-    height: 5.7mm;
+    height: 5.6mm;
     border-top: none;
     border-left: none;
     border-right: 1.1px solid #1e293b;
@@ -296,7 +296,7 @@ body {
 
 .ei-char-grid-inline .ei-char-box {
     width: 5.2mm;
-    height: 5.7mm;
+    height: 5.6mm;
     border-top: none;
     border-left: none;
     border-right: 1.1px solid #1e293b;
@@ -307,7 +307,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11.8px;
+    font-size: 13.8px;
     font-weight: 900;
     color: #0f172a;
     text-transform: uppercase;
@@ -320,17 +320,17 @@ body {
 .ei-char-box.watermark {
     color: #94a3b8;
     font-weight: 700;
-    font-size: 9.2px;
+    font-size: 11px;
 }
 
 .ei-tick-box {
-    width: 4.7mm;
-    height: 4.7mm;
+    width: 4.8mm;
+    height: 4.8mm;
     border: 1.3px solid #0f172a;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 900;
     background: rgba(255, 255, 255, 0.9);
     margin-left: 3px;
@@ -339,7 +339,7 @@ body {
 }
 
 .ei-field-label {
-    font-size: 10px;
+    font-size: 11.8px;
     font-weight: 800;
     color: #0f172a;
     text-transform: uppercase;
@@ -347,11 +347,11 @@ body {
 }
 
 .ei-terms-clause {
-    font-size: 10.6px;
-    line-height: 1.43;
+    font-size: 12.2px;
+    line-height: 1.45;
     color: #1e293b;
     text-align: justify;
-    margin-bottom: 7px;
+    margin-bottom: 7.5px;
 }
 
 .ei-terms-clause strong {
@@ -382,7 +382,7 @@ body {
         width: 210mm !important;
         height: 296mm !important;
         margin: 0 !important;
-        padding: 5.5mm 7mm !important;
+        padding: 4.5mm 6mm !important;
         box-shadow: none !important;
     }
     * { 
