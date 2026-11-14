@@ -179,7 +179,7 @@ body {
     box-sizing: border-box;
     position: relative;
     font-family: 'Plus Jakarta Sans', Arial, sans-serif;
-    line-height: 1.28;
+    line-height: 1.3;
     page-break-after: always;
     break-after: page;
     overflow: hidden;
@@ -194,7 +194,7 @@ body {
     border: 2.2px solid #1e293b;
     outline: 1px solid #475569;
     outline-offset: -3.5px;
-    padding: 3.5mm 4.5mm;
+    padding: 3.8mm 4.8mm;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
@@ -211,8 +211,8 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 120mm;
-    height: 120mm;
+    width: 122mm;
+    height: 122mm;
     object-fit: contain;
     opacity: 0.065;
     pointer-events: none;
@@ -225,13 +225,13 @@ body {
     width: 100%;
 }
 
-/* Enlarged Official Digital Stamp (stamp.png) */
+/* Full-Scale Official Digital Stamp (stamp.png) */
 .ei-digital-stamp {
-    width: 48mm;
-    height: 24mm;
+    width: 62mm;
+    height: 32mm;
     object-fit: contain;
     display: block;
-    margin: 0 auto -3px auto;
+    margin: 0 auto -4px auto;
     pointer-events: none;
     mix-blend-mode: multiply;
 }
@@ -249,14 +249,14 @@ body {
 }
 
 .ei-label-col {
-    flex: 0 0 36mm;
-    width: 36mm;
-    font-size: 12px;
+    flex: 0 0 38mm;
+    width: 38mm;
+    font-size: 13.2px;
     font-weight: 800;
     color: #0f172a;
     text-transform: uppercase;
     letter-spacing: 0.01em;
-    line-height: 1.15;
+    line-height: 1.18;
     padding-right: 2mm;
     box-sizing: border-box;
 }
@@ -271,43 +271,43 @@ body {
     display: grid;
     grid-template-columns: repeat(22, minmax(0, 1fr));
     width: 100%;
-    border-top: 1.1px solid #1e293b;
-    border-left: 1.1px solid #1e293b;
+    border-top: 1.2px solid #1e293b;
+    border-left: 1.2px solid #1e293b;
     box-sizing: border-box;
 }
 
 .ei-char-grid-full .ei-char-box {
     width: 100%;
-    height: 5.6mm;
+    height: 6.5mm;
     border-top: none;
     border-left: none;
-    border-right: 1.1px solid #1e293b;
-    border-bottom: 1.1px solid #1e293b;
+    border-right: 1.2px solid #1e293b;
+    border-bottom: 1.2px solid #1e293b;
 }
 
 /* Inline Fixed-Count Checkbook Grid (For DOB, Mobile, PIN, Aadhaar) */
 .ei-char-grid-inline {
     display: inline-flex;
     flex-wrap: nowrap;
-    border-top: 1.1px solid #1e293b;
-    border-left: 1.1px solid #1e293b;
+    border-top: 1.2px solid #1e293b;
+    border-left: 1.2px solid #1e293b;
     vertical-align: middle;
 }
 
 .ei-char-grid-inline .ei-char-box {
-    width: 5.2mm;
-    height: 5.6mm;
+    width: 5.4mm;
+    height: 6.5mm;
     border-top: none;
     border-left: none;
-    border-right: 1.1px solid #1e293b;
-    border-bottom: 1.1px solid #1e293b;
+    border-right: 1.2px solid #1e293b;
+    border-bottom: 1.2px solid #1e293b;
 }
 
 .ei-char-box {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13.8px;
+    font-size: 15.5px;
     font-weight: 900;
     color: #0f172a;
     text-transform: uppercase;
@@ -320,26 +320,26 @@ body {
 .ei-char-box.watermark {
     color: #94a3b8;
     font-weight: 700;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .ei-tick-box {
-    width: 4.8mm;
-    height: 4.8mm;
-    border: 1.3px solid #0f172a;
+    width: 5.3mm;
+    height: 5.3mm;
+    border: 1.4px solid #0f172a;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 14.5px;
     font-weight: 900;
     background: rgba(255, 255, 255, 0.9);
     margin-left: 3px;
-    margin-right: 6px;
+    margin-right: 7px;
     vertical-align: middle;
 }
 
 .ei-field-label {
-    font-size: 11.8px;
+    font-size: 13px;
     font-weight: 800;
     color: #0f172a;
     text-transform: uppercase;
