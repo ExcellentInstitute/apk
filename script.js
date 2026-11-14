@@ -1857,10 +1857,10 @@ async function submitRegistration(e) {
 // =========================================================
 
 // Automatically scales font size down if a word/string is long so it never overflows its box
-function fitTextSize(text, maxNormalLen = 16, normalPx = 13.0, minPx = 9.5) {
+function fitTextSize(text, maxNormalLen = 16, normalPx = 14.5, minPx = 10.5) {
     const len = String(text || "").trim().length;
     if (len <= maxNormalLen) return `${normalPx}px`;
-    const scaled = Math.max(minPx, normalPx - ((len - maxNormalLen) * 0.22));
+    const scaled = Math.max(minPx, normalPx - ((len - maxNormalLen) * 0.24));
     return `${scaled.toFixed(1)}px`;
 }
 
@@ -1977,11 +1977,11 @@ function generateAdmissionFormPrint(st = {}) {
 
     const photoHtml = st.image
         ? `<img src="${st.image}" style="width:100%; height:100%; object-fit:cover;">`
-        : `<div style="font-size:10.5px; color:#475569; text-align:center; padding:4px; font-weight:800; line-height:1.3;">AFFIX RECENT<br>PASSPORT SIZE<br>PHOTOGRAPH<br>(3.5cm × 4.5cm)</div>`;
+        : `<div style="font-size:11.5px; color:#475569; text-align:center; padding:5px; font-weight:800; line-height:1.35;">AFFIX RECENT<br>PASSPORT SIZE<br>PHOTOGRAPH<br>(3.5cm × 4.5cm)</div>`;
 
-    const courseFontSize = fitTextSize(st.course, 15, 13.0, 9.5);
-    const emailFontSize = fitTextSize(st.email, 18, 12.0, 9.0);
-    const slipNameFontSize = fitTextSize(st.name, 16, 12.0, 9.5);
+    const courseFontSize = fitTextSize(st.course, 15, 14.8, 10.8);
+    const emailFontSize = fitTextSize(st.email, 18, 13.5, 10.0);
+    const slipNameFontSize = fitTextSize(st.name, 16, 13.5, 10.5);
 
     const printContainer = document.getElementById('comprehensive-print-view');
     printContainer.innerHTML = `
@@ -1993,77 +1993,77 @@ function generateAdmissionFormPrint(st = {}) {
 
                 <div class="ei-page-content-layer">
                     <!-- HEADER -->
-                    <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:2.2px solid #0f172a; padding-bottom:4px; margin-bottom:5px;">
-                        <img src="logo.jpeg" onerror="this.style.display='none'" style="width:50px; height:50px; object-fit:cover; border-radius:50%; border:1.5px solid #0f172a; shrink:0;">
-                        <div style="text-align:center; flex:1; padding:0 6px;">
-                            <h1 style="font-size:21px; font-weight:900; color:#7f1d1d; margin:0; letter-spacing:0.03em; line-height:1.12;">EXCELLENT INSTITUTE, SURADA, GANJAM</h1>
-                            <p style="font-size:11.2px; font-weight:800; color:#0f172a; margin:2px 0 0 0;">019, TEACHERS COLONY (NEAR SBI BANK), SURADA, DIST - GANJAM, ODISHA - 761108</p>
-                            <p style="font-size:10px; font-weight:700; color:#334155; margin:1px 0 0 0;">MSME Reg. No.: UDYAM-OD-11-0107511 • ISO Certified Computer Education Center</p>
+                    <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:2.4px solid #0f172a; padding-bottom:5px; margin-bottom:6px;">
+                        <img src="logo.jpeg" onerror="this.style.display='none'" style="width:56px; height:56px; object-fit:cover; border-radius:50%; border:1.8px solid #0f172a; shrink:0;">
+                        <div style="text-align:center; flex:1; padding:0 8px;">
+                            <h1 style="font-size:22.5px; font-weight:900; color:#7f1d1d; margin:0; letter-spacing:0.03em; line-height:1.12;">EXCELLENT INSTITUTE, SURADA, GANJAM</h1>
+                            <p style="font-size:12.2px; font-weight:800; color:#0f172a; margin:2.5px 0 0 0;">019, TEACHERS COLONY (NEAR SBI BANK), SURADA, DIST - GANJAM, ODISHA - 761108</p>
+                            <p style="font-size:10.8px; font-weight:700; color:#334155; margin:1.5px 0 0 0;">MSME Reg. No.: UDYAM-OD-11-0107511 • ISO Certified Computer Education Center</p>
                         </div>
-                        <div style="text-align:right; font-size:11px; font-weight:800; color:#0f172a; min-width:98px; shrink:0;">
-                            <div>Reg. No: <span style="color:#dc2626; font-size:12px;">${st.id || '_________'}</span></div>
-                            <div style="margin-top:3px;">Centre: <strong>EI-SRD-01</strong></div>
+                        <div style="text-align:right; font-size:12px; font-weight:800; color:#0f172a; min-width:105px; shrink:0;">
+                            <div>Reg. No: <span style="color:#dc2626; font-size:13.2px; font-weight:900;">${st.id || '_________'}</span></div>
+                            <div style="margin-top:4px;">Centre: <strong>EI-SRD-01</strong></div>
                         </div>
                     </div>
 
                     <!-- TOP BAR: COURSE METADATA + PASSPORT PHOTO -->
-                    <div style="display:flex; justify-content:space-between; align-items:stretch; gap:8px; margin-bottom:5px;">
+                    <div style="display:flex; justify-content:space-between; align-items:stretch; gap:9px; margin-bottom:7px;">
                         <div style="flex:1; display:flex; flex-direction:column; justify-content:space-between; min-width:0;">
-                            <div style="text-align:center; margin-bottom:3px;">
-                                <span style="background:#0f172a; color:#ffffff; font-size:12.5px; font-weight:900; padding:3px 18px; border-radius:16px; letter-spacing:0.07em; text-transform:uppercase; display:inline-block;">Admission Cum Registration Form</span>
+                            <div style="text-align:center; margin-bottom:4px;">
+                                <span style="background:#0f172a; color:#ffffff; font-size:13.5px; font-weight:900; padding:4px 22px; border-radius:18px; letter-spacing:0.07em; text-transform:uppercase; display:inline-block;">Admission Cum Registration Form</span>
                             </div>
-                            <div style="display:grid; grid-template-columns: 1.12fr 0.88fr; gap:5px 8px; font-size:11.5px; border:1.2px solid #475569; background:rgba(248,250,252,0.9); padding:5px 8px; border-radius:5px;">
+                            <div style="display:grid; grid-template-columns: 1.12fr 0.88fr; gap:7px 10px; font-size:13px; border:1.3px solid #334155; background:rgba(248,250,252,0.92); padding:7px 10px; border-radius:6px;">
                                 <div style="display:flex; align-items:baseline; min-width:0;">
-                                    <span class="ei-field-label" style="margin-right:4px;">7. Course:</span>
-                                    <strong style="font-size:${courseFontSize}; color:#0f172a; border-bottom:1.2px dotted #0f172a; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.course || ' '}</strong>
+                                    <span class="ei-field-label" style="margin-right:5px;">Course:</span>
+                                    <strong style="font-size:${courseFontSize}; color:#0f172a; border-bottom:1.3px dotted #0f172a; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.course || ' '}</strong>
                                 </div>
                                 <div style="display:flex; align-items:baseline; min-width:0;">
-                                    <span class="ei-field-label" style="margin-right:4px;">8. Batch:</span>
-                                    <strong style="font-size:12px; color:#0f172a; border-bottom:1.2px dotted #0f172a; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.batch && st.batch !== 'Unassigned' ? st.batch + ' Batch' : ' '}</strong>
+                                    <span class="ei-field-label" style="margin-right:5px;">Batch:</span>
+                                    <strong style="font-size:13.5px; color:#0f172a; border-bottom:1.3px dotted #0f172a; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.batch && st.batch !== 'Unassigned' ? st.batch + ' Batch' : ' '}</strong>
                                 </div>
                                 <div style="display:flex; align-items:center;">
-                                    <span class="ei-field-label" style="margin-right:4px;">10. Adm. Date:</span>
+                                    <span class="ei-field-label" style="margin-right:5px;">Adm. Date:</span>
                                     ${buildCharGridHTML(admDigits, 8, dateWatermarks, false)}
                                 </div>
                                 <div style="display:flex; align-items:center;">
-                                    <span class="ei-field-label" style="margin-right:4px;">Duration:</span>
-                                    <strong style="font-size:12px; border-bottom:1.2px dotted #0f172a; flex:1;">${st.duration ? st.duration + ' Months' : ' '}</strong>
+                                    <span class="ei-field-label" style="margin-right:5px;">Duration:</span>
+                                    <strong style="font-size:13.5px; border-bottom:1.3px dotted #0f172a; flex:1;">${st.duration ? st.duration + ' Months' : ' '}</strong>
                                 </div>
                             </div>
                         </div>
-                        <!-- 6. PASSPORT PHOTO BOX -->
-                        <div style="width:29mm; height:35mm; border:1.5px solid #0f172a; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:rgba(248,250,252,0.92); shrink:0;">
+                        <!-- PASSPORT PHOTO BOX -->
+                        <div style="width:31mm; height:38mm; border:1.6px solid #0f172a; border-radius:4px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:rgba(248,250,252,0.92); shrink:0;">
                             ${photoHtml}
                         </div>
                     </div>
 
-                    <!-- BANK CHECKBOOK CHARACTER GRID FIELDS -->
-                    <div style="display:flex; flex-direction:column; gap:3.8px;">
-                        <!-- 1. Applicant Name (2 Rows x 22 Boxes) -->
+                    <!-- BANK CHECKBOOK CHARACTER GRID FIELDS (NO SECTION NUMBERS) -->
+                    <div style="display:flex; flex-direction:column; gap:5.8px;">
+                        <!-- Applicant Name (2 Rows x 22 Boxes) -->
                         <div class="ei-form-row align-top">
-                            <div class="ei-label-col" style="padding-top:1px;">1. Applicant Name:<br><span style="font-size:9.2px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
+                            <div class="ei-label-col" style="padding-top:2px;">Applicant Name:<br><span style="font-size:10px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
                             <div class="ei-content-col">${buildTwoRowCharGridHTML(st.name || '', 22)}</div>
                         </div>
 
-                        <!-- 2. Father's Name (2 Rows x 22 Boxes) -->
+                        <!-- Father's Name (2 Rows x 22 Boxes) -->
                         <div class="ei-form-row align-top">
-                            <div class="ei-label-col" style="padding-top:1px;">2. Father's Name:<br><span style="font-size:9.2px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
+                            <div class="ei-label-col" style="padding-top:2px;">Father's Name:<br><span style="font-size:10px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
                             <div class="ei-content-col">${buildTwoRowCharGridHTML(st.fatherName || '', 22)}</div>
                         </div>
 
-                        <!-- 3. Mother's Name (2 Rows x 22 Boxes) -->
+                        <!-- Mother's Name (2 Rows x 22 Boxes) -->
                         <div class="ei-form-row align-top">
-                            <div class="ei-label-col" style="padding-top:1px;">3. Mother's Name:<br><span style="font-size:9.2px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
+                            <div class="ei-label-col" style="padding-top:2px;">Mother's Name:<br><span style="font-size:10px; font-weight:700; color:#475569;">(IN BLOCK LETTERS)</span></div>
                             <div class="ei-content-col">${buildTwoRowCharGridHTML(st.motherName || '', 22)}</div>
                         </div>
 
-                        <!-- 5. Date of Birth & 4. Gender -->
+                        <!-- Date of Birth & Gender -->
                         <div class="ei-form-row">
-                            <div class="ei-label-col">5. Date of Birth:</div>
+                            <div class="ei-label-col">Date of Birth:</div>
                             <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between;">
                                 ${buildCharGridHTML(dobDigits, 8, dateWatermarks, false)}
-                                <div style="display:flex; align-items:center; font-size:11.8px; font-weight:800;">
-                                    <span class="ei-field-label" style="margin-right:5px;">4. Gender:</span>
+                                <div style="display:flex; align-items:center; font-size:13px; font-weight:800;">
+                                    <span class="ei-field-label" style="margin-right:6px;">Gender:</span>
                                     Male <span class="ei-tick-box">${genMale}</span>
                                     Female <span class="ei-tick-box">${genFemale}</span>
                                     Other <span class="ei-tick-box" style="margin-right:0;">${genOther}</span>
@@ -2071,10 +2071,10 @@ function generateAdmissionFormPrint(st = {}) {
                             </div>
                         </div>
 
-                        <!-- 16. Category -->
+                        <!-- Category -->
                         <div class="ei-form-row">
-                            <div class="ei-label-col">16. Category:</div>
-                            <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between; font-size:11.8px; font-weight:800; border:1.1px solid #334155; background:rgba(248,250,252,0.88); padding:2px 8px;">
+                            <div class="ei-label-col">Category:</div>
+                            <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:800; border:1.2px solid #334155; background:rgba(248,250,252,0.88); padding:3px 10px;">
                                 <span>GEN <span class="ei-tick-box">${isGen}</span></span>
                                 <span>OBC <span class="ei-tick-box">${isObc}</span></span>
                                 <span>SCBC <span class="ei-tick-box">${isScbc}</span></span>
@@ -2084,73 +2084,73 @@ function generateAdmissionFormPrint(st = {}) {
                             </div>
                         </div>
 
-                        <!-- 12. Student Mobile & 13. Guardian Mobile -->
+                        <!-- Student Mobile & Guardian Mobile -->
                         <div class="ei-form-row">
-                            <div class="ei-label-col">12. Mobile No.:</div>
+                            <div class="ei-label-col">Mobile No.:</div>
                             <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between;">
                                 ${buildCharGridHTML(st.phone || '', 10, [], false)}
                                 <div style="display:flex; align-items:center;">
-                                    <span class="ei-field-label" style="margin-right:4px;">13. Guardian Mob:</span>
+                                    <span class="ei-field-label" style="margin-right:5px;">Guardian Mob:</span>
                                     ${buildCharGridHTML(st.parentPhone || '', 10, [], false)}
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 14. Aadhaar No. & 11. Email ID -->
+                        <!-- Aadhaar No. & Email ID -->
                         <div class="ei-form-row">
-                            <div class="ei-label-col">14. Aadhaar No.:</div>
-                            <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between; gap:5px;">
+                            <div class="ei-label-col">Aadhaar No.:</div>
+                            <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
                                 ${buildCharGridHTML(st.aadhaar || '', 12, [], false)}
-                                <div style="display:flex; align-items:center; flex:1; min-width:0; border:1.1px solid #1e293b; background:rgba(255,255,255,0.88); height:5.6mm; padding:0 5px; box-sizing:border-box;">
-                                    <span class="ei-field-label" style="margin-right:4px; font-size:10.5px;">11. Email:</span>
+                                <div style="display:flex; align-items:center; flex:1; min-width:0; border:1.2px solid #1e293b; background:rgba(255,255,255,0.88); height:6.5mm; padding:0 6px; box-sizing:border-box;">
+                                    <span class="ei-field-label" style="margin-right:5px; font-size:11.8px;">Email:</span>
                                     <span style="font-size:${emailFontSize}; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">${st.email || ''}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 17. Address (2 Rows x 22 Boxes + Attached Dist/State/Pin Row) -->
+                        <!-- Full Address (2 Rows x 22 Boxes + Attached Dist/State/Pin Row) -->
                         <div class="ei-form-row align-top">
-                            <div class="ei-label-col" style="padding-top:1px;">17. Full Address:</div>
+                            <div class="ei-label-col" style="padding-top:2px;">Full Address:</div>
                             <div class="ei-content-col">
                                 ${buildTwoRowCharGridHTML(st.address || '', 22)}
-                                <div style="display:flex; align-items:stretch; width:100%; border-left:1.1px solid #1e293b; border-right:1.1px solid #1e293b; border-bottom:1.1px solid #1e293b; background:rgba(255,255,255,0.88); box-sizing:border-box;">
-                                    <div style="flex:1; display:flex; align-items:center; padding:0 5px; border-right:1.1px solid #1e293b; height:5.6mm; min-width:0;">
-                                        <span class="ei-field-label" style="font-size:10.5px; margin-right:4px;">19. Dist:</span>
-                                        <strong style="font-size:${fitTextSize(st.district, 12, 12.0, 9.5)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.district || ''}</strong>
+                                <div style="display:flex; align-items:stretch; width:100%; border-left:1.2px solid #1e293b; border-right:1.2px solid #1e293b; border-bottom:1.2px solid #1e293b; background:rgba(255,255,255,0.88); box-sizing:border-box;">
+                                    <div style="flex:1; display:flex; align-items:center; padding:0 6px; border-right:1.2px solid #1e293b; height:6.5mm; min-width:0;">
+                                        <span class="ei-field-label" style="font-size:11.8px; margin-right:5px;">Dist:</span>
+                                        <strong style="font-size:${fitTextSize(st.district, 12, 13.5, 10.5)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.district || ''}</strong>
                                     </div>
-                                    <div style="flex:1; display:flex; align-items:center; padding:0 5px; border-right:1.1px solid #1e293b; height:5.6mm; min-width:0;">
-                                        <span class="ei-field-label" style="font-size:10.5px; margin-right:4px;">18. State:</span>
-                                        <strong style="font-size:${fitTextSize(st.state, 12, 12.0, 9.5)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.state || ''}</strong>
+                                    <div style="flex:1; display:flex; align-items:center; padding:0 6px; border-right:1.2px solid #1e293b; height:6.5mm; min-width:0;">
+                                        <span class="ei-field-label" style="font-size:11.8px; margin-right:5px;">State:</span>
+                                        <strong style="font-size:${fitTextSize(st.state, 12, 13.5, 10.5)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.state || ''}</strong>
                                     </div>
-                                    <div style="display:flex; align-items:center; padding-left:5px;">
-                                        <span class="ei-field-label" style="font-size:10.5px; margin-right:4px;">20. PIN:</span>
+                                    <div style="display:flex; align-items:center; padding-left:6px;">
+                                        <span class="ei-field-label" style="font-size:11.8px; margin-right:5px;">PIN:</span>
                                         <div style="display:inline-flex;">
-                                            ${String(st.pincode || '').padEnd(6, ' ').substring(0, 6).split('').map(c => `<span class="ei-char-box" style="width:5.2mm; height:5.6mm; border-left:1.1px solid #1e293b; border-top:none; border-bottom:none; border-right:none;">${c === ' ' ? ' ' : c}</span>`).join('')}
+                                            ${String(st.pincode || '').padEnd(6, ' ').substring(0, 6).split('').map(c => `<span class="ei-char-box" style="width:5.4mm; height:6.5mm; border-left:1.2px solid #1e293b; border-top:none; border-bottom:none; border-right:none;">${c === ' ' ? ' ' : c}</span>`).join('')}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 15. Education Qualification Table -->
+                        <!-- Educational Qualification Table -->
                         <div class="ei-form-row align-top" style="margin-top:1px;">
-                            <div class="ei-label-col" style="padding-top:2px;">15. Qualification:</div>
+                            <div class="ei-label-col" style="padding-top:3px;">Qualification:</div>
                             <div class="ei-content-col">
-                                <table style="width:100%; border-collapse:collapse; font-size:11.2px; text-align:center; table-layout:fixed; background:rgba(255,255,255,0.88);">
+                                <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:center; table-layout:fixed; background:rgba(255,255,255,0.88);">
                                     <thead>
                                         <tr style="background:#e2e8f0; font-weight:800;">
-                                            <th style="border:1.1px solid #1e293b; padding:2.5px; width:28%;">Exam Passed / Stream</th>
-                                            <th style="border:1.1px solid #1e293b; padding:2.5px; width:34%;">Board / University</th>
-                                            <th style="border:1.1px solid #1e293b; padding:2.5px; width:16%;">Passing Year</th>
-                                            <th style="border:1.1px solid #1e293b; padding:2.5px; width:22%;">% Marks / Division</th>
+                                            <th style="border:1.2px solid #1e293b; padding:3.5px; width:28%;">Exam Passed / Stream</th>
+                                            <th style="border:1.2px solid #1e293b; padding:3.5px; width:34%;">Board / University</th>
+                                            <th style="border:1.2px solid #1e293b; padding:3.5px; width:16%;">Passing Year</th>
+                                            <th style="border:1.2px solid #1e293b; padding:3.5px; width:22%;">% Marks / Division</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td style="border:1.1px solid #1e293b; padding:3px 4px; font-weight:900; height:17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:${fitTextSize(st.education, 15, 12.0, 9.5)};">${st.education || ' '}</td>
-                                            <td style="border:1.1px solid #1e293b; padding:3px 4px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:${fitTextSize(st.eduBoard, 18, 12.0, 9.5)};">${st.eduBoard || ' '}</td>
-                                            <td style="border:1.1px solid #1e293b; padding:3px 4px; font-weight:800; font-size:12px;">${st.eduYear || ' '}</td>
-                                            <td style="border:1.1px solid #1e293b; padding:3px 4px; font-weight:800; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.eduPercent || ' '}</td>
+                                            <td style="border:1.2px solid #1e293b; padding:4px 5px; font-weight:900; height:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:${fitTextSize(st.education, 15, 13.8, 10.5)};">${st.education || ' '}</td>
+                                            <td style="border:1.2px solid #1e293b; padding:4px 5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:${fitTextSize(st.eduBoard, 18, 13.8, 10.5)};">${st.eduBoard || ' '}</td>
+                                            <td style="border:1.2px solid #1e293b; padding:4px 5px; font-weight:800; font-size:13.8px;">${st.eduYear || ' '}</td>
+                                            <td style="border:1.2px solid #1e293b; padding:4px 5px; font-weight:800; font-size:13.8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${st.eduPercent || ' '}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -2159,47 +2159,47 @@ function generateAdmissionFormPrint(st = {}) {
                     </div>
 
                     <!-- DECLARATION & SIGNATURE ROW -->
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:4px;">
-                        <div style="font-size:10.5px; font-weight:700; color:#0f172a; max-width:52%; line-height:1.22;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:7px;">
+                        <div style="font-size:11.6px; font-weight:700; color:#0f172a; max-width:52%; line-height:1.3;">
                             <span class="ei-tick-box" style="margin-left:0;">✓</span> I hereby affirm that the particulars given above are true and I agree to abide by the Terms & Conditions of Excellent Institute (Pages 2 & 3).
                         </div>
-                        <div style="text-align:center; width:130px;">
-                            <div style="border-bottom:1.2px solid #0f172a; height:14px;"></div>
-                            <div style="font-size:10.2px; font-weight:800; margin-top:2px;">Guardian Signature (If Minor)</div>
+                        <div style="text-align:center; width:140px;">
+                            <div style="border-bottom:1.3px solid #0f172a; height:18px;"></div>
+                            <div style="font-size:11.2px; font-weight:800; margin-top:2px;">Guardian Signature (If Minor)</div>
                         </div>
-                        <div style="text-align:center; width:130px;">
-                            <div style="border-bottom:1.2px solid #0f172a; height:14px;"></div>
-                            <div style="font-size:10.2px; font-weight:800; margin-top:2px;">Applicant's Signature</div>
+                        <div style="text-align:center; width:140px;">
+                            <div style="border-bottom:1.3px solid #0f172a; height:18px;"></div>
+                            <div style="font-size:11.2px; font-weight:800; margin-top:2px;">Applicant's Signature</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- OFFICE USE ONLY / STUDENT ACKNOWLEDGEMENT SLIP -->
-                <div class="ei-page-content-layer" style="border-top:1.5px dashed #0f172a; padding-top:3px; margin-top:3px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2.5px;">
-                        <span style="font-size:10.5px; font-weight:800; text-transform:uppercase;">For Office Use Only</span>
-                        <span style="font-size:12px; font-weight:900; text-decoration:underline; text-transform:uppercase;">Student's Fee & Admission Acknowledgement Slip</span>
-                        <span style="font-size:10.5px; font-weight:800;">Date: ${st.date || '____/____/202__'}</span>
+                <div class="ei-page-content-layer" style="border-top:1.8px dashed #0f172a; padding-top:5px; margin-top:4px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <span style="font-size:11.5px; font-weight:800; text-transform:uppercase;">For Office Use Only</span>
+                        <span style="font-size:13.2px; font-weight:900; text-decoration:underline; text-transform:uppercase;">Student's Fee & Admission Acknowledgement Slip</span>
+                        <span style="font-size:11.5px; font-weight:800;">Date: ${st.date || '____/____/202__'}</span>
                     </div>
-                    <table style="width:100%; border-collapse:collapse; font-size:11.2px; background:rgba(248,250,252,0.92); table-layout:fixed;">
+                    <table style="width:100%; border-collapse:collapse; font-size:12.5px; background:rgba(248,250,252,0.92); table-layout:fixed;">
                         <tbody>
                             <tr>
-                                <td style="border:1px solid #64748b; padding:3px 6px; width:42%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Applicant Name: <strong style="font-size:${slipNameFontSize};">${st.name || '____________________'}</strong></td>
-                                <td style="border:1px solid #64748b; padding:3px 6px; width:26%;">Reg. No: <strong>${st.id || '____________'}</strong></td>
-                                <td style="border:1px solid #64748b; padding:3px 6px; width:32%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Course: <strong style="font-size:${fitTextSize(st.course, 14, 11.5, 9.2)};">${st.course || '________'} (${st.batch && st.batch !== 'Unassigned' ? st.batch : '___'})</strong></td>
+                                <td style="border:1.2px solid #475569; padding:4.5px 7px; width:42%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Applicant Name: <strong style="font-size:${slipNameFontSize};">${st.name || '____________________'}</strong></td>
+                                <td style="border:1.2px solid #475569; padding:4.5px 7px; width:26%;">Reg. No: <strong>${st.id || '____________'}</strong></td>
+                                <td style="border:1.2px solid #475569; padding:4.5px 7px; width:32%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Course: <strong style="font-size:${fitTextSize(st.course, 14, 13.0, 10.0)};">${st.course || '________'} (${st.batch && st.batch !== 'Unassigned' ? st.batch : '___'})</strong></td>
                             </tr>
                             <tr>
-                                <td style="border:1px solid #64748b; padding:3px 6px;">9. Total Course Fee: <strong>₹${totalFeeNum ? totalFeeNum.toLocaleString('en-IN') : '_________'}</strong></td>
-                                <td style="border:1px solid #64748b; padding:3px 6px;">Advance Paid: <strong>₹${paidFeeNum ? paidFeeNum.toLocaleString('en-IN') : '_________'}</strong></td>
-                                <td style="border:1px solid #64748b; padding:3px 6px;">Balance Due: <strong>₹${totalFeeNum ? balanceDueNum.toLocaleString('en-IN') : '_______'} (${st.feeType || 'Monthly'})</strong></td>
+                                <td style="border:1.2px solid #475569; padding:4.5px 7px;">Total Course Fee: <strong>₹${totalFeeNum ? totalFeeNum.toLocaleString('en-IN') : '_________'}</strong></td>
+                                <td style="border:1.2px solid #475569; padding:4.5px 7px;">Advance Paid: <strong>₹${paidFeeNum ? paidFeeNum.toLocaleString('en-IN') : '_________'}</strong></td>
+                                <td style="border:1.2px solid #475569; padding:4.5px 7px;">Balance Due: <strong>₹${totalFeeNum ? balanceDueNum.toLocaleString('en-IN') : '_______'} (${st.feeType || 'Monthly'})</strong></td>
                             </tr>
                         </tbody>
                     </table>
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:2px; font-size:10.2px; font-weight:700;">
-                        <div style="line-height:1.28;">Centre Address: <strong>019, Teachers Colony, Near SBI Bank, Surada, Ganjam, Odisha - 761108</strong><br><span style="color:#dc2626; font-weight:800;">* Note: Advance & Course Fees once paid are strictly non-refundable and non-transferable.</span></div>
-                        <div style="text-align:center; width:185px; shrink:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:4px; font-size:11.2px; font-weight:700;">
+                        <div style="line-height:1.35;">Centre Address: <strong>019, Teachers Colony, Near SBI Bank, Surada, Ganjam, Odisha - 761108</strong><br><span style="color:#dc2626; font-weight:800;">* Note: Advance & Course Fees once paid are strictly non-refundable and non-transferable.</span></div>
+                        <div style="text-align:center; width:205px; shrink:0;">
                             <img src="stamp.png" class="ei-digital-stamp" onerror="this.style.display='none'" alt="Institute Stamp">
-                            <div style="border-top:1.2px solid #0f172a; font-weight:900; padding-top:2px; margin-top:1px; font-size:10.5px;">Centre Director Signature & Stamp</div>
+                            <div style="border-top:1.3px solid #0f172a; font-weight:900; padding-top:2.5px; margin-top:2px; font-size:11.5px;">Centre Director Signature & Stamp</div>
                         </div>
                     </div>
                 </div>
@@ -2260,7 +2260,7 @@ function generateAdmissionFormPrint(st = {}) {
                 <!-- PAGE 2 FOOTER SIGNATURES & ENLARGED STAMP -->
                 <div class="ei-page-content-layer" style="border-top:1.8px solid #0f172a; padding-top:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:flex-end; font-size:11px; font-weight:800;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <img src="stamp.png" class="ei-digital-stamp" style="width:44mm; height:22mm; margin:0;" onerror="this.style.display='none'" alt="Stamp">
+                        <img src="stamp.png" class="ei-digital-stamp" style="width:54mm; height:28mm; margin:0;" onerror="this.style.display='none'" alt="Stamp">
                         <div>Page 2 of 3 — Acknowledged & Agreed (Clauses 1 to 7)</div>
                     </div>
                     <div style="display:flex; gap:24px;">
@@ -2358,22 +2358,22 @@ function generateAdmissionFormPrint(st = {}) {
                 <div class="ei-page-content-layer" style="border-top:2px solid #0f172a; padding-top:8px; margin-top:8px;">
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; text-align:center;">
                         <div style="border:1.2px solid #475569; border-radius:5px; padding:7px; background:rgba(255,255,255,0.92); display:flex; flex-direction:column; justify-content:flex-end;">
-                            <div style="height:24mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px;"></div>
+                            <div style="height:28mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px;"></div>
                             <div style="font-size:11.5px; font-weight:900; color:#0f172a;">Signature of Applicant</div>
                             <div style="font-size:10px; font-weight:700; color:#334155; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Name: ${st.name || '____________________'}</div>
                             <div style="font-size:10px; font-weight:700; color:#334155;">Date: ____ / ____ / 202__</div>
                         </div>
 
                         <div style="border:1.2px solid #475569; border-radius:5px; padding:7px; background:rgba(255,255,255,0.92); display:flex; flex-direction:column; justify-content:flex-end;">
-                            <div style="height:24mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px;"></div>
+                            <div style="height:28mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px;"></div>
                             <div style="font-size:11.5px; font-weight:900; color:#7f1d1d;">Signature of Parent / Guardian</div>
                             <div style="font-size:10px; font-weight:700; color:#334155; margin-top:2px;">(Mandatory if Applicant is Minor < 18 Yrs)</div>
                             <div style="font-size:10px; font-weight:700; color:#334155;">Guardian Mob: ${st.parentPhone || '______________'}</div>
                         </div>
 
                         <div style="border:1.2px solid #475569; border-radius:5px; padding:7px; background:rgba(255,255,255,0.92); display:flex; flex-direction:column; justify-content:flex-end;">
-                            <div style="height:24mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px; display:flex; align-items:center; justify-content:center;">
-                                <img src="stamp.png" class="ei-digital-stamp" onerror="this.style.display='none'" alt="Institute Stamp">
+                            <div style="height:28mm; border-bottom:1.2px dashed #0f172a; margin-bottom:4px; display:flex; align-items:center; justify-content:center;">
+                                <img src="stamp.png" class="ei-digital-stamp" style="width:60mm; height:30mm; margin:0;" onerror="this.style.display='none'" alt="Institute Stamp">
                             </div>
                             <div style="font-size:11.5px; font-weight:900; color:#0f172a;">Authorised Signatory & Seal</div>
                             <div style="font-size:10px; font-weight:700; color:#334155; margin-top:2px;">For Excellent Institute, Surada</div>
