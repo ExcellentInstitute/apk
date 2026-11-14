@@ -167,19 +167,19 @@ body {
 }
 
 /* =========================================================
-   🖨️ PRECISION A4 3-PAGE ADMISSION FORM & CHECKBOOK GRID
+   🖨️ PRECISION A4 3-PAGE ADMISSION FORM, WATERMARK & STAMP
    ========================================================= */
 .ei-a4-page {
     width: 210mm;
     height: 296mm;
     margin: 0 auto;
-    padding: 6.5mm 8mm;
+    padding: 5.5mm 7mm;
     background: #ffffff;
     color: #0f172a;
     box-sizing: border-box;
     position: relative;
     font-family: 'Plus Jakarta Sans', Arial, sans-serif;
-    line-height: 1.25;
+    line-height: 1.28;
     page-break-after: always;
     break-after: page;
     overflow: hidden;
@@ -191,7 +191,7 @@ body {
 }
 
 .ei-form-outer-frame {
-    border: 2px solid #1e293b;
+    border: 2.2px solid #1e293b;
     outline: 1px solid #475569;
     outline-offset: -3.5px;
     padding: 4mm 5mm;
@@ -201,6 +201,39 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    position: relative;
+    background: #ffffff;
+}
+
+/* Centered Background Watermark (logo.jpeg) on Every Page */
+.ei-page-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 115mm;
+    height: 115mm;
+    object-fit: contain;
+    opacity: 0.065;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.ei-page-content-layer {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+}
+
+/* Digital Stamp (stamp.png) Styling */
+.ei-digital-stamp {
+    width: 34mm;
+    height: 17.5mm;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto -2px auto;
+    pointer-events: none;
+    mix-blend-mode: multiply;
 }
 
 /* Row Layout: Fixed Left Label + Fluid Right Content */
@@ -216,11 +249,11 @@ body {
 }
 
 .ei-label-col {
-    flex: 0 0 32mm;
-    width: 32mm;
-    font-size: 9.2px;
+    flex: 0 0 33.5mm;
+    width: 33.5mm;
+    font-size: 10.2px;
     font-weight: 800;
-    color: #1e293b;
+    color: #0f172a;
     text-transform: uppercase;
     letter-spacing: 0.01em;
     line-height: 1.15;
@@ -238,87 +271,87 @@ body {
     display: grid;
     grid-template-columns: repeat(22, minmax(0, 1fr));
     width: 100%;
-    border-top: 1px solid #334155;
-    border-left: 1px solid #334155;
+    border-top: 1.1px solid #1e293b;
+    border-left: 1.1px solid #1e293b;
     box-sizing: border-box;
 }
 
 .ei-char-grid-full .ei-char-box {
     width: 100%;
-    height: 5.3mm;
+    height: 5.7mm;
     border-top: none;
     border-left: none;
-    border-right: 1px solid #334155;
-    border-bottom: 1px solid #334155;
+    border-right: 1.1px solid #1e293b;
+    border-bottom: 1.1px solid #1e293b;
 }
 
 /* Inline Fixed-Count Checkbook Grid (For DOB, Mobile, PIN, Aadhaar) */
 .ei-char-grid-inline {
     display: inline-flex;
     flex-wrap: nowrap;
-    border-top: 1px solid #334155;
-    border-left: 1px solid #334155;
+    border-top: 1.1px solid #1e293b;
+    border-left: 1.1px solid #1e293b;
     vertical-align: middle;
 }
 
 .ei-char-grid-inline .ei-char-box {
     width: 5.2mm;
-    height: 5.3mm;
+    height: 5.7mm;
     border-top: none;
     border-left: none;
-    border-right: 1px solid #334155;
-    border-bottom: 1px solid #334155;
+    border-right: 1.1px solid #1e293b;
+    border-bottom: 1.1px solid #1e293b;
 }
 
 .ei-char-box {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
-    font-weight: 800;
+    font-size: 11.8px;
+    font-weight: 900;
     color: #0f172a;
     text-transform: uppercase;
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.88);
     box-sizing: border-box;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Plus Jakarta Sans', Arial, sans-serif;
     line-height: 1;
 }
 
 .ei-char-box.watermark {
-    color: #cbd5e1;
+    color: #94a3b8;
     font-weight: 700;
-    font-size: 8.5px;
+    font-size: 9.2px;
 }
 
 .ei-tick-box {
-    width: 4.4mm;
-    height: 4.4mm;
-    border: 1.2px solid #1e293b;
+    width: 4.7mm;
+    height: 4.7mm;
+    border: 1.3px solid #0f172a;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 900;
-    background: #fff;
-    margin-left: 2.5px;
+    background: rgba(255, 255, 255, 0.9);
+    margin-left: 3px;
     margin-right: 6px;
     vertical-align: middle;
 }
 
 .ei-field-label {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 800;
-    color: #1e293b;
+    color: #0f172a;
     text-transform: uppercase;
     white-space: nowrap;
 }
 
 .ei-terms-clause {
-    font-size: 9.6px;
-    line-height: 1.4;
+    font-size: 10.6px;
+    line-height: 1.43;
     color: #1e293b;
     text-align: justify;
-    margin-bottom: 5.5px;
+    margin-bottom: 7px;
 }
 
 .ei-terms-clause strong {
@@ -349,7 +382,7 @@ body {
         width: 210mm !important;
         height: 296mm !important;
         margin: 0 !important;
-        padding: 6.5mm 8mm !important;
+        padding: 5.5mm 7mm !important;
         box-shadow: none !important;
     }
     * { 
