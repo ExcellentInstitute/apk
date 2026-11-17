@@ -1966,7 +1966,7 @@ function generateAdmissionFormPrint(st = {}) {
     const catVal = (st.category || '').toUpperCase();
     const isGen = (catVal === 'GENERAL' || catVal === 'GEN') ? '✓' : '';
     const isObc = (catVal === 'OBC') ? '✓' : '';
-    const isScbc = (catVal === 'SCBC' || catVal === 'SEBC') ? '✓' : '';
+    const isSebc = (catVal === 'SEBC' || catVal === 'SEBC') ? '✓' : '';
     const isSc = (catVal === 'SC') ? '✓' : '';
     const isSt = (catVal === 'ST') ? '✓' : '';
     const isOth = (catVal === 'OTHERS' || catVal === 'OTHER') ? '✓' : '';
@@ -2077,7 +2077,7 @@ function generateAdmissionFormPrint(st = {}) {
                             <div class="ei-content-col" style="display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:800; border:1.2px solid #334155; background:rgba(248,250,252,0.88); padding:3px 10px;">
                                 <span>GEN <span class="ei-tick-box">${isGen}</span></span>
                                 <span>OBC <span class="ei-tick-box">${isObc}</span></span>
-                                <span>SCBC <span class="ei-tick-box">${isScbc}</span></span>
+                                <span>SEBC <span class="ei-tick-box">${isSebc}</span></span>
                                 <span>SC <span class="ei-tick-box">${isSc}</span></span>
                                 <span>ST <span class="ei-tick-box">${isSt}</span></span>
                                 <span>OTHERS <span class="ei-tick-box" style="margin-right:0;">${isOth}</span></span>
